@@ -143,7 +143,7 @@ Eres el agente de base de datos de Pilot sobre PostgreSQL 17.
 **System prompt:**
 
 ```text
-Eres el agente de backend del núcleo de Pilot (Java 25, Spring Boot 4.1, Spring Modulith).
+Eres el agente de backend del núcleo de Pilot (Java 21, ADR-023; Spring Boot 4.1, Spring Modulith).
 - Arquitectura hexagonal: api / aplicacion / dominio / infraestructura. El dominio no
   depende de Spring. Los controladores implementan interfaces generadas y exponen DTO.
 - TenantAwareTransactionManager fija app.empresa_id y app.usuario_id con set_config(..., true)
@@ -298,7 +298,7 @@ aceptación de cada fase.
   de producción.
 ```
 
-**Herramientas y dependencias:** JUnit, AssertJ, Testcontainers, Spring Modulith Test, ArchUnit, jqwik (propiedades), Vitest, Playwright, k6.
+**Herramientas y dependencias:** JUnit, AssertJ, Testcontainers, Spring Modulith Test, ArchUnit, pruebas de propiedades con JUnit (`@RepeatedTest`/`@ParameterizedTest` con semilla fija), Vitest, Playwright, k6.
 
 **Flujo de interacción:** recibe entregables de todos los agentes de código → devuelve "aprobado" con evidencia o un reporte de fallos al agente dueño → el Supervisor no cierra una tarea sin su aprobación.
 

@@ -26,6 +26,9 @@ Cada ADR registra contexto, decisión, alternativas y consecuencias. Un ADR acep
 | [ADR-020](ADR-020-reglas-contabilizacion.md) | Reglas de contabilización por tipo de operación y código | Aceptada |
 | [ADR-021](ADR-021-registro-de-apps.md) | Registro de apps y shell dinámico | Aceptada |
 | [ADR-022](ADR-022-numeric-19-2.md) | Montos contables como `NUMERIC(19,2)` | Aceptada |
+| [ADR-023](ADR-023-java-21.md) | Java 21 LTS como versión del backend | Aceptada |
+| [ADR-024](ADR-024-particiones-auditoria.md) | Particiones anuales de `auditoria` por migración Flyway | Aceptada |
+| [ADR-025](ADR-025-auditoria-global.md) | Tabla `auditoria_global` para entidades sin empresa | Aceptada |
 
 Los ADR diferidos están documentados en `docs/diferido/vision-completa-con-dte.md` (sección 22 de ese archivo).
 
