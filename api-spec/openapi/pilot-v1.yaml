@@ -1,0 +1,306 @@
+# Contrato REST de Pilot 1.0 (fuente de verdad, ADR-003).
+# Contract-first: las interfaces Spring y el cliente Orval se generan desde este archivo.
+# Alcance de F0: solo componentes reutilizables y GET /me (F1). Los demás endpoints llegan en F2–F5.
+openapi: 3.1.0
+
+# --- Metadatos del contrato ---
+info:
+  title: Pilot API
+  version: 1.0.0
+  contact:
+    name: bcodesphere
+  description: >-
+    API REST de Pilot, ERP multiempresa para PYMES de El Salvador. Incluye el núcleo
+    (usuarios y empresas) y la app Contabilidad. Los montos viajan como cadena decimal
+    con 2 decimales (ADR-013) y los errores siguen RFC 9457 (Problem Details).
+
+# --- Servidores: ruta base relativa al host que sirve la API ---
+servers:
+  - url: /api/v1
+    description: Ruta base de la versión 1 de la API.
+
+# --- Etiquetas por módulo del backend (CLAUDE.md §4.2) ---
+tags:
+  - name: plataforma
+    description: Usuarios, empresas, membresías, API keys y registro de apps.
+  - name: contabilidad
+    description: Catálogo de cuentas, asientos, mayorización, estados financieros y reportes.
+  - name: integracion
+    description: Webhook de n8n y bitácora de operaciones externas.
+
+# --- Seguridad global: usuarios con OIDC; las rutas de n8n sobrescriben con apiKey ---
+security:
+  - oidc: []
+
+paths:
+  /me:
+    get:
+      operationId: obtenerUsuarioActual
+      tags: [plataforma]
+      summary: Usuario actual y sus membresías
+      description: >-
+        Implementado en F1. Devuelve el usuario autenticado y las empresas a las que
+        pertenece con su rol en cada una. No requiere el header X-Empresa-Id porque se
+        usa justamente para elegir la empresa activa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      responses:
+        '200':
+          description: Usuario autenticado con sus membresías activas.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioActual'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+components:
+  # --- Esquemas de seguridad ---
+  securitySchemes:
+    oidc:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token de acceso JWT emitido por Keycloak (OIDC con PKCE) para usuarios de la web.
+    apiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: pk_xxxx.secreto
+      description: API key de integración con formato pk_xxxx.secreto, usada por n8n; la empresa se deriva de la clave.
+
+  # --- Esquemas reutilizables ---
+  schemas:
+    Monto:
+      type: string
+      pattern: '^\d{1,17}(\.\d{1,2})?$'
+      examples: ['123.45']
+      description: >-
+        Monto en USD no negativo como cadena decimal con máximo 2 decimales (ADR-013); nunca número JSON.
+        El servidor siempre responde con exactamente 2 decimales.
+    MontoConSigno:
+      type: string
+      pattern: '^-?\d{1,17}(\.\d{1,2})?$'
+      examples: ['-10.50']
+      description: >-
+        Monto en USD que puede ser negativo (p. ej. una diferencia), como cadena decimal con máximo
+        2 decimales (ADR-013). El servidor siempre responde con exactamente 2 decimales.
+    Uuid:
+      type: string
+      format: uuid
+      description: Identificador UUID (versión 7 generado por la aplicación, ADR-010).
+    Fecha:
+      type: string
+      format: date
+      description: Fecha calendario ISO-8601 (AAAA-MM-DD); las fechas contables son de hora de El Salvador.
+    FechaHora:
+      type: string
+      format: date-time
+      description: Instante ISO-8601 en UTC.
+    ErrorCampo:
+      type: object
+      description: Detalle de un error de validación asociado a un campo.
+      required: [campo, mensaje]
+      properties:
+        campo:
+          type: string
+          description: Ruta del campo con error dentro del cuerpo o de los parámetros.
+        mensaje:
+          type: string
+          description: Mensaje de error en español.
+    ProblemDetails:
+      type: object
+      description: Error según RFC 9457 (application/problem+json) con extensiones de Pilot.
+      required: [type, title, status, codigo]
+      properties:
+        type:
+          type: string
+          description: URI que identifica el tipo de problema; about:blank si no hay uno específico.
+        title:
+          type: string
+          description: Resumen corto del problema, en español.
+        status:
+          type: integer
+          description: Código de estado HTTP de la respuesta.
+        detail:
+          type: string
+          description: Explicación del problema para esta ocurrencia; sin trazas ni datos internos.
+        instance:
+          type: string
+          description: URI o identificador de la ocurrencia concreta del problema.
+        codigo:
+          type: string
+          pattern: '^(PLT|CON|INT)-\d{3}$'
+          description: Código de negocio con prefijo del módulo (PLT plataforma, CON contabilidad, INT integración).
+        errores:
+          type: array
+          description: Errores de validación por campo; solo en fallos de validación.
+          items:
+            $ref: '#/components/schemas/ErrorCampo'
+        diferencia:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Diferencia Σ Debe − Σ Haber; solo en descuadres y cobros que no cuadran.
+    PaginaCursor:
+      type: object
+      description: Metadatos de paginación por cursor; los listados lo extienden con su arreglo de elementos.
+      properties:
+        siguienteCursor:
+          type: [string, 'null']
+          description: Cursor opaco para pedir la página siguiente; nulo cuando no hay más resultados.
+    Membresia:
+      type: object
+      description: Pertenencia del usuario a una empresa con su rol.
+      required: [empresaId, nombreEmpresa, rol]
+      properties:
+        empresaId:
+          $ref: '#/components/schemas/Uuid'
+        nombreEmpresa:
+          type: string
+          description: Razón social de la empresa.
+        rol:
+          type: string
+          enum: [admin_empresa, contador, auditor]
+          description: Rol del usuario dentro de la empresa (CLAUDE.md §14.2).
+    UsuarioActual:
+      type: object
+      description: Usuario autenticado y sus membresías activas.
+      required: [id, correo, nombre, membresias]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        correo:
+          type: string
+          description: Correo del usuario (dato personal; se enmascara en logs).
+        nombre:
+          type: string
+          description: Nombre completo del usuario.
+        membresias:
+          type: array
+          description: Empresas a las que el usuario pertenece.
+          items:
+            $ref: '#/components/schemas/Membresia'
+
+  # --- Parámetros reutilizables ---
+  parameters:
+    XEmpresaId:
+      name: X-Empresa-Id
+      in: header
+      required: true
+      description: Empresa activa de la sesión; se valida contra las membresías del usuario (CLAUDE.md §4.5).
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    XRequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      description: Identificador de correlación; se genera si no viene y se devuelve en la respuesta.
+      schema:
+        type: string
+        maxLength: 100
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Clave de idempotencia de la operación; repetir la misma clave con el mismo cuerpo devuelve la respuesta original.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 100
+    Limite:
+      name: limite
+      in: query
+      required: false
+      description: Cantidad máxima de elementos por página.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Cursor opaco devuelto como siguienteCursor en la página anterior.
+      schema:
+        type: string
+
+  # --- Headers reutilizables ---
+  headers:
+    X-Request-Id:
+      description: Identificador de correlación de la petición, para soporte y trazas.
+      schema:
+        type: string
+    Idempotency-Replayed:
+      description: Vale true cuando la respuesta es la guardada de una petición idempotente repetida.
+      schema:
+        type: boolean
+    Retry-After:
+      description: Segundos que el cliente debe esperar antes de reintentar.
+      schema:
+        type: integer
+
+  # --- Respuestas de error reutilizables (RFC 9457) ---
+  responses:
+    SolicitudInvalida:
+      description: 400 — El cuerpo o los parámetros no cumplen el contrato (incluye la lista errores).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NoAutenticado:
+      description: 401 — Falta la credencial o es inválida, está vencida o fue revocada.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Prohibido:
+      description: 403 — La credencial es válida pero no tiene rol, alcance o app activa para esta operación.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NoEncontrado:
+      description: 404 — El recurso no existe o no pertenece a la empresa activa.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Conflicto:
+      description: 409 — El estado actual del recurso impide la operación (duplicado o petición en proceso).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    EntidadNoProcesable:
+      description: 422 — La petición es válida en forma pero viola una regla de negocio (incluye diferencia si aplica).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    PrecondicionRequerida:
+      description: 428 — Falta un header obligatorio de precondición, como Idempotency-Key o If-Match.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    DemasiadasPeticiones:
+      description: 429 — Se superó el límite de peticiones; ver el header Retry-After.
+      headers:
+        Retry-After:
+          $ref: '#/components/headers/Retry-After'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    ErrorInterno:
+      description: 500 — Error interno; no expone trazas ni mensajes internos. Reintentar es seguro con idempotencia.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
