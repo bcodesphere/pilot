@@ -24,7 +24,7 @@ La facturación electrónica (DTE) está en segundo plano; su diseño se conserv
 
 ```bash
 cp .env.example .env                                     # Completa las contraseñas locales
-docker compose -f infra/docker/compose.dev.yml up -d      # PostgreSQL, Keycloak, n8n y Mailpit
+docker compose --env-file .env -f infra/docker/compose.dev.yml up -d      # PostgreSQL, Keycloak, n8n y Mailpit
 cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,api
 cd frontend && pnpm install && pnpm dev
 ```

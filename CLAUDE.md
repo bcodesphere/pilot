@@ -399,8 +399,8 @@ pilot-1.0/
 
 ```bash
 # --- Infraestructura local ---
-docker compose -f infra/docker/compose.dev.yml up -d      # Levanta PostgreSQL, Keycloak, n8n y Mailpit
-docker compose -f infra/docker/compose.dev.yml down       # Detiene dependencias
+docker compose --env-file .env -f infra/docker/compose.dev.yml up -d      # Levanta PostgreSQL, Keycloak, n8n y Mailpit
+docker compose --env-file .env -f infra/docker/compose.dev.yml down       # Detiene dependencias
 
 # --- Backend ---
 cd backend
