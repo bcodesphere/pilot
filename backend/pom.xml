@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Proyecto Maven de Pilot 1.0 (monolito modular). Todas las versiones están fijadas (sin rangos ni LATEST). -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Padre: Spring Boot fija la versión de Spring, Hibernate, Flyway, PostgreSQL, Testcontainers, JUnit y AssertJ -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.1</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.bcodesphere</groupId>
+  <artifactId>pilot</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>pilot</name>
+  <description>Pilot 1.0 - ERP multiempresa (núcleo + Contabilidad)</description>
+
+  <properties>
+    <!-- Java 21 LTS (ADR-023) -->
+    <maven.compiler.release>21</maven.compiler.release>
+    <java.version>21</java.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <!-- BOM de Spring Modulith (no lo gestiona el padre de Boot 4.1.1) -->
+    <spring-modulith.version>2.1.1</spring-modulith.version>
+
+    <!-- Bibliotecas de prueba fuera de los BOM -->
+    <archunit.version>1.5.0</archunit.version>
+
+    <!-- Plugins de calidad -->
+    <spotless.version>3.10.2</spotless.version>
+    <palantir-java-format.version>2.99.0</palantir-java-format.version>
+    <checkstyle-plugin.version>3.6.0</checkstyle-plugin.version>
+    <checkstyle.version>14.1.0</checkstyle.version>
+    <spotbugs-plugin.version>4.10.4.1</spotbugs-plugin.version>
+    <jacoco.version>0.8.15</jacoco.version>
+
+    <!-- Generador de interfaces y modelos desde el contrato OpenAPI (ADR-003) -->
+    <openapi-generator.version>7.25.0</openapi-generator.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- BOM de Spring Modulith: alinea core, JPA y test -->
+      <dependency>
+        <groupId>org.springframework.modulith</groupId>
+        <artifactId>spring-modulith-bom</artifactId>
+        <version>${spring-modulith.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Web, validación, persistencia, migraciones y operación -->
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-validation</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-jpa</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-jdbc</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-flyway</artifactId></dependency>
+    <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency>
+    <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>runtime</scope></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
+
+    <!-- Spring Modulith: límites de módulos -->
+    <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-core</artifactId></dependency>
+    <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-test</artifactId><scope>test</scope></dependency>
+
+    <!-- Pruebas -->
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-postgresql</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>${archunit.version}</version><scope>test</scope></dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Contract-first (ADR-003): genera solo interfaces Spring y modelos desde api-spec/openapi/pilot-v1.yaml.
+           El código queda en target/generated-sources (nunca se edita ni se versiona) y se compila y prueba como el resto. -->
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>${openapi-generator.version}</version>
+        <executions>
+          <execution>
+            <id>contrato-rest</id>
+            <phase>generate-sources</phase>
+            <goals><goal>generate</goal></goals>
+            <configuration>
+              <inputSpec>${project.basedir}/../api-spec/openapi/pilot-v1.yaml</inputSpec>
+              <generatorName>spring</generatorName>
+              <output>${project.build.directory}/generated-sources/openapi</output>
+              <!-- Un solo paquete para interfaces y modelos: es el paquete expuesto como @NamedInterface("contrato") -->
+              <apiPackage>com.bcodesphere.pilot.compartido.api.contrato</apiPackage>
+              <modelPackage>com.bcodesphere.pilot.compartido.api.contrato</modelPackage>
+              <!-- Sin archivos de soporte, pruebas ni documentación: solo interfaces y modelos -->
+              <generateSupportingFiles>false</generateSupportingFiles>
+              <generateApiTests>false</generateApiTests>
+              <generateModelTests>false</generateModelTests>
+              <generateApiDocumentation>false</generateApiDocumentation>
+              <generateModelDocumentation>false</generateModelDocumentation>
+              <configOptions>
+                <!-- Solo interfaces: los controladores los escribe cada módulo implementándolas -->
+                <interfaceOnly>true</interfaceOnly>
+                <skipDefaultInterface>true</skipDefaultInterface>
+                <useTags>true</useTags>
+                <!-- Jakarta EE (Spring Boot 3 y posteriores, incluido 4) y Bean Validation en los modelos -->
+                <useSpringBoot3>true</useSpringBoot3>
+                <useJakartaEe>true</useJakartaEe>
+                <useBeanValidation>true</useBeanValidation>
+                <performBeanValidation>false</performBeanValidation>
+                <!-- Sin dependencias extra (swagger-annotations, jackson-databind-nullable) -->
+                <documentationProvider>none</documentationProvider>
+                <annotationLibrary>none</annotationLibrary>
+                <openApiNullable>false</openApiNullable>
+                <!-- Fechas con java.time; sin marca de hora para que la generación sea reproducible -->
+                <dateLibrary>java8</dateLibrary>
+                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Empaquetado ejecutable -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+
+      <!-- Pruebas unitarias: solo *Test -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <includes><include>**/*Test.java</include></includes>
+        </configuration>
+      </plugin>
+
+      <!-- Pruebas de integración: solo *IT, en la fase verify -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <includes><include>**/*IT.java</include></includes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals><goal>integration-test</goal><goal>verify</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Formato: palantir-java-format; check enganchado a verify -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.version}</version>
+        <configuration>
+          <java>
+            <palantirJavaFormat><version>${palantir-java-format.version}</version></palantirJavaFormat>
+            <removeUnusedImports/>
+          </java>
+        </configuration>
+        <executions>
+          <execution><phase>verify</phase><goals><goal>check</goal></goals></execution>
+        </executions>
+      </plugin>
+
+      <!-- Checkstyle con reglas propias (compatibles con palantir); rompe el build si hay violaciones -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${checkstyle-plugin.version}</version>
+        <dependencies>
+          <dependency><groupId>com.puppycrawl.tools</groupId><artifactId>checkstyle</artifactId><version>${checkstyle.version}</version></dependency>
+        </dependencies>
+        <configuration>
+          <configLocation>config/checkstyle.xml</configLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <!-- Solo el código escrito a mano: el generado (target/generated-sources) queda fuera porque no se
+               formatea ni se documenta a mano, y el package-info.java de su paquete sí se revisa. -->
+          <sourceDirectories><sourceDirectory>${project.basedir}/src/main/java</sourceDirectory></sourceDirectories>
+          <testSourceDirectories><testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory></testSourceDirectories>
+          <consoleOutput>true</consoleOutput>
+          <failOnViolation>true</failOnViolation>
+          <violationSeverity>warning</violationSeverity>
+        </configuration>
+        <executions>
+          <execution><phase>verify</phase><goals><goal>check</goal></goals></execution>
+        </executions>
+      </plugin>
+
+      <!-- SpotBugs con exclusiones propias -->
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${spotbugs-plugin.version}</version>
+        <configuration>
+          <excludeFilterFile>config/spotbugs-exclude.xml</excludeFilterFile>
+          <failOnError>true</failOnError>
+        </configuration>
+        <executions>
+          <execution><phase>verify</phase><goals><goal>check</goal></goals></execution>
+        </executions>
+      </plugin>
+
+      <!-- Cobertura: solo reporte, sin umbral todavía -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution><id>prepare</id><goals><goal>prepare-agent</goal></goals></execution>
+          <execution><id>report</id><phase>verify</phase><goals><goal>report</goal></goals></execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

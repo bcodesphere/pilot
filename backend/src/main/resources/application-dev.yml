@@ -1,0 +1,12 @@
+# Perfil dev: PostgreSQL local levantado con infra/docker/compose.dev.yml. Las contraseñas vienen del entorno.
+spring:
+  # Conexión de la aplicación: usuario pilot_app (sin ser dueño ni BYPASSRLS, CLAUDE.md 1.2.11)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pilot
+    username: pilot_app
+    password: ${PG_APP_PASSWORD}
+
+  # Migraciones Flyway: se ejecutan con pilot_owner, dueño del esquema
+  flyway:
+    user: pilot_owner
+    password: ${PG_OWNER_PASSWORD}
