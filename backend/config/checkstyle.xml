@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!-- Reglas propias de Pilot. No incluye reglas de formato (espacios, llaves, largo de línea): eso lo controla palantir vía Spotless. -->
+<module name="Checker">
+  <property name="severity" value="warning"/>
+  <property name="charset" value="UTF-8"/>
+
+  <module name="TreeWalker">
+    <!-- Higiene de imports -->
+    <module name="AvoidStarImport"/>
+    <module name="UnusedImports"/>
+    <module name="RedundantImport"/>
+    <!-- Errores comunes -->
+    <module name="EmptyStatement"/>
+    <module name="EqualsHashCode"/>
+    <module name="MissingSwitchDefault"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+    <module name="ModifierOrder"/>
+    <!-- Convenciones de nombres -->
+    <module name="TypeName"/>
+    <module name="MethodName"/>
+    <module name="ConstantName"/>
+    <!-- Regla del equipo (CLAUDE.md 8.2): Javadoc en tipos -->
+    <module name="MissingJavadocType">
+      <property name="scope" value="protected"/>
+    </module>
+    <!-- Regla del equipo (CLAUDE.md 1.1.1 y 8.2): Javadoc en métodos públicos, salvo @Override y getters/setters -->
+    <module name="MissingJavadocMethod">
+      <property name="scope" value="public"/>
+      <property name="allowMissingPropertyJavadoc" value="true"/>
+      <property name="allowedAnnotations" value="Override"/>
+    </module>
+    <!-- 60 es el tope duro que rompe el build; la guía de CLAUDE.md 8.3 es ~40 líneas por método -->
+    <module name="MethodLength">
+      <property name="max" value="60"/>
+    </module>
+  </module>
+</module>

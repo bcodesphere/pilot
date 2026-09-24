@@ -1,0 +1,26 @@
+# Dependabot de Pilot 1.0: actualizaciones semanales por ecosistema (CLAUDE.md §14.1).
+version: 2
+updates:
+  # Dependencias y plugins de Maven del backend
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+
+  # Dependencias del frontend; Dependabot lee pnpm-lock.yaml bajo el ecosistema npm
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+
+  # Acciones de GitHub fijadas por SHA (Dependabot actualiza SHA y comentario de versión)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Imágenes del compose de desarrollo
+  - package-ecosystem: docker
+    directory: /infra/docker
+    schedule:
+      interval: weekly

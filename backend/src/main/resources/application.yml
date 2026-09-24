@@ -1,0 +1,26 @@
+# Configuración base de Pilot (común a todos los perfiles). Sin secretos: solo variables de entorno.
+spring:
+  application:
+    name: pilot
+
+  # Perfil de ejecución por defecto: api (CLAUDE.md 4.1; el perfil worker está diferido)
+  profiles:
+    default: api
+
+  # JPA: sin sesión abierta en la vista y esquema controlado solo por Flyway
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        # Fechas-hora hacia/desde JDBC siempre en UTC (TIMESTAMPTZ)
+        jdbc:
+          time_zone: UTC
+
+# Logs estructurados JSON nativos de Spring Boot (CLAUDE.md 16.4). El formato logstash incluye todo el MDC
+# (traceId, y empresaId/usuarioId/modulo cuando el contexto de empresa los publique en F0-06).
+logging:
+  structured:
+    format:
+      console: logstash

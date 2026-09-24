@@ -1,0 +1,172 @@
+# CI de Pilot 1.0 (CLAUDE.md §16.3, plan F0 tarea 7).
+# Cuatro jobs independientes: secretos, contrato, backend y frontend.
+# Construcción de imagen, GHCR, despliegue, CodeQL y Trivy quedan para F6.
+name: CI
+
+# Se ejecuta en cada PR y en cada push a main
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Permisos mínimos: ningún job necesita más que leer el código
+permissions:
+  contents: read
+
+# Cancela ejecuciones viejas de la misma rama cuando llega un commit nuevo
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Búsqueda de secretos en todo el historial (CLAUDE.md §1.2.7, §14.1).
+  # No se usa gitleaks/gitleaks-action: exige licencia de pago en organizaciones.
+  # ---------------------------------------------------------------------------
+  secretos:
+    name: Secretos (gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      # Versión fijada del binario y su SHA-256 oficial (gitleaks_8.30.1_checksums.txt)
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      # 1. Historial completo: gitleaks revisa cada commit, no solo el último
+      - name: Checkout con historial completo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # 2. Descarga el binario y verifica su integridad antes de ejecutarlo
+      - name: Instalar gitleaks
+        run: |
+          curl -fsSL -o gitleaks.tgz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tgz" | sha256sum --check -
+          tar -xzf gitleaks.tgz gitleaks
+
+      # 3. Escanea el historial git; falla si encuentra algún secreto (--redact no imprime valores)
+      - name: Escanear historial
+        run: ./gitleaks detect --source . --redact --verbose
+
+  # ---------------------------------------------------------------------------
+  # Lint del contrato OpenAPI (ADR-003): cualquier advertencia rompe el build.
+  # ---------------------------------------------------------------------------
+  contrato:
+    name: Contrato (Spectral)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Node solo para ejecutar Spectral con npx
+      - name: Configurar Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.18.0
+
+      # Spectral con versión fijada; warn o error fallan el job
+      - name: Lint del contrato
+        run: >
+          npx -y @stoplight/spectral-cli@6.16.3 lint api-spec/openapi/pilot-v1.yaml
+          --ruleset api-spec/.spectral.yaml --fail-severity=warn
+
+  # ---------------------------------------------------------------------------
+  # Backend: formato, compilación, pruebas unitarias, de integración y arquitectura.
+  # El build lee ../api-spec (código generado) y ../infra/docker/postgres (pruebas),
+  # por eso se hace checkout del repositorio completo.
+  # ---------------------------------------------------------------------------
+  backend:
+    name: Backend (Maven)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # JDK 21 Temurin (ADR-023) con caché del repositorio local de Maven
+      - name: Configurar JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      # Formato palantir-java-format
+      - name: Verificar formato (Spotless)
+        run: ./mvnw -B spotless:check
+
+      # Unitarias + integración (Testcontainers usa el Docker del runner) + arquitectura + calidad
+      - name: Verify
+        run: ./mvnw -B verify
+
+      # Reportes de pruebas y cobertura, también cuando el job falla
+      - name: Publicar reportes de pruebas y JaCoCo
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reportes-backend
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+            backend/target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Frontend: cliente generado, lint, pruebas y compilación.
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend (pnpm)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      # El cliente Orval se genera desde ../api-spec, por eso el checkout es completo
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # pnpm 9.15.9: la versión sale de "packageManager" en frontend/package.json
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: frontend/package.json
+
+      # Node 22.18.0 (engines) con caché del store de pnpm
+      - name: Configurar Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      # Instalación reproducible: falla si el lockfile no coincide con package.json
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # Genera el cliente API desde el contrato (no se versiona a mano)
+      - name: Generar cliente API
+        run: pnpm api:generate
+
+      - name: Lint (ESLint y Prettier)
+        run: pnpm lint
+
+      - name: Pruebas (Vitest)
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build

@@ -1,0 +1,79 @@
+# infra/docker/compose.dev.yml — dependencias de Pilot 1.0 para desarrollo local (CLAUDE.md §16.2)
+# Uso (desde la raíz): docker compose --env-file .env -f infra/docker/compose.dev.yml up -d
+# (compose busca .env junto al compose, no en la raíz; por eso se pasa --env-file)
+# Todas las imágenes llevan versión exacta (parche); nunca "latest" ni etiquetas flotantes.
+# Todas las contraseñas y llaves vienen del entorno: si falta alguna, compose aborta con el mensaje indicado.
+name: pilot-dev
+
+services:
+
+  # 1. Base de datos principal de Pilot.
+  postgres:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_DB: pilot
+      # pilot_owner es el POSTGRES_USER de la imagen: en DESARROLLO es superusuario (así lo crea la imagen)
+      # y lo usa Flyway. [DECISIÓN] F6: en producción debe ser un rol dueño SIN superusuario.
+      # La aplicación NUNCA se conecta con él, sino con pilot_app (regla 1.2.11).
+      POSTGRES_USER: pilot_owner
+      POSTGRES_PASSWORD: ${PG_OWNER_PASSWORD:?Defina PG_OWNER_PASSWORD en .env}
+      # Se reenvía al script 01-roles.sh, que crea el rol pilot_app con esta contraseña.
+      PG_APP_PASSWORD: ${PG_APP_PASSWORD:?Defina PG_APP_PASSWORD en .env}
+    ports: ["5432:5432"]
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      # Scripts de inicialización (solo corren la primera vez, con el volumen vacío).
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Listo cuando acepta conexiones a la base pilot con el dueño.
+      test: ["CMD-SHELL", "pg_isready -U pilot_owner -d pilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 2. Proveedor de identidad (registro, login OIDC, MFA). El realm "pilot" se crea en F1.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.5
+    command: start-dev --import-realm   # Importa los realms de /opt/keycloak/data/import (vacío hasta F1)
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:?Defina KC_ADMIN_PASSWORD en .env}
+      KC_HEALTH_ENABLED: "true"         # Expone /health/* en el puerto de gestión (9000) para el healthcheck
+    ports: ["8180:8080"]
+    volumes:
+      - ../keycloak:/opt/keycloak/data/import:ro   # Realm versionado (F1)
+    healthcheck:
+      # La imagen no trae curl: se consulta /health/ready con /dev/tcp de bash.
+      test:
+        - "CMD-SHELL"
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"status": "UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  # 3. Orquestador que reenvía los cierres de ingresos al webhook de Pilot (externo a la API).
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.14.2
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Defina N8N_ENCRYPTION_KEY en .env}
+      GENERIC_TIMEZONE: America/El_Salvador   # Zona horaria de negocio
+      TZ: America/El_Salvador
+    ports: ["${N8N_PUERTO:-5678}:5678"]   # Puerto de host configurable si el 5678 está ocupado
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  # 4. Captura los correos de verificación de Keycloak (nada sale a Internet).
+  mailpit:
+    image: axllent/mailpit:v1.31.2
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Bandeja web
+
+# Volúmenes con nombre: persisten los datos entre reinicios ('down -v' los borra).
+volumes:
+  pg_data:
+  n8n_data:

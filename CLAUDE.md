@@ -16,7 +16,7 @@
 | Zona horaria de negocio | `America/El_Salvador` (UTC−6, sin horario de verano) |
 | Idioma de producto | Español (`es-SV`) |
 | Estado actual | Fase F0 — Fundaciones (ver `docs/plan-de-trabajo.md`) |
-| Última actualización de este archivo | 2026-09-23 |
+| Última actualización de este archivo | 2026-09-24 |
 
 ---
 
@@ -281,7 +281,7 @@ public class TenantAwareTransactionManager extends JpaTransactionManager {
 
 | Componente | Elección | Uso |
 |---|---|---|
-| Lenguaje | Java 25 LTS (mínimo Java 21) | — |
+| Lenguaje | Java 21 LTS (ADR-023) | `maven.compiler.release` = 21 |
 | Framework | Spring Boot 4.1.x (Spring Framework 7) | — |
 | Modularidad | Spring Modulith | Límites de módulos |
 | Build | Maven (wrapper `./mvnw`) | — |
@@ -399,8 +399,8 @@ pilot-1.0/
 
 ```bash
 # --- Infraestructura local ---
-docker compose -f infra/docker/compose.dev.yml up -d      # Levanta PostgreSQL, Keycloak, n8n y Mailpit
-docker compose -f infra/docker/compose.dev.yml down       # Detiene dependencias
+docker compose --env-file .env -f infra/docker/compose.dev.yml up -d      # Levanta PostgreSQL, Keycloak, n8n y Mailpit
+docker compose --env-file .env -f infra/docker/compose.dev.yml down       # Detiene dependencias
 
 # --- Backend ---
 cd backend
@@ -501,6 +501,19 @@ static void validarPartidaDoble(List<LineaAsiento> lineas) {
 - Campo `codigo` con prefijo por módulo: `PLT-` (plataforma), `CON-` (contabilidad), `INT-` (integración).
 - Los errores de validación incluyen la lista `errores` con `campo` y `mensaje`; los descuadres incluyen `diferencia`.
 - Nunca exponer trazas de pila ni mensajes internos.
+- Catálogo de códigos `PLT-` (los `CON-` e `INT-` están en las secciones 10 a 12). Un código nuevo se agrega aquí antes de usarlo:
+
+| Código | HTTP | Causa |
+|---|---|---|
+| `PLT-001` | 400 | Cuerpo JSON ilegible o con tipos incorrectos (incluye un monto enviado como número) |
+| `PLT-002` | 422 | Validación de forma (Bean Validation) sobre cuerpo o parámetros; incluye `errores` |
+| `PLT-003` | 403 | `X-Empresa-Id` sin membresía activa del usuario |
+| `PLT-004` | 403 | La app no está activa para la empresa (ADR-021) |
+| `PLT-005` | 422 | `Idempotency-Key` reutilizada con otro cuerpo (fuera del webhook, que usa `INT-005`) |
+| `PLT-006` | 428 | Falta `Idempotency-Key` (fuera del webhook, que usa `INT-008`) |
+| `PLT-007` | 404, 405, 415 | Ruta, método o tipo de contenido no soportado |
+| `PLT-008` | 409 | Otra petición con la misma `Idempotency-Key` está en proceso; reintentar (fuera del webhook, que usa `INT-009`) |
+| `PLT-500` | 500 | Error interno; sin detalle en la respuesta |
 
 ### 8.5 Git
 
@@ -517,7 +530,7 @@ static void validarPartidaDoble(List<LineaAsiento> lineas) {
 
 | Módulo | Tablas | RLS |
 |---|---|---|
-| `plataforma` | `usuario` (global), `empresa`, `empresa_usuario`, `api_key`, `aplicacion` (global), `empresa_aplicacion`, `auditoria`, `idempotencia` | Sí, salvo tablas globales |
+| `plataforma` | `usuario` (global), `empresa`, `empresa_usuario`, `api_key`, `aplicacion` (global), `empresa_aplicacion`, `auditoria`, `auditoria_global` (global), `idempotencia` | Sí, salvo tablas globales |
 | `contabilidad` | `tasa_impuesto` (global), `plantilla_cuenta` (global), `cuenta_contable`, `configuracion_contable`, `regla_contabilizacion`, `correlativo_asiento`, `asiento`, `asiento_linea`, `saldo_cuenta_mensual` | Sí, salvo tablas globales |
 | `integracion` | `operacion_externa`, `intento_operacion_externa` | Sí |
 
@@ -601,7 +614,9 @@ CREATE TABLE idempotencia (
 );
 ```
 
-`auditoria`: insert-only, particionada por mes, retención 10 años (entidad, id, acción, usuario, valor anterior y nuevo en JSONB, `traceId`).
+`auditoria`: insert-only, particionada por mes, retención 10 años (entidad, id, acción, usuario, valor anterior y nuevo en JSONB, `traceId`). Las particiones del año siguiente se crean con una migración anual y `auditoria_default` debe estar siempre vacía (ADR-024).
+
+`auditoria_global`: mismas columnas sin `empresa_id`, para entidades sin empresa como `usuario`; sin RLS por empresa, y `pilot_app` solo con `INSERT` (ADR-025).
 
 ### 9.3 Contabilidad
 
@@ -1294,7 +1309,7 @@ La aplicación se conecta con `pilot_app` (sin privilegios de dueño ni `BYPASSR
 
 - Logs JSON con `traceId`, `empresaId`, `usuarioId`, `modulo`; datos personales enmascarados.
 - Métricas: asientos creados por origen, operaciones n8n aceptadas y rechazadas por código, latencia p95 del webhook y del registro de asientos.
-- Alertas: tasa de rechazo de n8n > 10 % en 1 hora por empresa; diferencia en el diagnóstico de mayorización ≠ 0 (crítica); respaldo fallido en 24 horas (crítica).
+- Alertas: tasa de rechazo de n8n > 10 % en 1 hora por empresa; diferencia en el diagnóstico de mayorización ≠ 0 (crítica); respaldo fallido en 24 horas (crítica); `auditoria_default` con filas (ADR-024).
 
 ---
 
@@ -1344,6 +1359,9 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 | ADR-020 | Reglas de contabilización por tipo de operación × categoría × código, editables y precargadas | Aceptada |
 | ADR-021 | Registro de apps y shell de frontend con apps cargadas dinámicamente | Aceptada |
 | ADR-022 | Montos contables como `NUMERIC(19,2)` | Aceptada |
+| ADR-023 | Java 21 LTS como versión del backend | Aceptada |
+| ADR-024 | Particiones anuales de `auditoria` por migración Flyway y alerta sobre `auditoria_default` | Aceptada |
+| ADR-025 | Tabla `auditoria_global` para entidades sin empresa | Aceptada |
 
 ---
 

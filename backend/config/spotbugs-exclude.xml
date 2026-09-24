@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Exclusiones de SpotBugs. Cada exclusión debe limitarse a una clase o paquete concreto y llevar su
+     justificación; no se admiten exclusiones globales por patrón. -->
+<FindBugsFilter>
+  <!-- Falso positivo aprobado por el revisor en F0-05: doFilterInternal solo escribe el X-Request-Id del cliente
+       si cumple ^[A-Za-z0-9._-]{1,64}$ (sin CR/LF), así que no hay división de respuesta HTTP. SpotBugs no
+       reconoce la validación por regex y CLAUDE.md 12.2 exige devolver el X-Request-Id recibido. -->
+  <Match>
+    <Class name="com.bcodesphere.pilot.compartido.api.FiltroRequestId"/>
+    <Method name="doFilterInternal"/>
+    <Bug pattern="HRS_REQUEST_PARAMETER_TO_HTTP_HEADER"/>
+  </Match>
+
+  <!-- Código generado por openapi-generator desde api-spec/openapi/pilot-v1.yaml (F0-06, ADR-003). No se edita ni
+       se corrige a mano: se regenera en cada build. Se excluye solo su paquete; el código escrito a mano sigue
+       analizándose completo. -->
+  <Match>
+    <Package name="com.bcodesphere.pilot.compartido.api.contrato"/>
+  </Match>
+</FindBugsFilter>

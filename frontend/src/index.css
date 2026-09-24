@@ -1,0 +1,3 @@
+/* Estilos globales: Tailwind CSS v4 y animaciones de shadcn/ui */
+@import 'tailwindcss';
+@import 'tw-animate-css';

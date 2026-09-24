@@ -1,0 +1,90 @@
+# Reglas de lint del contrato REST de Pilot (ADR-003). Se ejecutan en CI y localmente.
+# Base: reglas estándar de OpenAPI de Spectral; abajo, las reglas propias de Pilot (todas en error).
+extends: spectral:oas
+
+rules:
+  # F0 define una biblioteca de componentes que los endpoints de F1–F5 irán usando. Reactivar al cerrar F5
+  oas3-unused-component: off
+
+  # 1. Toda operación documentada (CLAUDE.md §8.2)
+  pilot-descripcion-operacion:
+    description: Toda operación debe tener description.
+    severity: error
+    given: "$.paths[*][get,put,post,patch,delete]"
+    then: { field: description, function: truthy }
+
+  # 2. Todo parámetro documentado, en línea o reutilizable
+  pilot-descripcion-parametro:
+    description: Todo parámetro debe tener description.
+    severity: error
+    given: ["$.paths..parameters[*]", "$.components.parameters[*]"]
+    then: { field: description, function: truthy }
+
+  # 3. Toda propiedad de esquema documentada
+  pilot-descripcion-propiedad:
+    description: Toda propiedad de esquema debe tener description.
+    severity: error
+    given: "$..properties[*]"
+    then: { field: description, function: truthy }
+
+  # 4. operationId obligatorio y en camelCase
+  pilot-operation-id-camel-case:
+    description: operationId es obligatorio y va en camelCase.
+    severity: error
+    given: "$.paths[*][get,put,post,patch,delete]"
+    then:
+      field: operationId
+      function: pattern
+      functionOptions: { match: "^[a-z][a-zA-Z0-9]*$" }
+
+  # 5. Rutas en kebab-case (los parámetros {camelCase} se permiten)
+  pilot-rutas-kebab-case:
+    description: Los segmentos de ruta van en kebab-case (CLAUDE.md §8.1).
+    severity: error
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions: { match: "^(/([a-z0-9]+(-[a-z0-9]+)*|\\{[a-z][a-zA-Z0-9]*\\}))+$" }
+
+  # 6. Propiedades JSON en camelCase
+  pilot-propiedades-camel-case:
+    description: Las propiedades JSON van en camelCase.
+    severity: error
+    given: "$..properties[*]~"
+    then:
+      function: casing
+      functionOptions: { type: camel }
+
+  # 7. Errores siempre como Problem Details (RFC 9457)
+  pilot-errores-problem-json:
+    description: Toda respuesta 4xx/5xx usa application/problem+json.
+    severity: error
+    given:
+      - "$.paths[*][*].responses[?(@property.match(/^[45]/))]"
+      - "$.components.responses[*]"
+    then:
+      field: content
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: [application/problem+json]
+
+  # 8. Dinero nunca como number/integer (ADR-013)
+  # Detecta la palabra en camelCase: el nombre empieza por monto|total|debe|haber|iva|base, o contiene
+  # Monto|Total|Debe|Haber|Iva|Base con mayúscula inicial (database, activa y privada no coinciden).
+  # Un conteo entero debe llamarse cantidad* (no total*) para no chocar con esta regla.
+  pilot-sin-montos-numericos:
+    description: Propiedades de dinero (monto*, total*, debe*, haber*, iva*, base* o con esa palabra en camelCase) no pueden ser number ni integer, ni solos ni en arreglo de tipos; usar Monto.
+    severity: error
+    given: "$..properties[?(@property.match(/^(monto|total|debe|haber|iva|base)|(Monto|Total|Debe|Haber|Iva|Base)/))]"
+    then:
+      field: type
+      function: schema
+      functionOptions:
+        schema:
+          not:
+            anyOf:
+              - enum: [number, integer]
+              - type: array
+                contains: { enum: [number, integer] }

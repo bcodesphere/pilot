@@ -1,0 +1,7 @@
+# Código generado, dependencias y salidas de compilación
+src/api/
+node_modules/
+dist/
+pnpm-lock.yaml
+playwright-report/
+test-results/
