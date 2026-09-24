@@ -1,0 +1,18 @@
+# Formato base común para todos los editores del equipo
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Java sigue palantir-java-format (4 espacios)
+[*.java]
+indent_size = 4
+
+# En Markdown los espacios finales pueden ser saltos de línea intencionales
+[*.md]
+trim_trailing_whitespace = false

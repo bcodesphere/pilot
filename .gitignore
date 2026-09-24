@@ -1,0 +1,52 @@
+# --- Secretos (regla 1.2.7 de CLAUDE.md): nunca se commitean ---
+.env
+.env.*
+!.env.example
+*.crt
+*.p12
+*.pem
+*.key
+secretos/
+
+# --- Backend (Maven / Java) ---
+backend/target/
+*.class
+*.log
+hs_err_pid*
+
+# --- Frontend (pnpm / Vite) ---
+node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+.pnpm-store/
+
+# --- IDE y sistema operativo ---
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+.DS_Store
+Thumbs.db
+
+# --- Herramientas de asistencia de código: configuración y cachés locales ---
+.claude/
+.mcp.json
+CLAUDE.local.md
+.cursor/
+.cursorrules
+.cursorignore
+.aider*
+.continue/
+.codeium/
+.windsurf/
+.windsurfrules
+.copilot/
+.github/copilot-instructions.md
+.gemini/
+GEMINI.md
+AGENTS.md
+.codex/
+.superpowers/
+.specstory/
