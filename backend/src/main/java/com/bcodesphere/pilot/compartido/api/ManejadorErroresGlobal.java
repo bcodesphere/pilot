@@ -14,11 +14,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Traduce toda excepción a Problem Details (RFC 9457, CLAUDE.md 8.4). Nunca expone trazas, mensajes internos
@@ -100,6 +105,86 @@ public class ManejadorErroresGlobal {
                 null));
     }
 
+    /**
+     * Header obligatorio ausente. {@code If-Match} falta en una edición con concurrencia optimista: 428 PLT-015;
+     * {@code Idempotency-Key}: 428 PLT-006; cualquier otro: 422 PLT-002 con el nombre del header en {@code errores}
+     * (CLAUDE.md 8.4).
+     */
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ProblemaDto> headerAusente(MissingRequestHeaderException ex, HttpServletRequest req) {
+        String header = ex.getHeaderName();
+        // 1. Los dos headers de precondición tienen su propio código y estado 428
+        if ("If-Match".equalsIgnoreCase(header)) {
+            LOG.warn("Falta el header If-Match");
+            return responder(precondicion("PLT-015", "Falta el header If-Match", req));
+        }
+        if ("Idempotency-Key".equalsIgnoreCase(header)) {
+            LOG.warn("Falta el header Idempotency-Key");
+            return responder(precondicion("PLT-006", "Falta el header Idempotency-Key", req));
+        }
+        // 2. Cualquier otro header obligatorio es un error de validación de la petición
+        return validacion(List.of(new ErrorCampo(header, "El header es obligatorio")), req);
+    }
+
+    /** Parámetro de consulta obligatorio ausente: 422 PLT-002 con el nombre del parámetro en {@code errores}. */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ProblemaDto> parametroAusente(
+            MissingServletRequestParameterException ex, HttpServletRequest req) {
+        return validacion(List.of(new ErrorCampo(ex.getParameterName(), "El parámetro es obligatorio")), req);
+    }
+
+    /** Parámetro o variable de ruta con un tipo inválido (p. ej. un UUID mal formado): 400 PLT-001. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ProblemaDto> tipoInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
+        // El detalle de Spring nombra clases internas: solo el nombre del parámetro va en el mensaje
+        LOG.warn("Parámetro {} con un tipo inválido", ex.getName());
+        return responder(new ProblemaDto(
+                TIPO,
+                titulo(400),
+                400,
+                "El parámetro '" + ex.getName() + "' tiene un formato inválido",
+                req.getRequestURI(),
+                "PLT-001",
+                null,
+                null));
+    }
+
+    /**
+     * Falta la credencial o es inválida: 401 PLT-009. Lo usa el punto de entrada de la seguridad (que delega en el
+     * resolvedor de excepciones de MVC) para que el 401 tenga el mismo formato que cualquier otro error.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ProblemaDto> noAutenticado(AuthenticationException ex, HttpServletRequest req) {
+        LOG.warn("Petición no autenticada");
+        return responder(new ProblemaDto(
+                TIPO,
+                titulo(401),
+                401,
+                "Falta la credencial o es inválida, está vencida o fue revocada",
+                req.getRequestURI(),
+                "PLT-009",
+                null,
+                null));
+    }
+
+    /**
+     * Rol o alcance insuficiente: 403 PLT-010. Cubre tanto el rechazo del filtro de seguridad como la
+     * {@link AccessDeniedException} de la seguridad de métodos, que sin este manejador terminaría en 500.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemaDto> accesoDenegado(AccessDeniedException ex, HttpServletRequest req) {
+        LOG.warn("Acceso denegado por rol o alcance insuficiente");
+        return responder(new ProblemaDto(
+                TIPO,
+                titulo(403),
+                403,
+                "No tiene permiso para realizar esta operación",
+                req.getRequestURI(),
+                "PLT-010",
+                null,
+                null));
+    }
+
     /** Cualquier otra excepción: 500 PLT-500 sin detalle interno; el error completo queda en el log. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemaDto> inesperado(Exception ex, HttpServletRequest req) {
@@ -136,6 +221,11 @@ public class ManejadorErroresGlobal {
                 "PLT-002",
                 errores,
                 null));
+    }
+
+    /** Arma un problema 428 (precondición requerida) con su código. */
+    private static ProblemaDto precondicion(String codigo, String detalle, HttpServletRequest req) {
+        return new ProblemaDto(TIPO, titulo(428), 428, detalle, req.getRequestURI(), codigo, null, null);
     }
 
     /** Envuelve el problema con el estado y el media type {@code application/problem+json}. */

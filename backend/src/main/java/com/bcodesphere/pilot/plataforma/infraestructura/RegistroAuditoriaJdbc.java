@@ -15,10 +15,11 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Adaptador JDBC de {@link RegistroAuditoria}: inserta en {@code auditoria} (solo inserción, CLAUDE.md 9.2) dentro
- * de la transacción del llamador, que es obligatoria (MANDATORY): la auditoría se confirma o revierte con la mutación. Empresa y usuario salen del {@link ContextoEmpresa}; el {@code traceId}, del MDC.
+ * de la transacción del llamador, que es obligatoria (MANDATORY): la auditoría se confirma o revierte con la mutación.
+ * Empresa y usuario salen del {@link ContextoEmpresa}; el {@code traceId}, del MDC.
  *
- * <p>Destino global (ADR-025): el INSERT está aislado en {@link #insertar}; cuando F1 cree {@code auditoria_global}
- * bastará elegir la tabla ahí según la entidad. No se implementa en F0 porque la tabla aún no existe.
+ * <p>Destino global (ADR-025): {@link #registrarGlobal} inserta en {@code auditoria_global}, sin empresa. Ese INSERT no
+ * lleva {@code RETURNING} porque {@code pilot_app} solo tiene {@code INSERT} sobre la tabla (V4).
  */
 @Repository
 class RegistroAuditoriaJdbc implements RegistroAuditoria {
@@ -55,7 +56,27 @@ class RegistroAuditoriaJdbc implements RegistroAuditoria {
                 MDC.get(ClavesMdc.TRACE_ID));
     }
 
-    /** Ejecuta el INSERT en {@code auditoria}; punto único donde se elegirá la tabla global en F1 (ADR-025). */
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void registrarGlobal(
+            String entidad, String entidadId, String accion, Object valorAnterior, Object valorNuevo) {
+        // 1. Sin empresa: solo el usuario del contexto (o "sistema") y el traceId; nunca RETURNING (solo INSERT)
+        jdbc.sql("INSERT INTO auditoria_global (id, entidad, entidad_id, accion, usuario_id,"
+                        + " valor_anterior, valor_nuevo, trace_id)"
+                        + " VALUES (:id, :entidad, :entidadId, :accion, :usuario,"
+                        + " CAST(:anterior AS jsonb), CAST(:nuevo AS jsonb), :trace)")
+                .param("id", GeneradorId.nuevo())
+                .param("entidad", entidad)
+                .param("entidadId", entidadId)
+                .param("accion", accion)
+                .param("usuario", ContextoEmpresa.usuarioOSistema())
+                .param("anterior", aJson(valorAnterior))
+                .param("nuevo", aJson(valorNuevo))
+                .param("trace", MDC.get(ClavesMdc.TRACE_ID))
+                .update();
+    }
+
+    /** Ejecuta el INSERT en {@code auditoria} (entidades con empresa). */
     private void insertar(
             UUID empresaId,
             String entidad,

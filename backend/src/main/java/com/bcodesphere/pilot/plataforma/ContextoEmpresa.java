@@ -8,35 +8,50 @@ import java.util.function.Supplier;
  * El gestor de transacciones lo lee al iniciar cada transacción para fijar {@code app.empresa_id} y
  * {@code app.usuario_id} en PostgreSQL, y así Row-Level Security filtra los datos.
  *
- * <p>En F0 nadie lo llena desde la petición: la empresa de un header {@code X-Empresa-Id} sin validar contra las
- * membresías sería una fuga entre empresas. F1 lo establecerá después de validar la membresía.
+ * <p>El hilo puede estar en uno de tres estados: sin contexto, en modo explícito «sin empresa» (ADR-026, solo para
+ * las búsquedas previas a conocer la empresa) o con empresa. La empresa de un header {@code X-Empresa-Id} solo se
+ * establece después de validarla contra las membresías (filtro de empresa activa, F1-04); sin validar sería una
+ * fuga entre empresas.
  */
 public final class ContextoEmpresa {
 
     /** Usuario que se registra cuando la operación no la inicia una persona (tareas internas, pruebas). */
     public static final String USUARIO_SISTEMA = "sistema";
 
-    /** Valores del hilo actual; se limpia siempre en {@code finally} porque los hilos del servidor se reutilizan. */
-    private static final ThreadLocal<Valores> ACTUAL = new ThreadLocal<>();
+    /** Estado del hilo actual; se limpia siempre en {@code finally} porque los hilos del servidor se reutilizan. */
+    private static final ThreadLocal<Estado> ACTUAL = new ThreadLocal<>();
 
     private ContextoEmpresa() {}
 
-    /** Empresa y usuario del contexto; el usuario nulo se traduce a {@link #USUARIO_SISTEMA} al leerlo. */
-    private record Valores(EmpresaId empresaId, String usuarioId) {}
+    /**
+     * Estado del contexto. Es sellado para que «sin empresa» sea un caso propio y no una empresa nula: una empresa
+     * nula dejaría a quien lee el contexto suponiendo que «hay valores» equivale a «hay empresa».
+     */
+    private sealed interface Estado {
+
+        /** Usuario asociado; el nulo se traduce a {@link #USUARIO_SISTEMA} al leerlo. */
+        String usuarioId();
+    }
+
+    /** Contexto con empresa validada: es el único que permite abrir transacciones con RLS. */
+    private record ConEmpresa(EmpresaId empresaId, String usuarioId) implements Estado {}
+
+    /** Modo explícito «sin empresa» (ADR-026): solo tablas globales y funciones de búsqueda. */
+    private record SinEmpresa(String usuarioId) implements Estado {}
 
     /**
      * Empresa activa del hilo.
      *
      * @return la empresa activa
-     * @throws ContextoEmpresaAusenteException si no hay contexto establecido
+     * @throws ContextoEmpresaAusenteException si no hay contexto o el hilo está en modo sin empresa
      */
     public static EmpresaId empresaRequerida() {
-        // 1. Sin empresa no se puede continuar: fallar aquí evita consultas sin aislamiento
-        Valores valores = ACTUAL.get();
-        if (valores == null) {
-            throw new ContextoEmpresaAusenteException();
+        // 1. Sin empresa no se puede continuar: fallar aquí evita consultas sin aislamiento. El modo sin empresa
+        //    tampoco tiene empresa: ADR-026 solo cambia lo que hace el gestor de transacciones, no esta regla
+        if (ACTUAL.get() instanceof ConEmpresa conEmpresa) {
+            return conEmpresa.empresaId();
         }
-        return valores.empresaId();
+        throw new ContextoEmpresaAusenteException();
     }
 
     /**
@@ -45,8 +60,8 @@ public final class ContextoEmpresa {
      * @return identificador de usuario para auditoría y para {@code app.usuario_id}
      */
     public static String usuarioOSistema() {
-        Valores valores = ACTUAL.get();
-        return valores == null || valores.usuarioId() == null ? USUARIO_SISTEMA : valores.usuarioId();
+        Estado estado = ACTUAL.get();
+        return estado == null || estado.usuarioId() == null ? USUARIO_SISTEMA : estado.usuarioId();
     }
 
     /**
@@ -55,7 +70,17 @@ public final class ContextoEmpresa {
      * @return {@code true} si {@link #empresaRequerida()} no lanzaría error
      */
     public static boolean hayEmpresa() {
-        return ACTUAL.get() != null;
+        return ACTUAL.get() instanceof ConEmpresa;
+    }
+
+    /**
+     * Indica si el hilo está en el modo explícito «sin empresa» de {@link #ejecutarSinEmpresa} (ADR-026).
+     * El gestor de transacciones lo usa para abrir la transacción sin fijar {@code app.empresa_id}.
+     *
+     * @return {@code true} solo dentro de {@code ejecutarSinEmpresa}
+     */
+    public static boolean enModoSinEmpresa() {
+        return ACTUAL.get() instanceof SinEmpresa;
     }
 
     /**
@@ -73,13 +98,47 @@ public final class ContextoEmpresa {
         if (empresaId == null) {
             throw new IllegalArgumentException("La empresa del contexto no puede ser nula");
         }
-        // 2. Guarda el contexto previo para restaurarlo (permite anidar, p. ej. pruebas o tareas internas)
-        Valores anterior = ACTUAL.get();
-        ACTUAL.set(new Valores(empresaId, usuarioId));
+        return ejecutarEn(new ConEmpresa(empresaId, usuarioId), accion);
+    }
+
+    /**
+     * Ejecuta una acción en el modo explícito «sin empresa» (ADR-026) y restaura el contexto anterior al terminar.
+     * En este modo el gestor de transacciones abre la transacción fijando solo {@code app.usuario_id}; cualquier
+     * consulta a una tabla con RLS falla porque falta {@code app.empresa_id}. Solo lo pueden llamar las clases de la
+     * lista de {@code ArquitecturaModulosTest}: resolución de identidad, validación de membresía y consulta de
+     * membresías de {@code /me}.
+     *
+     * @param usuarioId usuario activo; nulo equivale a {@link #USUARIO_SISTEMA} (aún no se conoce al usuario)
+     * @param accion trabajo a ejecutar sin empresa
+     * @param <T> tipo del resultado
+     * @return lo que devuelva la acción
+     */
+    public static <T> T ejecutarSinEmpresa(String usuarioId, Supplier<T> accion) {
+        return ejecutarEn(new SinEmpresa(usuarioId), accion);
+    }
+
+    /**
+     * Variante sin resultado de {@link #ejecutarSinEmpresa(String, Supplier)}.
+     *
+     * @param usuarioId usuario activo; nulo equivale a {@link #USUARIO_SISTEMA}
+     * @param accion trabajo a ejecutar sin empresa
+     */
+    public static void ejecutarSinEmpresa(String usuarioId, Runnable accion) {
+        ejecutarSinEmpresa(usuarioId, () -> {
+            accion.run();
+            return null;
+        });
+    }
+
+    /** Fija el estado, ejecuta la acción y restaura el estado anterior aunque la acción falle. */
+    private static <T> T ejecutarEn(Estado estado, Supplier<T> accion) {
+        // 1. Guarda el contexto previo para restaurarlo (permite anidar, p. ej. pruebas o tareas internas)
+        Estado anterior = ACTUAL.get();
+        ACTUAL.set(estado);
         try {
             return accion.get();
         } finally {
-            // 3. Siempre se restaura o se limpia; nunca queda una empresa colgada en un hilo reutilizado
+            // 2. Siempre se restaura o se limpia; nunca queda una empresa colgada en un hilo reutilizado
             if (anterior == null) {
                 ACTUAL.remove();
             } else {

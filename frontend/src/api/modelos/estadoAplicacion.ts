@@ -7,13 +7,13 @@
  */
 
 /**
- * Rol del usuario dentro de la empresa (CLAUDE.md §14.2).
+ * Estado de la app para la empresa activa (ADR-030).
  */
-export type MembresiaRol = typeof MembresiaRol[keyof typeof MembresiaRol];
+export type EstadoAplicacion = typeof EstadoAplicacion[keyof typeof EstadoAplicacion];
 
 
-export const MembresiaRol = {
-  admin_empresa: 'admin_empresa',
-  contador: 'contador',
-  auditor: 'auditor',
+export const EstadoAplicacion = {
+  INSTALADA: 'INSTALADA',
+  DISPONIBLE: 'DISPONIBLE',
+  BLOQUEADA_ENTERPRISE: 'BLOQUEADA_ENTERPRISE',
 } as const;

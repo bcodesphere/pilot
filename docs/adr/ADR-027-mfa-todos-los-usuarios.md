@@ -16,3 +16,5 @@ Keycloak exige MFA (TOTP) a **todos** los usuarios del realm `pilot`, configurad
 ## Consecuencias
 - El realm versionado en `infra/keycloak/` configura TOTP obligatorio.
 - En desarrollo y pruebas automatizadas se usan usuarios de prueba con TOTP de semilla conocida o un realm de pruebas con la acción desactivada, siempre documentado.
+- Los flujos `navegador-pilot` y `restablecer-credenciales-pilot` exigen OTP sin condición (F1-02), para que borrar el OTP desde la consola de cuenta no desactive el MFA.
+- **Recuperación:** si un usuario pierde su dispositivo TOTP, solo un administrador de Keycloak puede quitarle el OTP; al volver a iniciar sesión se le obliga a configurarlo de nuevo. En 1.0 no hay códigos de recuperación (decisión del usuario, 2026-09-24).

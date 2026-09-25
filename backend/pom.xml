@@ -66,11 +66,18 @@
     <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>runtime</scope></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
 
+    <!-- Seguridad (CLAUDE.md 5.1, ADR-008): Spring Security como resource server OAuth2/JWT. En Spring Boot 4 los starters de
+         seguridad pasaron a llamarse spring-boot-starter-security-*; el antiguo spring-boot-starter-oauth2-resource-server
+         quedó obsoleto (su descripción lo dice) y por eso no se usa. Versiones gestionadas por el padre (4.1.1). -->
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId></dependency>
+
     <!-- Spring Modulith: límites de módulos -->
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-core</artifactId></dependency>
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-test</artifactId><scope>test</scope></dependency>
 
     <!-- Pruebas -->
+    <!-- Soporte de pruebas de Spring Security (jwt(), springSecurity() de MockMvc); en Boot 4: starter-security-test -->
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security-test</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-junit-jupiter</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-postgresql</artifactId><scope>test</scope></dependency>

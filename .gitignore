@@ -14,6 +14,10 @@ backend/target/
 *.log
 hs_err_pid*
 
+# --- Spring Modulith: la documentación de módulos escribe build/generated-spring-modulith/
+# en el directorio de trabajo de las pruebas (raíz del repo) al ejecutarlas desde ella ---
+/build/
+
 # --- Frontend (pnpm / Vite) ---
 node_modules/
 frontend/dist/

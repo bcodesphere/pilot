@@ -31,17 +31,23 @@ services:
       timeout: 5s
       retries: 10
 
-  # 2. Proveedor de identidad (registro, login OIDC, MFA). El realm "pilot" se crea en F1.
+  # 2. Proveedor de identidad (registro, login OIDC, MFA). El realm "pilot" se importa al arrancar (F1-02).
   keycloak:
     image: quay.io/keycloak/keycloak:26.3.5
-    command: start-dev --import-realm   # Importa los realms de /opt/keycloak/data/import (vacío hasta F1)
+    command: start-dev --import-realm   # Importa los realms de /opt/keycloak/data/import; NO sobrescribe uno existente (ver infra/keycloak/README.md)
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:?Defina KC_ADMIN_PASSWORD en .env}
       KC_HEALTH_ENABLED: "true"         # Expone /health/* en el puerto de gestión (9000) para el healthcheck
     ports: ["8180:8080"]
+    # Los correos de verificación y de recuperación de contraseña se envían a Mailpit: debe existir al arrancar.
+    depends_on:
+      - mailpit
     volumes:
-      - ../keycloak:/opt/keycloak/data/import:ro   # Realm versionado (F1)
+      # Solo la carpeta de realms: así el tema no se confunde con un realm al importar.
+      - ../keycloak/realms:/opt/keycloak/data/import:ro
+      # Tema "pilot" (login y correo); Keycloak lo detecta en /opt/keycloak/themes/<nombre>.
+      - ../keycloak/temas/pilot:/opt/keycloak/themes/pilot:ro
     healthcheck:
       # La imagen no trae curl: se consulta /health/ready con /dev/tcp de bash.
       test:

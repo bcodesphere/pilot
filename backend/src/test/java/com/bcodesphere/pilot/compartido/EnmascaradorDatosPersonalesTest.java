@@ -37,6 +37,23 @@ class EnmascaradorDatosPersonalesTest {
         assertThat(conPrefijo).endsWith("67").doesNotContain("7123").doesNotContain("503");
     }
 
+    /**
+     * Caso F1-04: el teléfono en el formato en que se GUARDA (+503 y 8 dígitos) y el que llega del token (8 dígitos)
+     * quedan enmascarados, sin que se filtren los dígitos originales.
+     */
+    @Test
+    void enmascaraTelefonoGuardadoYDelToken() {
+        String guardado = EnmascaradorDatosPersonales.enmascarar("tel +50370001234 ok");
+        assertThat(guardado)
+                .endsWith("34 ok")
+                .doesNotContain("7000")
+                .doesNotContain("503")
+                .doesNotContain("70001234");
+
+        String deToken = EnmascaradorDatosPersonales.enmascarar("tel 70001234 ok");
+        assertThat(deToken).isEqualTo("tel ******34 ok");
+    }
+
     /** Caso: texto sin datos personales queda igual y nulo se tolera. */
     @Test
     void noAlteraTextoLimpio() {

@@ -162,6 +162,18 @@ jobs:
       - name: Generar cliente API
         run: pnpm api:generate
 
+      # Falla si el cliente versionado quedó desalineado del contrato (F1-09):
+      # 1) git diff detecta archivos versionados que la generación modificó;
+      # 2) git status detecta archivos nuevos sin rastrear (git diff no los ve).
+      # working-directory es frontend, por eso la ruta es src/api.
+      - name: Verificar cliente API alineado con el contrato
+        run: |
+          if ! git diff --exit-code -- src/api || [ -n "$(git status --porcelain --untracked-files=all -- src/api)" ]; then
+            echo "::error::frontend/src/api está desalineado del contrato. Ejecute 'pnpm api:generate' en frontend/ y commitee el resultado."
+            git status --short --untracked-files=all -- src/api
+            exit 1
+          fi
+
       - name: Lint (ESLint y Prettier)
         run: pnpm lint
 

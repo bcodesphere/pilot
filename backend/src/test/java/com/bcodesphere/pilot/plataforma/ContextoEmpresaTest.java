@@ -69,4 +69,44 @@ class ContextoEmpresaTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(ContextoEmpresa.hayEmpresa()).isFalse();
     }
+
+    /**
+     * Caso (ADR-026): dentro de ejecutarSinEmpresa no hay empresa, pero el modo es explícito: hayEmpresa es falso,
+     * empresaRequerida SIGUE lanzando error y el usuario se conserva.
+     */
+    @Test
+    void modoSinEmpresaNoTieneEmpresaPeroEsExplicito() {
+        ContextoEmpresa.ejecutarSinEmpresa("u-sin", (Runnable) () -> {
+            assertThat(ContextoEmpresa.enModoSinEmpresa()).isTrue();
+            assertThat(ContextoEmpresa.hayEmpresa()).isFalse();
+            assertThat(ContextoEmpresa.usuarioOSistema()).isEqualTo("u-sin");
+            assertThatThrownBy(ContextoEmpresa::empresaRequerida).isInstanceOf(ContextoEmpresaAusenteException.class);
+        });
+        assertThat(ContextoEmpresa.enModoSinEmpresa()).isFalse();
+    }
+
+    /** Caso: el modo sin empresa se restaura al salir, incluso con error, y un contexto con empresa lo reemplaza y lo devuelve. */
+    @Test
+    void modoSinEmpresaSeRestauraYSeAnidaConEmpresa() {
+        assertThatThrownBy(() -> ContextoEmpresa.ejecutarSinEmpresa("u", () -> {
+                    throw new IllegalStateException("falla");
+                }))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(ContextoEmpresa.enModoSinEmpresa()).isFalse();
+
+        ContextoEmpresa.ejecutarSinEmpresa("u", (Runnable) () -> {
+            ContextoEmpresa.ejecutarCon(EMPRESA, "u", (Runnable) () -> {
+                assertThat(ContextoEmpresa.hayEmpresa()).isTrue();
+                assertThat(ContextoEmpresa.enModoSinEmpresa()).isFalse();
+            });
+            assertThat(ContextoEmpresa.enModoSinEmpresa()).isTrue();
+        });
+    }
+
+    /** Caso: un usuario nulo en modo sin empresa se registra como "sistema" (aún no se conoce al usuario). */
+    @Test
+    void modoSinEmpresaConUsuarioNuloEsSistema() {
+        ContextoEmpresa.ejecutarSinEmpresa(null, (Runnable)
+                () -> assertThat(ContextoEmpresa.usuarioOSistema()).isEqualTo(ContextoEmpresa.USUARIO_SISTEMA));
+    }
 }

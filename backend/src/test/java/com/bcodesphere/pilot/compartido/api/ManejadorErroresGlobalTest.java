@@ -2,6 +2,7 @@ package com.bcodesphere.pilot.compartido.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -114,5 +115,62 @@ class ManejadorErroresGlobalTest {
                 .getResponse()
                 .getHeader("X-Request-Id");
         assertThat(reemplazado).isNotEqualTo("mal id con espacios").isNotBlank();
+    }
+
+    /** Caso F1-04: falta If-Match en una edición → 428 PLT-015 (no 400 PLT-007). */
+    @Test
+    void faltaIfMatchProduce428Plt015() throws Exception {
+        mvc.perform(patch("/prueba/if-match"))
+                .andExpect(status().isPreconditionRequired())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.codigo").value("PLT-015"));
+    }
+
+    /** Caso F1-04: falta Idempotency-Key → 428 PLT-006. */
+    @Test
+    void faltaIdempotencyKeyProduce428Plt006() throws Exception {
+        mvc.perform(post("/prueba/idempotencia"))
+                .andExpect(status().isPreconditionRequired())
+                .andExpect(jsonPath("$.codigo").value("PLT-006"));
+    }
+
+    /** Caso F1-04: falta cualquier otro header obligatorio → 422 PLT-002 con el nombre del header en errores[].campo. */
+    @Test
+    void faltaOtroHeaderProduce422Plt002ConElCampo() throws Exception {
+        mvc.perform(get("/prueba/empresa"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.codigo").value("PLT-002"))
+                .andExpect(jsonPath("$.errores[0].campo").value("X-Empresa-Id"));
+    }
+
+    /** Caso F1-04: falta un parámetro de consulta obligatorio → 422 PLT-002 con el nombre del parámetro. */
+    @Test
+    void faltaParametroProduce422Plt002ConElCampo() throws Exception {
+        mvc.perform(get("/prueba/parametro"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.codigo").value("PLT-002"))
+                .andExpect(jsonPath("$.errores[0].campo").value("desde"));
+    }
+
+    /** Caso F1-04: un UUID inválido en la ruta → 400 PLT-001, sin nombres de clases en el detalle. */
+    @Test
+    void uuidInvalidoEnLaRutaProduce400Plt001() throws Exception {
+        mvc.perform(get("/prueba/uuid/no-es-uuid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.codigo").value("PLT-001"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("java."))));
+    }
+
+    /** Caso F1-04: PLT-007 se conserva solo para ruta inexistente (404) y método no permitido (405). */
+    @Test
+    void plt007SeConservaParaRutaYMetodo() throws Exception {
+        mvc.perform(get("/prueba/no-existe"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.codigo").value("PLT-007"));
+        mvc.perform(post("/prueba/validacion"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.codigo").value("PLT-007"));
     }
 }

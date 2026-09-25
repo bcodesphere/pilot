@@ -10,3 +10,10 @@ spring:
   flyway:
     user: pilot_owner
     password: ${PG_OWNER_PASSWORD}
+
+# Seguridad en desarrollo: Keycloak local (infra/docker/compose.dev.yml) y servidor de Vite como único origen CORS
+pilot:
+  seguridad:
+    emisor: ${PILOT_OIDC_ISSUER:http://localhost:8180/realms/pilot}
+  cors:
+    origenes: http://localhost:5173
