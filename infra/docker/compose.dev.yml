@@ -33,7 +33,7 @@ services:
 
   # 2. Proveedor de identidad (registro, login OIDC, MFA). El realm "pilot" se importa al arrancar (F1-02).
   keycloak:
-    image: quay.io/keycloak/keycloak:26.3.5
+    image: quay.io/keycloak/keycloak:26.7.4
     command: start-dev --import-realm   # Importa los realms de /opt/keycloak/data/import; NO sobrescribe uno existente (ver infra/keycloak/README.md)
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
