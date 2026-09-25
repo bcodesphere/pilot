@@ -1,0 +1,42 @@
+/* Estilos de Pilot sobre keycloak.v2. Solo colores y marca; sin fuentes ni recursos externos (sin CDN). */
+
+/* 1. Paleta de la marca (variables de PatternFly 5) */
+:root {
+  --pilot-azul: #1d4ed8;
+  --pilot-azul-oscuro: #1e3a8a;
+  --pf-v5-global--primary-color--100: var(--pilot-azul);
+  --pf-v5-global--primary-color--200: var(--pilot-azul-oscuro);
+  --pf-v5-global--link--Color: var(--pilot-azul);
+  --pf-v5-global--link--Color--hover: var(--pilot-azul-oscuro);
+}
+
+/* 2. Fondo de la página de login */
+.login-pf body,
+.pf-v5-c-login {
+  background: #f1f5f9;
+}
+
+/* 3. Nombre "Pilot" como marca en lugar del logotipo de Keycloak */
+div.kc-logo-text {
+  background-image: none;
+  height: auto;
+  width: auto;
+}
+div.kc-logo-text::after {
+  content: "Pilot";
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--pilot-azul);
+}
+div.kc-logo-text span {
+  display: none;
+}
+
+/* 4. Botón principal con el color de la marca */
+.pf-v5-c-button.pf-m-primary {
+  background-color: var(--pilot-azul);
+}
+.pf-v5-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:focus {
+  background-color: var(--pilot-azul-oscuro);
+}
