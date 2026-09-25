@@ -42,17 +42,21 @@ class MigracionesIT {
                 .migrate();
 
         // 2. Siembra: una clave por empresa, para comprobar visibilidad cruzada
-        try (Connection c = PostgresContenedor.dataSourceDuenio().getConnection();
-                Statement s = c.createStatement()) {
-            s.execute(insertIdempotencia(EMPRESA_A, "clave-a"));
-            s.execute(insertIdempotencia(EMPRESA_B, "clave-b"));
+        try (Connection c = PostgresContenedor.dataSourceDuenio().getConnection()) {
+            insertIdempotencia(c, EMPRESA_A, "clave-a");
+            insertIdempotencia(c, EMPRESA_B, "clave-b");
         }
     }
 
-    /** Sentencia de siembra de una fila de idempotencia. */
-    private static String insertIdempotencia(UUID empresa, String clave) {
-        return "INSERT INTO idempotencia (empresa_id, clave, hash_solicitud, estado_http, respuesta) VALUES ('"
-                + empresa + "', '" + clave + "', repeat('a', 64), 201, '{}'::jsonb)";
+    /** Siembra una fila de idempotencia con sentencia parametrizada (sin concatenar valores). */
+    private static void insertIdempotencia(Connection c, UUID empresa, String clave) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("INSERT INTO idempotencia"
+                + " (empresa_id, clave, hash_solicitud, estado_http, respuesta)"
+                + " VALUES (?, ?, repeat('a', 64), 201, '{}'::jsonb)")) {
+            ps.setObject(1, empresa);
+            ps.setString(2, clave);
+            ps.executeUpdate();
+        }
     }
 
     /** Abre una conexión de pilot_app dentro de una transacción con app.empresa_id fijado (equivale a set_config local). */
@@ -74,24 +78,29 @@ class MigracionesIT {
         }
     }
 
-    /** Caso: Flyway migra una base vacía sin errores y aplica las tres migraciones. */
+    /** Caso: Flyway migra una base vacía sin errores; no quedan migraciones pendientes y todas terminaron con éxito. */
     @Test
     void flywayMigraUnaBaseVaciaSinErrores() {
         assertThat(resultado.success).isTrue();
-        assertThat(Flyway.configure()
-                        .dataSource(PostgresContenedor.dataSourceDuenio())
-                        .load()
-                        .info()
-                        .applied())
-                .hasSize(3);
+        // Se compara contra el estado real (no un número fijo) para no romper al agregar migraciones
+        var info = Flyway.configure()
+                .dataSource(PostgresContenedor.dataSourceDuenio())
+                .locations("classpath:db/migration")
+                .load()
+                .info();
+        assertThat(info.pending()).isEmpty();
+        assertThat(info.applied())
+                .isNotEmpty()
+                .allSatisfy(m -> assertThat(m.getState().isApplied()).isTrue());
+        assertThat(info.applied())
+                .allSatisfy(m -> assertThat(m.getState().isFailed()).isFalse());
     }
 
     /** Caso: con empresa A en sesión, insertar una fila de la empresa B viola la política (WITH CHECK). */
     @Test
     void noPuedeInsertarFilaDeOtraEmpresa() throws SQLException {
-        try (Connection c = appConEmpresa(EMPRESA_A);
-                Statement s = c.createStatement()) {
-            assertThatThrownBy(() -> s.execute(insertIdempotencia(EMPRESA_B, "intruso")))
+        try (Connection c = appConEmpresa(EMPRESA_A)) {
+            assertThatThrownBy(() -> insertIdempotencia(c, EMPRESA_B, "intruso"))
                     .isInstanceOf(SQLException.class)
                     .hasMessageContaining("row-level security");
         }
@@ -132,10 +141,8 @@ class MigracionesIT {
     /** Caso: auditoría es insert-only; con la empresa A se puede insertar y leer pero no actualizar ni borrar. */
     @Test
     void auditoriaEsSoloInsercion() throws SQLException {
-        try (Connection c = appConEmpresa(EMPRESA_A);
-                Statement s = c.createStatement()) {
-            s.execute("INSERT INTO auditoria (id, empresa_id, entidad, entidad_id, accion, usuario_id)" + " VALUES ('"
-                    + UUID.randomUUID() + "', '" + EMPRESA_A + "', 'prueba', '1', 'CREAR', 'sistema')");
+        try (Connection c = appConEmpresa(EMPRESA_A)) {
+            insertAuditoria(c, "auditoria");
             assertThat(primeraColumna(c, "SELECT count(*) FROM auditoria")).isEqualTo("1");
         }
         assertDenegado("UPDATE auditoria SET accion = 'X'");
@@ -147,8 +154,22 @@ class MigracionesIT {
     void noPuedeAccederDirectoAUnaParticion() throws SQLException {
         assertDenegado("SELECT * FROM auditoria_2026_09");
         assertDenegado("SELECT * FROM auditoria_default");
-        assertDenegado("INSERT INTO auditoria_2026_09 (id, empresa_id, entidad, entidad_id, accion, usuario_id)"
-                + " VALUES ('" + UUID.randomUUID() + "', '" + EMPRESA_A + "', 'prueba', '1', 'CREAR', 'sistema')");
+        try (Connection c = appConEmpresa(EMPRESA_A)) {
+            assertThatThrownBy(() -> insertAuditoria(c, "auditoria_2026_09"))
+                    .isInstanceOf(SQLException.class)
+                    .hasMessageContaining("permission denied");
+        }
+    }
+
+    /** Inserta una fila de auditoría de la empresa A en la tabla indicada (nombre fijo del código de prueba, no entrada externa). */
+    private static void insertAuditoria(Connection c, String tabla) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "INSERT INTO " + tabla
+                        + " (id, empresa_id, entidad, entidad_id, accion, usuario_id) VALUES (?, ?, 'prueba', '1', 'CREAR', 'sistema')")) {
+            ps.setObject(1, UUID.randomUUID());
+            ps.setObject(2, EMPRESA_A);
+            ps.executeUpdate();
+        }
     }
 
     /** Caso: RLS habilitado y forzado en idempotencia y auditoría (catálogo pg_class). */
