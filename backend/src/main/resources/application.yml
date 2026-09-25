@@ -24,3 +24,15 @@ logging:
   structured:
     format:
       console: logstash
+
+# Pilot: seguridad y CORS (CLAUDE.md 4.5 y 14). Sin secretos: el emisor OIDC es una URL pública y viene del entorno.
+pilot:
+  seguridad:
+    # Emisor OIDC (Keycloak, ADR-008). Sin valor por defecto a propósito: si falta, la aplicación no arranca y no
+    # queda un emisor equivocado en producción. En dev se define en application-dev.yml.
+    emisor: ${PILOT_OIDC_ISSUER}
+    # Audiencia que debe traer el token de acceso (mapeador "audiencia-pilot-api" del realm)
+    audiencia: pilot-api
+  cors:
+    # Orígenes del frontend autorizados a llamar a la API; vacío = ninguno (lista separada por comas)
+    origenes: ${PILOT_CORS_ORIGENES:}

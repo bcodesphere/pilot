@@ -7,9 +7,14 @@ import com.bcodesphere.pilot.compartido.ExcepcionValidacion;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Controlador solo de prueba que dispara cada tipo de error para verificar el manejador global. */
@@ -43,4 +48,24 @@ class ControladorDePrueba {
     /** Recibe un cuerpo validado. */
     @PostMapping("/prueba/cuerpo")
     void cuerpo(@Valid @RequestBody Cuerpo cuerpo) {}
+
+    /** Exige el header If-Match (edición con concurrencia optimista). */
+    @PatchMapping("/prueba/if-match")
+    void ifMatch(@RequestHeader("If-Match") String version) {}
+
+    /** Exige el header Idempotency-Key. */
+    @PostMapping("/prueba/idempotencia")
+    void idempotencia(@RequestHeader("Idempotency-Key") String clave) {}
+
+    /** Exige un header cualquiera (X-Empresa-Id). */
+    @GetMapping("/prueba/empresa")
+    void empresa(@RequestHeader("X-Empresa-Id") String empresa) {}
+
+    /** Exige un parámetro de consulta. */
+    @GetMapping("/prueba/parametro")
+    void parametro(@RequestParam("desde") String desde) {}
+
+    /** Recibe un UUID en la ruta. */
+    @GetMapping("/prueba/uuid/{id}")
+    void uuid(@PathVariable UUID id) {}
 }

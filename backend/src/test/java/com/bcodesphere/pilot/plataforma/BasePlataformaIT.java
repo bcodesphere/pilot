@@ -24,5 +24,9 @@ public abstract class BasePlataformaIT {
         registro.add("spring.flyway.url", PostgresContenedor::urlJdbc);
         registro.add("spring.flyway.user", PostgresContenedor::usuarioDuenio);
         registro.add("spring.flyway.password", PostgresContenedor::passwordDuenio);
+        // 3. Emisor OIDC INALCANZABLE a propósito (puerto 9, "discard"): la aplicación debe arrancar sin Keycloak,
+        // porque
+        //    el decodificador consulta al emisor en el primer uso y no al arrancar. Los JWT de las pruebas se simulan.
+        registro.add("pilot.seguridad.emisor", () -> "http://127.0.0.1:9/realms/pilot");
     }
 }

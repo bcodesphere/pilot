@@ -1,8 +1,13 @@
 package com.bcodesphere.pilot;
 
+import static com.tngtech.archunit.core.domain.JavaCall.Predicates.target;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
+import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.name;
+import static com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.bcodesphere.pilot.plataforma.ContextoEmpresa;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -36,4 +41,39 @@ class ArquitecturaModulosTest {
             .dependOnClassesThat()
             .resideInAnyPackage("org.springframework..")
             .allowEmptyShould(true);
+
+    /**
+     * Clases autorizadas a llamar a {@code ContextoEmpresa.ejecutarSinEmpresa} (ADR-026 punto 4). Lista MÍNIMA y
+     * explícita: la resolución de identidad, la validación de membresía y la consulta de membresías de {@code /me}.
+     * La autenticación por API key se agregará aquí en F1-06. {@code ContextoEmpresa} figura porque su variante
+     * {@code Runnable} delega en la de {@code Supplier}.
+     */
+    private static final String[] AUTORIZADAS_SIN_EMPRESA = {
+        "com.bcodesphere.pilot.plataforma.ContextoEmpresa",
+        "com.bcodesphere.pilot.plataforma.aplicacion.ResolverIdentidad",
+        "com.bcodesphere.pilot.plataforma.aplicacion.ValidarMembresia",
+        "com.bcodesphere.pilot.plataforma.aplicacion.ConsultarUsuarioActual"
+    };
+
+    /**
+     * El modo «sin empresa» abre una puerta al aislamiento por RLS (solo tablas globales y funciones de búsqueda), así
+     * que solo las clases de la lista pueden usarlo (ADR-026). Cualquier otra clase que lo llame hace fallar la prueba.
+     * Incluye las clases anónimas y las lambdas de las clases autorizadas, que se cuentan como parte de ellas.
+     */
+    @ArchTest
+    static final ArchRule SOLO_LAS_AUTORIZADAS_USAN_EL_MODO_SIN_EMPRESA = noClasses()
+            .that(
+                    new com.tngtech.archunit.base.DescribedPredicate<com.tngtech.archunit.core.domain.JavaClass>(
+                            "no son de la lista de clases autorizadas") {
+                        @Override
+                        public boolean test(com.tngtech.archunit.core.domain.JavaClass clase) {
+                            // Una clase interna o lambda se considera parte de su clase externa
+                            String externa = clase.getName().split("\\$")[0];
+                            return !java.util.Arrays.asList(AUTORIZADAS_SIN_EMPRESA)
+                                    .contains(externa);
+                        }
+                    })
+            .should()
+            .callMethodWhere(
+                    target(name("ejecutarSinEmpresa")).and(target(owner(assignableTo(ContextoEmpresa.class)))));
 }
