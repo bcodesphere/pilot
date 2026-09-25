@@ -1,6 +1,6 @@
 # ADR-021 — Registro de apps y shell dinámico
 
-- **Estado:** Aceptada
+- **Estado:** Aceptada (ampliada por ADR-030: apps instalables y apps Enterprise bloqueadas)
 - **Fecha:** 2026-09-23
 
 ## Contexto

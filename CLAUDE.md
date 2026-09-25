@@ -1,6 +1,6 @@
 # CLAUDE.md — Pilot 1.0 (Núcleo + Contabilidad)
 
-> **Pilot** es un ERP multi-empresa, API-first y modular para PYMES de El Salvador, integrable con cualquier sistema mediante API y n8n. **Pilot 1.0 se limita al núcleo del ERP (usuarios, empresa, estructura de apps) y a una sola app activa: Contabilidad**, que además recibe operaciones de otras apps (p. ej. un cierre de ingresos diarios) a través de n8n.
+> **Pilot** es un ERP multi-empresa, API-first y modular para PYMES de El Salvador, integrable con cualquier sistema mediante API y n8n. **Pilot 1.0 se limita al núcleo del ERP (usuarios, empresa, estructura de apps) y a una sola app instalable: Contabilidad**, que además recibe operaciones de otras apps (p. ej. un cierre de ingresos diarios) a través de n8n.
 >
 > **La facturación electrónica (DTE) está en segundo plano.** Su diseño se conserva en `docs/diferido/` y se retomará en una versión posterior (sección 20).
 
@@ -15,7 +15,7 @@
 | Moneda | USD (única moneda contable) |
 | Zona horaria de negocio | `America/El_Salvador` (UTC−6, sin horario de verano) |
 | Idioma de producto | Español (`es-SV`) |
-| Estado actual | Fase F0 — Fundaciones (ver `docs/plan-de-trabajo.md`) |
+| Estado actual | Fase F1 — Núcleo (ver `docs/plan-de-trabajo.md`) |
 | Última actualización de este archivo | 2026-09-24 |
 
 ---
@@ -97,11 +97,12 @@
 
 ### 2.1 Componente A — Núcleo del ERP
 
-- Registro e inicio de sesión de usuarios (Keycloak, OIDC con PKCE).
-- Registro y gestión básica de la empresa (datos del contribuyente) y de sus usuarios (invitar, cambiar rol, desactivar).
+- Registro e inicio de sesión de usuarios (Keycloak, OIDC con PKCE, MFA para todos): nombre, correo, teléfono de El Salvador (`+503`) y contraseña, **sin DUI**, con la casilla opcional "Acepto recibir recomendaciones por correo" (ADR-027, ADR-028).
+- **Empresa personal automática** al primer inicio de sesión, con el usuario como `admin_empresa`. La empresa jurídica (NIT) es de la edición Enterprise (ADR-029).
+- Gestión básica de la empresa (nombre; NIT y NRC opcionales) y de sus usuarios: agregar a un usuario **ya registrado** por su correo, cambiar su rol o desactivarlo (ADR-028).
 - Un usuario puede pertenecer a varias empresas; la empresa activa se elige en la sesión.
 - API keys para integraciones (n8n).
-- **Registro de apps:** estructura preparada para agregar apps en el futuro (tablas `aplicacion` y `empresa_aplicacion`, lanzador en el frontend), con **una sola app activa: Contabilidad** (ADR-021).
+- **Catálogo de apps instalables** (estilo Odoo): tablas `aplicacion` y `empresa_aplicacion`, pantalla "Apps" y lanzador en el frontend. **Contabilidad es la única app instalable**; Ventas, Clientes, Proveedores, Inventario y Marketing se muestran bloqueadas como Enterprise. No hay desinstalación en 1.0 (ADR-021, ADR-030).
 
 ### 2.2 Componente B — App Contabilidad
 
@@ -219,15 +220,17 @@ com.bcodesphere.pilot.<modulo>
 ### 4.4 Estructura preparada para más apps (ADR-021)
 
 - **Backend:** cada app es un módulo Spring Modulith con sus cuatro capas. Agregar una app = nuevo paquete + migraciones + contrato + fila en `aplicacion`.
-- **Base de datos:** `aplicacion` (catálogo global de apps disponibles) y `empresa_aplicacion` (apps activas por empresa). Un filtro de seguridad rechaza con 403 `PLT-004` las peticiones a rutas de una app inactiva para la empresa.
-- **Frontend:** el shell (`frontend/src/nucleo/`) carga `GET /api/v1/aplicaciones` y registra dinámicamente las rutas de cada app activa desde `frontend/src/apps/<app>/`. Ninguna app importa código de otra app.
+- **Base de datos:** `aplicacion` (catálogo global, con `edicion` `COMUNITARIA` o `ENTERPRISE`) y `empresa_aplicacion` (apps instaladas por empresa). Un filtro de seguridad rechaza con 403 `PLT-004` las peticiones a rutas de una app no instalada para la empresa.
+- **Instalación (ADR-030):** `POST /aplicaciones/{codigo}/instalacion` registra la app y publica el evento síncrono `AplicacionInstalada` en la misma transacción; el módulo de la app lo escucha y hace su precarga. `plataforma` no depende de ningún módulo de app.
+- **Frontend:** el shell (`frontend/src/nucleo/`) carga `GET /api/v1/aplicaciones` (catálogo con estado `INSTALADA`, `DISPONIBLE` o `BLOQUEADA_ENTERPRISE`) y registra dinámicamente las rutas de cada app instalada desde `frontend/src/apps/<app>/`. Ninguna app importa código de otra app.
 
 ### 4.5 Multi-empresa (multi-tenancy, ADR-002)
 
 - Base de datos compartida, esquema compartido, columna `empresa_id` en toda tabla de negocio, reforzada con **Row-Level Security** forzado.
 - La empresa activa llega en el header `X-Empresa-Id` (usuarios) o se deriva de la API key (n8n), y siempre se valida contra las membresías.
 - Al iniciar cada transacción se fijan `app.empresa_id` y `app.usuario_id` en la sesión de PostgreSQL.
-- Las búsquedas previas a conocer la empresa (API key por prefijo, membresías del usuario) usan funciones `SECURITY DEFINER` mínimas, propiedad de `pilot_owner`, que devuelven solo los campos necesarios.
+- Desde F1, las políticas `aislamiento_empresa` se declaran `TO pilot_app`, porque las políticas permisivas se combinan con OR y la de empresa lanza error si falta `app.empresa_id`, lo que rompería las funciones de búsqueda (ADR-026).
+- Las búsquedas previas a conocer la empresa (usuario por `sub`, membresías del usuario, API key por prefijo) corren en el modo explícito `ContextoEmpresa.ejecutarSinEmpresa(...)`: no se fija `app.empresa_id`, así que toda tabla con RLS falla; solo se usan tablas globales y funciones `SECURITY DEFINER` mínimas, propiedad del rol `pilot_busqueda` (sin login, sin superusuario ni `BYPASSRLS`), que devuelven solo los campos necesarios. ArchUnit limita qué clases usan ese modo (ADR-026).
 
 ```sql
 -- Activa y fuerza Row-Level Security en una tabla de negocio
@@ -508,11 +511,20 @@ static void validarPartidaDoble(List<LineaAsiento> lineas) {
 | `PLT-001` | 400 | Cuerpo JSON ilegible o con tipos incorrectos (incluye un monto enviado como número) |
 | `PLT-002` | 422 | Validación de forma (Bean Validation) sobre cuerpo o parámetros; incluye `errores` |
 | `PLT-003` | 403 | `X-Empresa-Id` sin membresía activa del usuario |
-| `PLT-004` | 403 | La app no está activa para la empresa (ADR-021) |
+| `PLT-004` | 403 | La app no está instalada en la empresa (ADR-021, ADR-030) |
 | `PLT-005` | 422 | `Idempotency-Key` reutilizada con otro cuerpo (fuera del webhook, que usa `INT-005`) |
 | `PLT-006` | 428 | Falta `Idempotency-Key` (fuera del webhook, que usa `INT-008`) |
 | `PLT-007` | 404, 405, 415 | Ruta, método o tipo de contenido no soportado |
 | `PLT-008` | 409 | Otra petición con la misma `Idempotency-Key` está en proceso; reintentar (fuera del webhook, que usa `INT-009`) |
+| `PLT-009` | 401 | Falta la credencial (token o API key) o es inválida, vencida o revocada |
+| `PLT-010` | 403 | Rol o alcance insuficiente para la operación |
+| `PLT-011` | 403 | La app es de la edición Enterprise y no se puede instalar (ADR-030) |
+| `PLT-012` | 422 | El correo no pertenece a un usuario registrado (ADR-028) |
+| `PLT-013` | 409 | El usuario ya es miembro de la empresa |
+| `PLT-014` | 422 | La operación dejaría a la empresa sin ningún `admin_empresa` activo |
+| `PLT-015` | 428 | Falta el header `If-Match` en una edición con concurrencia optimista |
+| `PLT-016` | 412 | `If-Match` no coincide con la versión actual del recurso |
+| `PLT-017` | 404 | El recurso no existe o no pertenece a la empresa activa |
 | `PLT-500` | 500 | Error interno; sin detalle en la respuesta |
 
 ### 8.5 Git
@@ -543,30 +555,40 @@ Columnas comunes en toda tabla de negocio editable: `id UUID`, `empresa_id UUID`
 CREATE TABLE usuario (
     id            UUID PRIMARY KEY,
     sub_keycloak  VARCHAR(64) NOT NULL UNIQUE,     -- Claim "sub" del token OIDC
-    correo        VARCHAR(254) NOT NULL,           -- Dato personal: se enmascara en logs
+    correo        VARCHAR(254) NOT NULL UNIQUE,    -- Dato personal: se enmascara en logs; verificado en Keycloak
     nombre        VARCHAR(200) NOT NULL,
+    telefono      VARCHAR(12) NOT NULL CHECK (telefono ~ '^\+503[0-9]{8}$'),  -- Solo El Salvador; dato personal (ADR-028)
+    recomendaciones_aceptadas_en TIMESTAMPTZ,      -- "Acepto recibir recomendaciones por correo"; nulo = nunca aceptó (ADR-028)
+    recomendaciones_retiradas_en TIMESTAMPTZ,      -- Último retiro; vigente si aceptadas_en > retiradas_en o retiradas_en es nulo
     estado        VARCHAR(15) NOT NULL DEFAULT 'ACTIVO',  -- ACTIVO, BLOQUEADO
     creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- EMPRESA: contribuyente que usa Pilot; unidad de aislamiento (tenant)
+-- EMPRESA: unidad de aislamiento (tenant). En 1.0 solo PERSONAL, creada al primer inicio de sesión (ADR-029)
 CREATE TABLE empresa (
     id               UUID PRIMARY KEY,
-    nit              VARCHAR(14) NOT NULL UNIQUE,  -- Solo dígitos [VERIFICAR] longitud vigente (NIT o DUI homologado)
-    nrc              VARCHAR(10),                  -- Registro de IVA; nulo si no es contribuyente
+    tipo             VARCHAR(8) NOT NULL,          -- PERSONAL (1.0) o JURIDICA (Enterprise)
+    propietario_id   UUID REFERENCES usuario(id),  -- Usuario dueño de la empresa PERSONAL
+    nit              VARCHAR(14) UNIQUE,           -- 14 dígitos; opcional en PERSONAL, obligatorio en JURIDICA
+    nrc              VARCHAR(10),                  -- Registro de IVA; nulo si no es contribuyente [VERIFICAR] formato
     nombre           VARCHAR(250) NOT NULL,        -- Razón social
     nombre_comercial VARCHAR(250),
     estado           VARCHAR(15) NOT NULL DEFAULT 'ACTIVA',
     creado_en        TIMESTAMPTZ NOT NULL DEFAULT now(),
-    version          BIGINT NOT NULL DEFAULT 0
+    version          BIGINT NOT NULL DEFAULT 0,
+    CHECK (nit IS NULL OR nit ~ '^[0-9]{14}$'),
+    CHECK (tipo = 'PERSONAL' OR nit IS NOT NULL)        -- La empresa jurídica exige NIT
 );
+
+-- Una sola empresa PERSONAL por usuario
+CREATE UNIQUE INDEX uq_empresa_personal ON empresa (propietario_id) WHERE tipo = 'PERSONAL';
 
 -- MEMBRESÍA: qué usuario pertenece a qué empresa y con qué rol
 CREATE TABLE empresa_usuario (
     empresa_id  UUID NOT NULL REFERENCES empresa(id),
     usuario_id  UUID NOT NULL REFERENCES usuario(id),
     rol         VARCHAR(30) NOT NULL,              -- admin_empresa, contador, auditor (sección 14.2)
-    estado      VARCHAR(15) NOT NULL DEFAULT 'ACTIVA',  -- INVITADA, ACTIVA, INACTIVA
+    estado      VARCHAR(15) NOT NULL DEFAULT 'ACTIVA',  -- ACTIVA, INACTIVA (sin invitaciones pendientes, ADR-028)
     creado_en   TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (empresa_id, usuario_id)
 );
@@ -585,20 +607,23 @@ CREATE TABLE api_key (
     creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- APPS: catálogo global de apps del ERP (en 1.0 solo 'contabilidad')
+-- APPS: catálogo global de apps del ERP (ADR-030). En 1.0 solo 'contabilidad' es instalable;
+-- ventas, clientes, proveedores, inventario y marketing son ENTERPRISE (visibles y bloqueadas)
 CREATE TABLE aplicacion (
     codigo      VARCHAR(40) PRIMARY KEY,           -- Identificador estable, también prefijo de rutas
     nombre      VARCHAR(100) NOT NULL,
     descripcion VARCHAR(300),
-    disponible  BOOLEAN NOT NULL DEFAULT true      -- Si puede activarse en alguna empresa
+    edicion     VARCHAR(11) NOT NULL,              -- COMUNITARIA o ENTERPRISE
+    orden       SMALLINT NOT NULL,                 -- Orden de presentación en el catálogo
+    disponible  BOOLEAN NOT NULL DEFAULT true      -- Si se muestra en el catálogo
 );
 
--- APPS ACTIVAS POR EMPRESA
+-- APPS INSTALADAS POR EMPRESA (sin desinstalación en 1.0: pilot_app solo SELECT e INSERT)
 CREATE TABLE empresa_aplicacion (
     empresa_id         UUID NOT NULL REFERENCES empresa(id),
     aplicacion_codigo  VARCHAR(40) NOT NULL REFERENCES aplicacion(codigo),
-    activa             BOOLEAN NOT NULL DEFAULT true,
-    activada_en        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    instalada_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    instalada_por      VARCHAR(64) NOT NULL,          -- Usuario que la instaló (app.usuario_id)
     PRIMARY KEY (empresa_id, aplicacion_codigo)
 );
 
@@ -893,7 +918,7 @@ export const asientoSchema = z
 
 ### 10.2 Catálogo de cuentas
 
-- Al registrar la empresa se copia `plantilla_cuenta`, cargada desde el catálogo base de `docs/contabilidad/catalogo-base.md` (`[VERIFICAR]` con contador).
+- Al instalar la app Contabilidad en una empresa (evento `AplicacionInstalada`, ADR-030) se copia `plantilla_cuenta`, cargada desde el catálogo base de `docs/contabilidad/catalogo-base.md` (`[VERIFICAR]` con contador).
 - **Clases:** 1 Activo, 2 Pasivo, 3 Capital Contable, 4 Costos y Gastos, 5 Ingresos. Otros primeros dígitos se rechazan (`CON-010`).
 - **Niveles por longitud del código:** clase (1 dígito), grupo (2), cuenta (4), subcuenta (6), detalle (8). El código de la cuenta padre debe ser prefijo del código hija.
 - **Naturaleza por defecto:** deudora en clases 1 y 4; acreedora en 2, 3 y 5. Se puede cambiar para cuentas complementarias (p. ej. depreciación acumulada en la clase 1, acreedora).
@@ -1168,10 +1193,11 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 | Método y ruta | Descripción | Alcance / rol mínimo |
 |---|---|---|
 | `GET /me` | Usuario actual y sus membresías | Autenticado |
-| `POST /empresas` | Registra una empresa; el usuario queda como `admin_empresa`; precarga catálogo, configuración y reglas | Autenticado |
-| `GET /empresas/{id}` · `PATCH /empresas/{id}` | Consulta y edición de datos de la empresa | `admin_empresa` |
-| `GET /empresas/{id}/usuarios` · `POST …/invitaciones` · `PATCH …/usuarios/{usuarioId}` | Listar, invitar, cambiar rol o desactivar | `admin_empresa` |
-| `GET /aplicaciones` | Apps activas de la empresa (lanzador) | Autenticado |
+| `PATCH /me` | Retira o vuelve a dar el consentimiento de publicidad | Autenticado |
+| `GET /empresas/{id}` · `PATCH /empresas/{id}` | Consulta y edición de la empresa (nombre, nombre comercial; NIT y NRC opcionales) | `admin_empresa` |
+| `GET /empresas/{id}/usuarios` · `POST …/usuarios` · `PATCH …/usuarios/{usuarioId}` | Listar, agregar un usuario registrado por correo, cambiar rol o desactivar | `admin_empresa` |
+| `GET /aplicaciones` | Catálogo de apps con su estado para la empresa activa (ADR-030) | Autenticado |
+| `POST /aplicaciones/{codigo}/instalacion` | Instala una app comunitaria y ejecuta su precarga | `admin_empresa` |
 | `GET /api-keys` · `POST /api-keys` · `DELETE /api-keys/{id}` | Gestión de API keys (el secreto se muestra una vez) | `admin_empresa` |
 | `GET /contabilidad/cuentas` · `POST` · `PATCH /{id}` | Catálogo de cuentas (árbol, búsqueda) | leer: `auditor`; escribir: `contador` |
 | `GET /contabilidad/configuracion` · `PUT` | Modo de precio y cuentas de IVA | leer: `auditor`; escribir: `contador` |
@@ -1200,7 +1226,7 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 
 - Objetivo: OWASP ASVS nivel 2.
 - TLS en todo el tráfico externo; PostgreSQL y la consola de Keycloak solo en red privada.
-- MFA obligatorio para `admin_empresa` y `contador` (Keycloak).
+- MFA (TOTP) obligatorio para todos los usuarios (Keycloak, ADR-027).
 - API keys con prefijo visible, secreto mostrado una sola vez, hash Argon2id, alcances y expiración.
 - Auditoría de solo inserción; asientos inmutables por permisos de base de datos.
 - Límite de peticiones en el webhook por API key.
@@ -1299,6 +1325,8 @@ volumes:
 
 La aplicación se conecta con `pilot_app` (sin privilegios de dueño ni `BYPASSRLS`); Flyway usa `pilot_owner`.
 
+Pilot usa el n8n de este compose (versión fijada), no uno externo. Si en la máquina ya corre otro n8n en el 5678, se fija `N8N_PUERTO=5679` en `.env`.
+
 ### 16.3 Producción y CI/CD
 
 - Un VPS con Docker Compose, Traefik con Let's Encrypt, firewall solo 80/443 y SSH por llave.
@@ -1320,7 +1348,7 @@ Detalle completo, tareas y criterios de aceptación en **`docs/plan-de-trabajo.m
 | Fase | Contenido | Duración | Depende de |
 |---|---|---|---|
 | F0 | Fundaciones: estructura, CI, compose, Modulith, RLS, idempotencia, auditoría, Problem Details, OpenAPI + Orval | 2 sem. | — |
-| F1 | Núcleo: Keycloak, usuarios, empresa, membresías, API keys, registro de apps y lanzador | 2 sem. | F0 |
+| F1 | Núcleo: Keycloak, usuarios, empresa personal, membresías, API keys, catálogo de apps y lanzador | 2 sem. | F0 |
 | F2 | Catálogo de cuentas, `tasa_impuesto`, configuración contable y reglas precargadas | 1.5 sem. | F1 |
 | F3 | Libro Diario, partida doble en frontend y backend, IVA manual, mayorización, reversión | 3 sem. | F2 |
 | F4 | Libro Diario y Mayor, Balanza, estados financieros, resumen IVA, exportaciones | 2.5 sem. | F3 |
@@ -1357,11 +1385,16 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 | ADR-018 | Mayorización en tiempo real con `saldo_cuenta_mensual` en la misma transacción del asiento | Aceptada |
 | ADR-019 | Asientos inmutables; corrección solo por reversión, reforzada con permisos de base de datos | Aceptada |
 | ADR-020 | Reglas de contabilización por tipo de operación × categoría × código, editables y precargadas | Aceptada |
-| ADR-021 | Registro de apps y shell de frontend con apps cargadas dinámicamente | Aceptada |
+| ADR-021 | Registro de apps y shell de frontend con apps cargadas dinámicamente | Aceptada (ampliada por ADR-030) |
 | ADR-022 | Montos contables como `NUMERIC(19,2)` | Aceptada |
 | ADR-023 | Java 21 LTS como versión del backend | Aceptada |
 | ADR-024 | Particiones anuales de `auditoria` por migración Flyway y alerta sobre `auditoria_default` | Aceptada |
 | ADR-025 | Tabla `auditoria_global` para entidades sin empresa | Aceptada |
+| ADR-026 | Consultas previas a conocer la empresa: modo sin empresa + funciones `SECURITY DEFINER` | Aceptada |
+| ADR-027 | MFA obligatorio para todos los usuarios | Aceptada |
+| ADR-028 | Registro de usuarios en Keycloak, sin DUI, con consentimiento de publicidad; sin invitaciones pendientes | Aceptada |
+| ADR-029 | Empresa personal automática; empresa jurídica en Enterprise | Aceptada |
+| ADR-030 | Catálogo de apps instalables y apps Enterprise bloqueadas (amplía ADR-021) | Aceptada |
 
 ---
 
@@ -1401,6 +1434,12 @@ Documentado para no perder la visión; **no se implementa en 1.0**. Cualquier in
 | POS y app móvil | Punto de venta con modo sin conexión; app Expo |
 | RRHH y nómina | Empleados, planilla, descuentos de ley |
 | Perfiles de industria | Plantillas de configuración por giro |
+
+### 20.2.1 Edición Enterprise
+
+- Registro de empresas jurídicas con NIT de 14 dígitos y DUI, mediante un upgrade desde la empresa personal (ADR-029).
+- Instalación de las apps marcadas `ENTERPRISE` en el catálogo (ADR-030), planes y lógica de licenciamiento.
+- Envío de publicidad a los usuarios que dieron su consentimiento (ADR-028).
 
 ### 20.3 Funcionalidades contables futuras
 
