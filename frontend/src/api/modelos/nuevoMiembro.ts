@@ -6,16 +6,12 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { Rol } from './rol';
-import type { TipoEmpresa } from './tipoEmpresa';
-import type { Uuid } from './uuid';
 
 /**
- * Pertenencia activa del usuario a una empresa con su rol.
+ * Usuario ya registrado que se agrega a la empresa; no existen invitaciones (ADR-028).
  */
-export interface Membresia {
-  empresaId: Uuid;
-  /** Nombre de la empresa. */
-  nombreEmpresa: string;
-  tipoEmpresa: TipoEmpresa;
+export interface NuevoMiembro {
+  /** Correo del usuario registrado. */
+  correo: string;
   rol: Rol;
 }

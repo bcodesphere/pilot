@@ -5,17 +5,15 @@
  * API REST de Pilot, ERP multiempresa para PYMES de El Salvador. Incluye el núcleo (usuarios y empresas) y la app Contabilidad. Los montos viajan como cadena decimal con 2 decimales (ADR-013) y los errores siguen RFC 9457 (Problem Details).
  * OpenAPI spec version: 1.0.0
  */
-import type { Rol } from './rol';
-import type { TipoEmpresa } from './tipoEmpresa';
-import type { Uuid } from './uuid';
 
 /**
- * Pertenencia activa del usuario a una empresa con su rol.
+ * Rol del usuario dentro de la empresa (CLAUDE.md §14.2). El rol técnico integracion no aplica a usuarios.
  */
-export interface Membresia {
-  empresaId: Uuid;
-  /** Nombre de la empresa. */
-  nombreEmpresa: string;
-  tipoEmpresa: TipoEmpresa;
-  rol: Rol;
-}
+export type Rol = typeof Rol[keyof typeof Rol];
+
+
+export const Rol = {
+  admin_empresa: 'admin_empresa',
+  contador: 'contador',
+  auditor: 'auditor',
+} as const;

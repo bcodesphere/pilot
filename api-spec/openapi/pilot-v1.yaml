@@ -1,6 +1,7 @@
 # Contrato REST de Pilot 1.0 (fuente de verdad, ADR-003).
 # Contract-first: las interfaces Spring y el cliente Orval se generan desde este archivo.
-# Alcance de F0: solo componentes reutilizables y GET /me (F1). Los demás endpoints llegan en F2–F5.
+# Alcance de F1: núcleo (usuario actual, empresa, miembros, catálogo de apps y API keys) más los componentes
+# reutilizables. Los endpoints de contabilidad e integración llegan en F2–F5.
 openapi: 3.1.0
 
 # --- Metadatos del contrato ---
@@ -21,8 +22,16 @@ servers:
 
 # --- Etiquetas por módulo del backend (CLAUDE.md §4.2) ---
 tags:
-  - name: plataforma
-    description: Usuarios, empresas, membresías, API keys y registro de apps.
+  # Una etiqueta por recurso: el generador crea una interfaz <Etiqueta>Api por etiqueta y cada controlador
+  # implementa solo la suya (convención de CLAUDE.md §8.1). Las cuatro primeras son del módulo plataforma.
+  - name: usuarioActual
+    description: Módulo plataforma — usuario autenticado, sus membresías y su consentimiento de correos.
+  - name: empresas
+    description: Módulo plataforma — empresa activa y sus miembros.
+  - name: aplicaciones
+    description: Módulo plataforma — catálogo de apps e instalación (ADR-030).
+  - name: apiKeys
+    description: Módulo plataforma — API keys de integración (n8n).
   - name: contabilidad
     description: Catálogo de cuentas, asientos, mayorización, estados financieros y reportes.
   - name: integracion
@@ -33,15 +42,17 @@ security:
   - oidc: []
 
 paths:
+  # --- Usuario actual (ADR-028): sin X-Empresa-Id porque sirve para elegir la empresa activa ---
   /me:
     get:
       operationId: obtenerUsuarioActual
-      tags: [plataforma]
+      tags: [usuarioActual]
+      x-rol-minimo: autenticado
       summary: Usuario actual y sus membresías
       description: >-
-        Implementado en F1. Devuelve el usuario autenticado y las empresas a las que
-        pertenece con su rol en cada una. No requiere el header X-Empresa-Id porque se
-        usa justamente para elegir la empresa activa.
+        Devuelve el usuario autenticado, su consentimiento de correos de recomendaciones y las empresas a las que
+        pertenece con su rol en cada una (solo membresías activas). No requiere el header X-Empresa-Id porque se
+        usa justamente para elegir la empresa activa. Rol mínimo: autenticado.
       parameters:
         - $ref: '#/components/parameters/XRequestId'
       responses:
@@ -56,6 +67,501 @@ paths:
                 $ref: '#/components/schemas/UsuarioActual'
         '401':
           $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+    patch:
+      operationId: actualizarUsuarioActual
+      tags: [usuarioActual]
+      x-rol-minimo: autenticado
+      summary: Retira o vuelve a dar el consentimiento de correos
+      description: >-
+        Actualiza solo el consentimiento "Acepto recibir recomendaciones por correo" (ADR-028). Nombre, correo y
+        teléfono no se editan aquí: su fuente de verdad es Keycloak. No requiere X-Empresa-Id. Rol mínimo: autenticado.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+      requestBody:
+        required: true
+        description: Nuevo estado del consentimiento de correos de recomendaciones.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizacionUsuarioActual'
+      responses:
+        '200':
+          description: Usuario con el consentimiento actualizado.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioActual'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: validación de forma (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  # --- Empresa activa (ADR-029): concurrencia optimista con ETag e If-Match (CLAUDE.md §8.3) ---
+  /empresas/{empresaId}:
+    get:
+      operationId: obtenerEmpresa
+      tags: [empresas]
+      x-rol-minimo: admin_empresa
+      summary: Consulta la empresa activa
+      description: >-
+        Devuelve la empresa activa. {empresaId} debe ser igual a X-Empresa-Id; si no lo es, responde 404 PLT-017
+        para no revelar la existencia de otras empresas. La respuesta trae el header ETag con la versión actual, que
+        debe enviarse como If-Match al editar. Rol mínimo: admin_empresa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/EmpresaIdRuta'
+      responses:
+        '200':
+          description: Empresa activa con su ETag de versión.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Empresa'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: {empresaId} no coincide con X-Empresa-Id o la empresa no existe."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+    patch:
+      operationId: actualizarEmpresa
+      tags: [empresas]
+      x-rol-minimo: admin_empresa
+      summary: Edita la empresa activa
+      description: >-
+        Reemplaza nombre, nombre comercial, NIT y NRC de la empresa activa; el tipo no es editable. Los cuatro campos
+        son obligatorios en el cuerpo y los tres últimos aceptan null para vaciarlos: con openApiNullable=false el
+        generador no distingue "ausente" de "nulo", así que se exige enviar todo. Exige If-Match con el ETag leído
+        (concurrencia optimista) y devuelve el nuevo ETag. {empresaId} debe ser igual a X-Empresa-Id; si no, 404
+        PLT-017. Rol mínimo: admin_empresa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/EmpresaIdRuta'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        description: Datos completos editables de la empresa (los cuatro campos son obligatorios).
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizacionEmpresa'
+      responses:
+        '200':
+          description: Empresa actualizada con su nuevo ETag.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Empresa'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: {empresaId} no coincide con X-Empresa-Id o la empresa no existe."
+        '412':
+          $ref: '#/components/responses/PrecondicionFallida'
+          description: "412 — PLT-016: If-Match no coincide con la versión actual de la empresa; volver a leerla."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: validación de forma (incluye errores)."
+        '428':
+          $ref: '#/components/responses/PrecondicionRequerida'
+          description: "428 — PLT-015: falta el header If-Match."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  # --- Miembros de la empresa (ADR-028): solo usuarios ya registrados, sin invitaciones pendientes ---
+  /empresas/{empresaId}/usuarios:
+    get:
+      operationId: listarMiembrosEmpresa
+      tags: [empresas]
+      x-rol-minimo: admin_empresa
+      summary: Lista los miembros de la empresa
+      description: >-
+        Lista paginada por cursor de los miembros de la empresa activa, activos e inactivos. {empresaId} debe ser
+        igual a X-Empresa-Id; si no, 404 PLT-017. Rol mínimo: admin_empresa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/EmpresaIdRuta'
+        - $ref: '#/components/parameters/Limite'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Página de miembros de la empresa.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaMiembrosEmpresa'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: {empresaId} no coincide con X-Empresa-Id o la empresa no existe."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: validación de forma (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+    post:
+      operationId: agregarMiembroEmpresa
+      tags: [empresas]
+      x-rol-minimo: admin_empresa
+      summary: Agrega un usuario registrado a la empresa
+      description: >-
+        Agrega a la empresa a un usuario ya registrado, identificado por su correo, con el rol indicado. No existen
+        invitaciones (ADR-028): si el correo no pertenece a un usuario registrado responde 422 PLT-012. Si ya es
+        miembro, activo o inactivo, responde 409 PLT-013. Rol mínimo: admin_empresa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/EmpresaIdRuta'
+      requestBody:
+        required: true
+        description: Correo del usuario registrado y rol que tendrá en la empresa.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevoMiembro'
+      responses:
+        '201':
+          description: Miembro agregado a la empresa.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MiembroEmpresa'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: {empresaId} no coincide con X-Empresa-Id o la empresa no existe."
+        '409':
+          $ref: '#/components/responses/Conflicto'
+          description: "409 — PLT-013: el usuario ya es miembro de la empresa (activo o inactivo)."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-012: el correo no pertenece a un usuario registrado; PLT-002: validación de forma (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /empresas/{empresaId}/usuarios/{usuarioId}:
+    patch:
+      operationId: actualizarMiembroEmpresa
+      tags: [empresas]
+      x-rol-minimo: admin_empresa
+      summary: Cambia el rol o el estado de un miembro
+      description: >-
+        Cambia el rol de un miembro o lo activa/desactiva; ambos campos son obligatorios. Si la operación dejaría a
+        la empresa sin ningún admin_empresa activo responde 422 PLT-014. Rol mínimo: admin_empresa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/EmpresaIdRuta'
+        - $ref: '#/components/parameters/UsuarioIdRuta'
+      requestBody:
+        required: true
+        description: Nuevo rol y estado del miembro.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizacionMiembro'
+      responses:
+        '200':
+          description: Miembro actualizado.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MiembroEmpresa'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: {empresaId} no coincide con X-Empresa-Id o el usuario no es miembro de la empresa."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-014: la empresa quedaría sin admin_empresa activo; PLT-002: validación de forma (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  # --- Catálogo de apps (ADR-030): sin desinstalación en 1.0 ---
+  /aplicaciones:
+    get:
+      operationId: listarAplicaciones
+      tags: [aplicaciones]
+      x-rol-minimo: auditor
+      summary: Catálogo de apps con su estado para la empresa activa
+      description: >-
+        Devuelve el catálogo completo de apps, ordenado por el orden del catálogo, con su estado para la empresa
+        activa: INSTALADA, DISPONIBLE (comunitaria aún no instalada) o BLOQUEADA_ENTERPRISE. No se pagina porque el
+        catálogo es corto y global. Rol mínimo: auditor (cualquier miembro activo).
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+      responses:
+        '200':
+          description: Catálogo de apps con su estado.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AplicacionCatalogo'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /aplicaciones/{codigo}/instalacion:
+    post:
+      operationId: instalarAplicacion
+      tags: [aplicaciones]
+      x-rol-minimo: admin_empresa
+      summary: Instala una app comunitaria en la empresa activa
+      description: >-
+        Instala la app indicada y ejecuta su precarga en la misma transacción; si la precarga falla, la instalación
+        se revierte. Responde 201 si la instaló ahora y 200 si ya estaba instalada. No existe desinstalación en 1.0.
+        Las apps Enterprise no se pueden instalar (403 PLT-011). Rol mínimo: admin_empresa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/CodigoAplicacion'
+      responses:
+        '201':
+          description: App instalada ahora.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AplicacionCatalogo'
+        '200':
+          description: La app ya estaba instalada; se devuelve su estado actual.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AplicacionCatalogo'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación; PLT-011: la app es de la edición Enterprise y no se puede instalar."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: el código de app no existe en el catálogo."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  # --- API keys de integración (n8n): el secreto completo solo se ve al crearlas ---
+  /api-keys:
+    get:
+      operationId: listarApiKeys
+      tags: [apiKeys]
+      x-rol-minimo: admin_empresa
+      summary: Lista las API keys de la empresa
+      description: >-
+        Lista paginada por cursor de las API keys de la empresa activa, incluidas las revocadas. Nunca devuelve el
+        secreto ni su hash. Rol mínimo: admin_empresa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Limite'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Página de API keys sin secretos.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaApiKeys'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: validación de forma (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+    post:
+      operationId: crearApiKey
+      tags: [apiKeys]
+      x-rol-minimo: admin_empresa
+      summary: Crea una API key
+      description: >-
+        Crea una API key con los alcances indicados. El secreto completo (pk_xxxx.secreto) se muestra una sola vez
+        en esta respuesta y no se puede recuperar después; el servidor guarda solo su hash Argon2id. Rol mínimo:
+        admin_empresa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+      requestBody:
+        required: true
+        description: Nombre, alcances y expiración opcional de la nueva API key.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevaApiKey'
+      responses:
+        '201':
+          description: API key creada; incluye el secreto una única vez.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyCreada'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: validación de forma (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /api-keys/{apiKeyId}:
+    delete:
+      operationId: revocarApiKey
+      tags: [apiKeys]
+      x-rol-minimo: admin_empresa
+      summary: Revoca una API key
+      description: >-
+        Revoca la API key de forma definitiva. Es idempotente: revocar una clave ya revocada también responde 204.
+        Rol mínimo: admin_empresa.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/ApiKeyIdRuta'
+      responses:
+        '204':
+          description: API key revocada (o ya lo estaba).
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: el recurso no existe o no pertenece a la empresa activa."
         '429':
           $ref: '#/components/responses/DemasiadasPeticiones'
         '500':
@@ -153,38 +659,298 @@ components:
         siguienteCursor:
           type: [string, 'null']
           description: Cursor opaco para pedir la página siguiente; nulo cuando no hay más resultados.
+    # --- Enumeraciones con nombre (se reutilizan en lugar de repetirse en línea) ---
+    Rol:
+      type: string
+      enum: [admin_empresa, contador, auditor]
+      description: Rol del usuario dentro de la empresa (CLAUDE.md §14.2). El rol técnico integracion no aplica a usuarios.
+    EstadoMembresia:
+      type: string
+      enum: [ACTIVA, INACTIVA]
+      description: Estado de la membresía; una INACTIVA no permite acceder a la empresa (ADR-028).
+    TipoEmpresa:
+      type: string
+      enum: [PERSONAL, JURIDICA]
+      description: Tipo de empresa; en 1.0 solo existe PERSONAL, JURIDICA es de la edición Enterprise (ADR-029).
+    EdicionAplicacion:
+      type: string
+      enum: [COMUNITARIA, ENTERPRISE]
+      description: Edición a la que pertenece la app; solo las COMUNITARIA se pueden instalar en 1.0 (ADR-030).
+    EstadoAplicacion:
+      type: string
+      enum: [INSTALADA, DISPONIBLE, BLOQUEADA_ENTERPRISE]
+      description: Estado de la app para la empresa activa (ADR-030).
+    EstadoEmpresa:
+      type: string
+      enum: [ACTIVA, INACTIVA]
+      description: Estado de la empresa; coincide con el CHECK de la columna estado en la base de datos.
+    AlcanceApiKey:
+      type: string
+      enum: ['integracion:operaciones']
+      description: Alcance que otorga una API key; en 1.0 solo el webhook de operaciones de n8n.
+
+    # --- Usuario actual (ADR-028) ---
     Membresia:
       type: object
-      description: Pertenencia del usuario a una empresa con su rol.
-      required: [empresaId, nombreEmpresa, rol]
+      description: Pertenencia activa del usuario a una empresa con su rol.
+      required: [empresaId, nombreEmpresa, tipoEmpresa, rol]
       properties:
         empresaId:
           $ref: '#/components/schemas/Uuid'
         nombreEmpresa:
           type: string
-          description: Razón social de la empresa.
+          description: Nombre de la empresa.
+        tipoEmpresa:
+          $ref: '#/components/schemas/TipoEmpresa'
         rol:
-          type: string
-          enum: [admin_empresa, contador, auditor]
-          description: Rol del usuario dentro de la empresa (CLAUDE.md §14.2).
+          $ref: '#/components/schemas/Rol'
     UsuarioActual:
       type: object
       description: Usuario autenticado y sus membresías activas.
-      required: [id, correo, nombre, membresias]
+      required: [id, correo, nombre, telefono, recomendacionesCorreo, membresias]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
         correo:
           type: string
-          description: Correo del usuario (dato personal; se enmascara en logs).
+          description: Correo del usuario, verificado en Keycloak (dato personal; se enmascara en logs).
         nombre:
           type: string
           description: Nombre completo del usuario.
+        telefono:
+          type: string
+          pattern: '^\+503[0-9]{8}$'
+          description: Teléfono de El Salvador con prefijo +503 (dato personal; se enmascara en logs).
+        recomendacionesCorreo:
+          type: boolean
+          description: Consentimiento vigente para recibir recomendaciones por correo (ADR-028).
         membresias:
           type: array
-          description: Empresas a las que el usuario pertenece.
+          description: Empresas a las que el usuario pertenece con membresía activa.
           items:
             $ref: '#/components/schemas/Membresia'
+    ActualizacionUsuarioActual:
+      type: object
+      description: Cambio del consentimiento de correos; nombre, correo y teléfono vienen de Keycloak y no se editan aquí.
+      required: [recomendacionesCorreo]
+      properties:
+        recomendacionesCorreo:
+          type: boolean
+          description: true da el consentimiento; false lo retira.
+
+    # --- Empresa (ADR-029) ---
+    Empresa:
+      type: object
+      description: Empresa activa de la sesión.
+      required: [id, tipo, nombre, nombreComercial, nit, nrc, estado, version]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        tipo:
+          $ref: '#/components/schemas/TipoEmpresa'
+        nombre:
+          type: string
+          description: Nombre de la empresa.
+        nombreComercial:
+          type: [string, 'null']
+          description: Nombre comercial; nulo si no se ha registrado.
+        nit:
+          type: [string, 'null']
+          pattern: '^[0-9]{14}$'
+          description: NIT de 14 dígitos; opcional en la empresa PERSONAL, nulo si no se ha registrado.
+        nrc:
+          type: [string, 'null']
+          maxLength: 10
+          description: >-
+            Número de Registro de Contribuyente; nulo si no es contribuyente.
+            [VERIFICAR] formato del NRC con la fuente oficial del MH (ADR-029); por eso no tiene patrón.
+        estado:
+          $ref: '#/components/schemas/EstadoEmpresa'
+        version:
+          type: integer
+          format: int64
+          description: Versión para concurrencia optimista; también viaja como ETag (CLAUDE.md §8.3).
+    ActualizacionEmpresa:
+      type: object
+      description: >-
+        Datos editables de la empresa. Los cuatro campos son obligatorios en el cuerpo y los tres últimos aceptan
+        null para vaciarlos, porque con openApiNullable=false el generador no distingue "ausente" de "nulo".
+        El tipo no es editable.
+      required: [nombre, nombreComercial, nit, nrc]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 250
+          description: Nombre de la empresa.
+        nombreComercial:
+          type: [string, 'null']
+          maxLength: 250
+          description: Nombre comercial; null lo vacía.
+        nit:
+          type: [string, 'null']
+          pattern: '^[0-9]{14}$'
+          description: NIT de 14 dígitos; null lo vacía (solo válido si la empresa no exige NIT).
+        nrc:
+          type: [string, 'null']
+          maxLength: 10
+          description: NRC; null lo vacía. [VERIFICAR] formato con la fuente oficial del MH (ADR-029).
+
+    # --- Miembros de la empresa (ADR-028) ---
+    MiembroEmpresa:
+      type: object
+      description: Usuario que pertenece a la empresa activa, con su rol y estado.
+      required: [usuarioId, nombre, correo, rol, estado, desde]
+      properties:
+        usuarioId:
+          $ref: '#/components/schemas/Uuid'
+        nombre:
+          type: string
+          description: Nombre completo del usuario.
+        correo:
+          type: string
+          description: Correo del usuario (dato personal; se enmascara en logs).
+        rol:
+          $ref: '#/components/schemas/Rol'
+        estado:
+          $ref: '#/components/schemas/EstadoMembresia'
+        desde:
+          $ref: '#/components/schemas/FechaHora'
+    PaginaMiembrosEmpresa:
+      description: Página de miembros de la empresa.
+      allOf:
+        - $ref: '#/components/schemas/PaginaCursor'
+        - type: object
+          required: [elementos]
+          properties:
+            elementos:
+              type: array
+              description: Miembros de la página.
+              items:
+                $ref: '#/components/schemas/MiembroEmpresa'
+    NuevoMiembro:
+      type: object
+      description: Usuario ya registrado que se agrega a la empresa; no existen invitaciones (ADR-028).
+      required: [correo, rol]
+      properties:
+        correo:
+          type: string
+          format: email
+          description: Correo del usuario registrado.
+        rol:
+          $ref: '#/components/schemas/Rol'
+    ActualizacionMiembro:
+      type: object
+      description: Cambio de rol y estado de un miembro.
+      required: [rol, estado]
+      properties:
+        rol:
+          $ref: '#/components/schemas/Rol'
+        estado:
+          $ref: '#/components/schemas/EstadoMembresia'
+
+    # --- Catálogo de apps (ADR-030) ---
+    AplicacionCatalogo:
+      type: object
+      description: App del catálogo con su estado para la empresa activa.
+      required: [codigo, nombre, descripcion, edicion, estado, instaladaEn]
+      properties:
+        codigo:
+          type: string
+          description: Identificador estable de la app; también es el prefijo de sus rutas.
+        nombre:
+          type: string
+          description: Nombre visible de la app.
+        descripcion:
+          type: [string, 'null']
+          description: Descripción corta de la app.
+        edicion:
+          $ref: '#/components/schemas/EdicionAplicacion'
+        estado:
+          $ref: '#/components/schemas/EstadoAplicacion'
+        instaladaEn:
+          type: [string, 'null']
+          format: date-time
+          description: Instante UTC de la instalación (FechaHora); nulo si la app no está instalada.
+
+    # --- API keys (secreto visible solo al crearlas) ---
+    ApiKey:
+      type: object
+      description: API key de integración. Nunca incluye el secreto ni su hash.
+      required: [id, nombre, prefijo, alcances, expiraEn, revocadaEn, ultimoUsoEn, creadaEn]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        nombre:
+          type: string
+          description: Nombre descriptivo, p. ej. "n8n producción".
+        prefijo:
+          type: string
+          description: Parte visible de la clave (pk_xxxx) para identificarla.
+        alcances:
+          type: array
+          description: Alcances que otorga la clave.
+          items:
+            $ref: '#/components/schemas/AlcanceApiKey'
+        expiraEn:
+          type: [string, 'null']
+          format: date-time
+          description: Instante UTC de expiración (FechaHora); nulo si no vence.
+        revocadaEn:
+          type: [string, 'null']
+          format: date-time
+          description: Instante UTC de revocación (FechaHora); nulo si está vigente.
+        ultimoUsoEn:
+          type: [string, 'null']
+          format: date-time
+          description: Instante UTC del último uso (FechaHora); nulo si nunca se usó.
+        creadaEn:
+          $ref: '#/components/schemas/FechaHora'
+    PaginaApiKeys:
+      description: Página de API keys sin secretos.
+      allOf:
+        - $ref: '#/components/schemas/PaginaCursor'
+        - type: object
+          required: [elementos]
+          properties:
+            elementos:
+              type: array
+              description: API keys de la página.
+              items:
+                $ref: '#/components/schemas/ApiKey'
+    NuevaApiKey:
+      type: object
+      description: Datos para crear una API key.
+      required: [nombre, alcances, expiraEn]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Nombre descriptivo de la clave.
+        alcances:
+          type: array
+          minItems: 1
+          description: >-
+            Alcances que tendrá la clave. Sin repetidos: el backend rechaza duplicados con 422 PLT-002.
+          items:
+            $ref: '#/components/schemas/AlcanceApiKey'
+        expiraEn:
+          type: [string, 'null']
+          format: date-time
+          description: Instante UTC de expiración (FechaHora); null para una clave que no vence.
+    ApiKeyCreada:
+      description: API key recién creada; es la única respuesta que incluye el secreto.
+      allOf:
+        - $ref: '#/components/schemas/ApiKey'
+        - type: object
+          required: [secreto]
+          properties:
+            secreto:
+              type: string
+              description: >-
+                Secreto completo (pk_xxxx.secreto). Se muestra una sola vez y no se puede recuperar;
+                el servidor guarda únicamente su hash Argon2id.
 
   # --- Parámetros reutilizables ---
   parameters:
@@ -230,10 +996,53 @@ components:
       schema:
         type: string
 
+    IfMatch:
+      name: If-Match
+      in: header
+      required: true
+      description: ETag de la versión leída del recurso; si no coincide con la actual se responde 412 PLT-016 (CLAUDE.md §8.3).
+      schema:
+        type: string
+        minLength: 1
+    EmpresaIdRuta:
+      name: empresaId
+      in: path
+      required: true
+      description: Empresa del recurso; debe ser igual al header X-Empresa-Id, si no responde 404 PLT-017.
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    UsuarioIdRuta:
+      name: usuarioId
+      in: path
+      required: true
+      description: Identificador del usuario miembro de la empresa.
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    CodigoAplicacion:
+      name: codigo
+      in: path
+      required: true
+      description: Código estable de la app del catálogo (p. ej. contabilidad).
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 40
+    ApiKeyIdRuta:
+      name: apiKeyId
+      in: path
+      required: true
+      description: Identificador de la API key.
+      schema:
+        $ref: '#/components/schemas/Uuid'
+
   # --- Headers reutilizables ---
   headers:
     X-Request-Id:
       description: Identificador de correlación de la petición, para soporte y trazas.
+      schema:
+        type: string
+    ETag:
+      description: Versión del recurso (su columna version) entre comillas; se envía como If-Match al editarlo.
       schema:
         type: string
     Idempotency-Replayed:
@@ -273,6 +1082,12 @@ components:
             $ref: '#/components/schemas/ProblemDetails'
     Conflicto:
       description: 409 — El estado actual del recurso impide la operación (duplicado o petición en proceso).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    PrecondicionFallida:
+      description: 412 — El header If-Match no coincide con la versión actual del recurso; volver a leerlo.
       content:
         application/problem+json:
           schema:

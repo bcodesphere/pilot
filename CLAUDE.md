@@ -438,6 +438,7 @@ npx @stoplight/spectral-cli lint api-spec/openapi/pilot-v1.yaml   # Valida el co
 - Tablas y columnas en `snake_case` singular (`asiento_linea`, `empresa_id`).
 - Claves primarias `UUID` versión 7 generadas en la aplicación (ADR-010).
 - Endpoints REST en plural y `kebab-case` (`/api/v1/contabilidad/reglas-contabilizacion`).
+- Etiquetas (`tags`) de OpenAPI **por recurso**, en camelCase (`usuarioActual`, `empresas`, `apiKeys`): el generador crea una interfaz `<Etiqueta>Api` por etiqueta, sin métodos por defecto, y cada controlador implementa solo la suya. Una etiqueta por módulo obligaría a un solo controlador a implementar todas las operaciones del módulo.
 - JSON de la API en `camelCase`; montos como **cadena decimal** (`"123.45"`) (ADR-013); fechas ISO-8601.
 - Códigos de negocio en mayúsculas con guion bajo (`CIERRE_INGRESOS_DIARIO`, `VENTAS_GRAVADAS`, `EFECTIVO`).
 

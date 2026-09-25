@@ -13,10 +13,17 @@ import type { Uuid } from './uuid';
  */
 export interface UsuarioActual {
   id: Uuid;
-  /** Correo del usuario (dato personal; se enmascara en logs). */
+  /** Correo del usuario, verificado en Keycloak (dato personal; se enmascara en logs). */
   correo: string;
   /** Nombre completo del usuario. */
   nombre: string;
-  /** Empresas a las que el usuario pertenece. */
+  /**
+     * Teléfono de El Salvador con prefijo +503 (dato personal; se enmascara en logs).
+     * @pattern ^\+503[0-9]{8}$
+     */
+  telefono: string;
+  /** Consentimiento vigente para recibir recomendaciones por correo (ADR-028). */
+  recomendacionesCorreo: boolean;
+  /** Empresas a las que el usuario pertenece con membresía activa. */
   membresias: Membresia[];
 }
