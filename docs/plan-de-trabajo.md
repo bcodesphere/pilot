@@ -74,17 +74,18 @@ F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 ### F1 — Núcleo del ERP (2 semanas)
 
 **Tareas**
-1. Realm `pilot` en Keycloak: autorregistro, verificación de correo (Mailpit), login OIDC con PKCE y MFA para `admin_empresa` y `contador`.
-2. Tablas `usuario`, `empresa`, `empresa_usuario`, `aplicacion`, `empresa_aplicacion`, `api_key`.
-3. Alta de usuario en Pilot la primera vez que inicia sesión (desde el `sub` del token).
-4. Registro de empresa (`POST /empresas`): crea la empresa, asigna `admin_empresa`, activa Contabilidad y ejecuta la precarga de F2.
+1. Realm `pilot` en Keycloak con tema Pilot: autorregistro (nombre, correo, teléfono, contraseña; sin DUI), consentimiento de publicidad opcional, verificación de correo (Mailpit), login OIDC con PKCE y MFA para todos (ADR-027, ADR-028).
+2. Tablas `usuario`, `empresa`, `empresa_usuario`, `aplicacion` (con las apps Enterprise bloqueadas), `empresa_aplicacion`, `api_key`, `auditoria_global` y funciones `SECURITY DEFINER` (ADR-025, ADR-026, ADR-030).
+3. Modo sin empresa en el gestor de transacciones (ADR-026). Alta del usuario la primera vez que inicia sesión (desde el `sub` del token) junto con su **empresa personal** y su membresía `admin_empresa` (ADR-029).
+4. Catálogo de apps: `GET /aplicaciones` con estado por empresa e instalación de Contabilidad (`POST /aplicaciones/{codigo}/instalacion`) que publica `AplicacionInstalada` (ADR-030).
 5. Selector de empresa activa (`X-Empresa-Id`) validado contra las membresías.
-6. Gestión básica: editar la empresa, invitar usuarios, cambiar rol, desactivar membresía.
+6. Gestión básica: editar la empresa, agregar usuarios ya registrados por correo, cambiar rol, desactivar membresía.
 7. API keys: crear (secreto visible una sola vez), listar, revocar; hash Argon2id; alcances.
-8. Frontend: shell con lanzador de apps que lee `GET /aplicaciones`.
+8. Frontend: shell con lanzador de apps instaladas y pantalla "Apps" con el catálogo.
 
 **Criterios de aceptación**
-- Un usuario nuevo se registra, verifica su correo, inicia sesión, crea su empresa y ve la app Contabilidad en el lanzador.
+- Un usuario nuevo se registra, verifica su correo, inicia sesión (con MFA), encuentra su empresa personal ya creada, instala Contabilidad desde "Apps" y la ve en el lanzador.
+- Las apps Enterprise aparecen bloqueadas y su instalación se rechaza con 403.
 - Un usuario con dos empresas cambia de empresa y solo ve los datos de la empresa activa.
 - Un `X-Empresa-Id` sin membresía devuelve 403 `PLT-003`.
 - Una API key revocada o vencida devuelve 401; sin el alcance requerido, 403.
@@ -96,7 +97,7 @@ F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 
 **Tareas**
 1. Tabla global `plantilla_cuenta` con el catálogo de `docs/contabilidad/catalogo-base.md`, cargada por migración.
-2. Tabla `cuenta_contable` y copia de la plantilla al registrar la empresa.
+2. Tabla `cuenta_contable` y copia de la plantilla al instalar Contabilidad (oyente de `AplicacionInstalada`, ADR-030).
 3. CRUD del catálogo con sus validaciones (`CON-010` a `CON-012`).
 4. Tabla global `tasa_impuesto` con IVA 13 % vigente.
 5. `configuracion_contable` (modo de precio, cuentas de IVA débito y crédito), precargada.
@@ -104,7 +105,7 @@ F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 7. Frontend: árbol del catálogo con búsqueda, formulario de cuenta, pantalla de configuración y editor de reglas.
 
 **Criterios de aceptación**
-- Una empresa nueva tiene catálogo, configuración y reglas precargados sin intervención manual.
+- Al instalar Contabilidad, la empresa tiene catálogo, configuración y reglas precargados sin intervención manual; si la precarga falla, la instalación se revierte.
 - No se puede crear una cuenta con código `6…`, con un padre que no sea prefijo de su código, ni un código duplicado.
 - No se puede desactivar una cuenta con saldo, ni cambiar el código de una cuenta con movimientos.
 - Cambiar el modo de precio queda en la auditoría con valor anterior y nuevo.

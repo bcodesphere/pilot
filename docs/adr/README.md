@@ -29,6 +29,11 @@ Cada ADR registra contexto, decisión, alternativas y consecuencias. Un ADR acep
 | [ADR-023](ADR-023-java-21.md) | Java 21 LTS como versión del backend | Aceptada |
 | [ADR-024](ADR-024-particiones-auditoria.md) | Particiones anuales de `auditoria` por migración Flyway | Aceptada |
 | [ADR-025](ADR-025-auditoria-global.md) | Tabla `auditoria_global` para entidades sin empresa | Aceptada |
+| [ADR-026](ADR-026-consultas-sin-empresa.md) | Consultas previas a conocer la empresa: modo sin empresa + `SECURITY DEFINER` | Aceptada |
+| [ADR-027](ADR-027-mfa-todos-los-usuarios.md) | MFA obligatorio para todos los usuarios | Aceptada |
+| [ADR-028](ADR-028-registro-usuarios-keycloak.md) | Registro de usuarios en Keycloak, sin DUI, con consentimiento de publicidad | Aceptada |
+| [ADR-029](ADR-029-empresa-personal.md) | Empresa personal automática; empresa jurídica en Enterprise | Aceptada |
+| [ADR-030](ADR-030-catalogo-apps-instalables.md) | Catálogo de apps instalables y apps Enterprise bloqueadas | Aceptada |
 
 Los ADR diferidos están documentados en `docs/diferido/vision-completa-con-dte.md` (sección 22 de ese archivo).
 

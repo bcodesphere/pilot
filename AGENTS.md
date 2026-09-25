@@ -6,7 +6,7 @@
 
 | Campo | Valor |
 |---|---|
-| Estado del proyecto | Fase F0 sin iniciar: solo documentación y carpetas vacías |
+| Estado del proyecto | F0 cerrada; F1 (Núcleo) en preparación |
 | Agentes definidos | 1 supervisor + 10 especialistas |
 | Última actualización | 2026-09-24 |
 
