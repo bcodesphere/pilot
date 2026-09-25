@@ -19,8 +19,15 @@ updates:
     schedule:
       interval: weekly
 
-  # Imágenes del compose de desarrollo
-  - package-ecosystem: docker
+  # Imágenes del compose de desarrollo (F1-09).
+  # El ecosistema "docker" solo lee Dockerfile/Containerfile y YAML de Kubernetes, por eso
+  # fallaba con infra/docker/compose.dev.yml; "docker-compose" sí lo lee: su FILENAME_REGEX
+  # /(docker-)?compose(-[\w]+)?(?>\.[\w-]+)?\.ya?ml/i acepta "compose.dev.yml"
+  # (dependabot-core, docker/lib/dependabot/docker_compose/file_fetcher.rb).
+  # Ecosistema en GA desde 2025-02-25:
+  # https://github.blog/changelog/2025-02-25-dependabot-version-updates-now-support-docker-compose-in-general-availability/
+  # Opciones: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+  - package-ecosystem: docker-compose
     directory: /infra/docker
     schedule:
       interval: weekly
