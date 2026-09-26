@@ -1,8 +1,8 @@
 # Contrato REST de Pilot 1.0 (fuente de verdad, ADR-003).
 # Contract-first: las interfaces Spring y el cliente Orval se generan desde este archivo.
-# Alcance de F2: núcleo de F1 (usuario actual, empresa, catálogo de apps y API keys) más el catálogo de
-# cuentas, la configuración contable y las reglas de contabilización. Asientos, reportes e integración
-# llegan en F3–F5.
+# Alcance de F3: núcleo de F1 (usuario actual, empresa, catálogo de apps y API keys), el catálogo de
+# cuentas, la configuración contable y las reglas de contabilización de F2, más el Libro Diario de F3
+# (registro, vista previa, consulta y reversión de asientos). Reportes e integración llegan en F4–F5.
 openapi: 3.1.0
 
 # --- Metadatos del contrato ---
@@ -40,6 +40,8 @@ tags:
     description: Módulo contabilidad — modo de precio por defecto y cuentas de IVA de la empresa (CLAUDE.md §11.3).
   - name: reglasContabilizacion
     description: Módulo contabilidad — reglas que asignan una cuenta a cada concepto o forma de pago (ADR-020).
+  - name: asientos
+    description: "Módulo contabilidad — Libro Diario: registro, vista previa, consulta y reversión de asientos."
   - name: integracion
     description: Webhook de n8n y bitácora de operaciones externas.
 
@@ -824,6 +826,260 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorInterno'
 
+  # --- Libro Diario (CLAUDE.md §10.1, §11.2, ADR-036): las cinco operaciones van en la etiqueta asientos ---
+  /contabilidad/asientos:
+    post:
+      operationId: registrarAsiento
+      tags: [asientos]
+      x-rol-minimo: contador
+      summary: Registra un asiento manual
+      description: >-
+        Registra un asiento manual del Libro Diario en una sola transacción: expande el IVA de las líneas que lo llevan
+        (CLAUDE.md §11.2), valida la partida doble, asigna el número correlativo, guarda cabecera y líneas y mayoriza
+        los saldos (ADR-018); o se guarda todo o no se guarda nada. Exige Idempotency-Key: repetir la misma clave con el
+        mismo cuerpo devuelve la respuesta original con Idempotency-Replayed true. Un asiento guardado es inmutable
+        (ADR-019). Rol mínimo: contador.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        description: Fecha, concepto, modo de precio opcional y líneas del asiento.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevoAsiento'
+      responses:
+        '201':
+          description: Asiento contabilizado. Si es la repetición de una petición idempotente, es la respuesta original.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/Idempotency-Replayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asiento'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos (incluye un monto enviado como número)."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '409':
+          $ref: '#/components/responses/Conflicto'
+          description: "409 — PLT-008: otra petición con la misma Idempotency-Key está en proceso; reintentar."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — CON-001: menos de dos líneas; CON-002: una línea con Debe y Haber a la vez o ninguno; CON-003: monto negativo o con más de 2 decimales; CON-004: totales en cero; CON-005: Σ Debe ≠ Σ Haber (incluye diferencia); CON-006: cuenta inexistente, inactiva, de otra empresa o que no es de detalle; CON-007: fecha obligatoria y no futura; CON-013: \"lleva IVA\" sobre una cuenta de IVA; CON-017: no hay tasa de IVA vigente a la fecha del asiento; PLT-002: validación de forma (concepto obligatorio o de más de 500 caracteres, más de 200 líneas; incluye errores); PLT-005: Idempotency-Key reutilizada con otro cuerpo."
+        '428':
+          $ref: '#/components/responses/PrecondicionRequerida'
+          description: "428 — PLT-006: falta el header Idempotency-Key."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+    get:
+      operationId: listarAsientos
+      tags: [asientos]
+      x-rol-minimo: auditor
+      summary: Libro Diario paginado
+      description: >-
+        Lista los asientos de la empresa (Libro Diario) paginados por cursor y ordenados por año y número ascendentes.
+        Los filtros son opcionales y se combinan: desde y hasta (fecha contable, ambos inclusive), anio, numero, origen,
+        estado y cuentaId (asientos con alguna línea en esa cuenta). El listado devuelve el resumen sin líneas; el detalle
+        está en la consulta individual. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Limite'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Desde'
+        - $ref: '#/components/parameters/Hasta'
+        - $ref: '#/components/parameters/AnioFiltro'
+        - $ref: '#/components/parameters/NumeroAsientoFiltro'
+        - $ref: '#/components/parameters/OrigenAsientoFiltro'
+        - $ref: '#/components/parameters/EstadoAsientoFiltro'
+        - $ref: '#/components/parameters/CuentaIdFiltro'
+      responses:
+        '200':
+          description: Página de asientos en orden de año y número.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaAsientos'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: validación de forma de los parámetros, o desde es posterior a hasta (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/asientos/vista-previa:
+    post:
+      operationId: previsualizarAsiento
+      tags: [asientos]
+      x-rol-minimo: contador
+      summary: Vista previa de un asiento sin guardarlo
+      description: >-
+        Expande el IVA de las líneas que lo llevan y calcula los totales y la diferencia sin guardar nada ni numerar el
+        asiento; no exige Idempotency-Key. Responde 200 aunque el asiento no cuadre (cuadra false y diferencia distinta de
+        cero, ADR-036), para que el frontend valide la partida doble sobre las líneas expandidas por el backend. Solo
+        responde 422 si no se puede expandir. Rol mínimo: contador.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+      requestBody:
+        required: true
+        description: Mismo cuerpo que el registro del asiento.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevoAsiento'
+      responses:
+        '200':
+          description: Líneas expandidas, totales, diferencia e indicador de que cuadra.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VistaPreviaAsiento'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos (incluye un monto enviado como número)."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — solo si no se puede expandir: CON-002: una línea con Debe y Haber a la vez o ninguno; CON-003: monto negativo o con más de 2 decimales; CON-006: cuenta inexistente, inactiva, de otra empresa o que no es de detalle; CON-007: fecha obligatoria y no futura; CON-013: \"lleva IVA\" sobre una cuenta de IVA; CON-017: no hay tasa de IVA vigente a la fecha; PLT-002: validación de forma (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/asientos/{asientoId}:
+    get:
+      operationId: obtenerAsiento
+      tags: [asientos]
+      x-rol-minimo: auditor
+      summary: Consulta un asiento con sus líneas
+      description: >-
+        Devuelve un asiento con todas sus líneas. No lleva ETag porque un asiento guardado es inmutable salvo su paso a
+        REVERTIDO (ADR-019). Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/AsientoIdRuta'
+      responses:
+        '200':
+          description: Asiento con sus líneas.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asiento'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: el recurso no existe o no pertenece a la empresa activa."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/asientos/{asientoId}/reversion:
+    post:
+      operationId: revertirAsiento
+      tags: [asientos]
+      x-rol-minimo: contador
+      summary: Revierte un asiento
+      description: >-
+        Crea un asiento de reversión con el Debe y el Haber intercambiados, concepto fijo "Reversión del asiento N.º
+        <numero>/<anio>" y estado CONTABILIZADO, y marca el original como REVERTIDO; mayoriza igual que cualquier
+        asiento, así que los saldos vuelven a su valor anterior (CLAUDE.md §10.1, ADR-019, ADR-036). La fecha es
+        opcional (por defecto hoy en hora de El Salvador); no puede ser futura ni anterior a la del asiento original. Un
+        asiento ya revertido o una reversión no pueden revertirse. Exige Idempotency-Key. Rol mínimo: contador.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/AsientoIdRuta'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        description: Fecha contable de la reversión; el cuerpo completo es opcional.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevaReversion'
+      responses:
+        '201':
+          description: Asiento de reversión contabilizado. Si es la repetición de una petición idempotente, es la respuesta original.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/Idempotency-Replayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asiento'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: el recurso no existe o no pertenece a la empresa activa."
+        '409':
+          $ref: '#/components/responses/Conflicto'
+          description: "409 — CON-008: el asiento ya está revertido; CON-009: una reversión no se revierte; PLT-008: otra petición con la misma Idempotency-Key está en proceso; reintentar."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — CON-007: la fecha de la reversión es futura; CON-018: la fecha es anterior a la del asiento original; PLT-002: validación de forma (incluye errores); PLT-005: Idempotency-Key reutilizada con otro cuerpo."
+        '428':
+          $ref: '#/components/responses/PrecondicionRequerida'
+          description: "428 — PLT-006: falta el header Idempotency-Key."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
 components:
   # --- Esquemas de seguridad ---
   securitySchemes:
@@ -1311,6 +1567,259 @@ components:
           type: boolean
           description: true activa la regla y exige cuentaId (PLT-002 si es nulo); false la desactiva.
 
+    # --- Contabilidad: Libro Diario, vista previa y reversión (CLAUDE.md §10.1, ADR-036) ---
+    MontoEntrada:
+      type: string
+      pattern: '^-?\d{1,17}(\.\d+)?$'
+      examples: ['113.00']
+      description: >-
+        Monto de entrada de una línea de asiento como cadena decimal, con signo opcional y cualquier cantidad de
+        decimales. Solo se usa al enviar líneas: es deliberadamente más permisivo que Monto para que la validación de
+        forma no rechace un negativo ni más de 2 decimales, y sea la regla de negocio la que responda CON-003 (ADR-036).
+        Nunca número JSON (ADR-013).
+    EstadoAsiento:
+      type: string
+      enum: [CONTABILIZADO, REVERTIDO]
+      description: Estado del asiento; REVERTIDO es el único cambio permitido tras guardarlo (ADR-019).
+    OrigenAsiento:
+      type: string
+      enum: [MANUAL, N8N, REVERSION]
+      description: Cómo nació el asiento — registro manual, operación recibida por n8n o reversión de otro asiento.
+    OrigenLinea:
+      type: string
+      enum: [USUARIO, IVA_CALCULADO, OPERACION]
+      description: >-
+        Origen de la línea — capturada por el usuario, IVA calculado por el backend al expandir una línea con "lleva
+        IVA" (CLAUDE.md §11.2) o generada por una operación externa.
+    NuevaLineaAsiento:
+      type: object
+      description: Línea de entrada de un asiento; cada línea lleva solo Debe o solo Haber (CON-002).
+      required: [cuentaId, debe, haber]
+      properties:
+        cuentaId:
+          $ref: '#/components/schemas/Uuid'
+          description: Cuenta de detalle, activa y de la empresa (CON-006).
+        descripcion:
+          type: string
+          maxLength: 300
+          description: Descripción opcional de la línea.
+        debe:
+          $ref: '#/components/schemas/MontoEntrada'
+          description: Monto al Debe; "0" o "0.00" si la línea va al Haber.
+        haber:
+          $ref: '#/components/schemas/MontoEntrada'
+          description: Monto al Haber; "0" o "0.00" si la línea va al Debe.
+        llevaIva:
+          type: boolean
+          default: false
+          description: >-
+            Si la línea lleva IVA; el backend la expande en la línea base y una línea de IVA del mismo lado (débito fiscal
+            al Haber, crédito fiscal al Debe). No se permite sobre cuentas de IVA (CON-013).
+    NuevoAsiento:
+      type: object
+      description: >-
+        Datos de un asiento manual. No lleva mínimo de líneas en la forma para que el negocio responda CON-001, ni
+        totales: los calcula el backend.
+      required: [fecha, concepto, lineas]
+      properties:
+        fecha:
+          $ref: '#/components/schemas/Fecha'
+          description: Fecha contable en hora de El Salvador; obligatoria y no futura (CON-007).
+        concepto:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Concepto o glosa del asiento.
+        modoPrecio:
+          $ref: '#/components/schemas/ModoPrecio'
+          description: Modo de precio para separar el IVA; si falta se usa el de la configuración contable (ADR-015).
+        lineas:
+          type: array
+          maxItems: 200
+          description: Líneas del asiento, máximo 200; el mínimo de dos (CON-001) lo valida el negocio.
+          items:
+            $ref: '#/components/schemas/NuevaLineaAsiento'
+    LineaAsiento:
+      type: object
+      description: Línea de un asiento guardado, ya expandida.
+      required: [id, numeroLinea, cuenta, descripcion, debe, haber, origenLinea, lineaBaseId]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        numeroLinea:
+          type: integer
+          minimum: 1
+          description: Posición de la línea dentro del asiento, desde 1.
+        cuenta:
+          $ref: '#/components/schemas/ResumenCuenta'
+        descripcion:
+          type: [string, 'null']
+          description: Descripción de la línea; nula si no tiene.
+        debe:
+          $ref: '#/components/schemas/Monto'
+        haber:
+          $ref: '#/components/schemas/Monto'
+        origenLinea:
+          $ref: '#/components/schemas/OrigenLinea'
+        lineaBaseId:
+          type: [string, 'null']
+          format: uuid
+          description: En una línea de IVA calculado, la línea que la originó; nulo en las demás.
+    Asiento:
+      type: object
+      description: Asiento guardado con sus líneas; inmutable salvo su paso a REVERTIDO (ADR-019).
+      required: [id, anio, numero, fecha, concepto, estado, origenTipo, origenId, modoPrecio, asientoRevertidoId, asientoReversionId, totalDebe, totalHaber, creadoEn, lineas]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        anio:
+          type: integer
+          description: Año de la fecha contable; junto con numero forma el correlativo.
+        numero:
+          type: integer
+          format: int64
+          description: Número correlativo del asiento dentro de la empresa y el año.
+        fecha:
+          $ref: '#/components/schemas/Fecha'
+        concepto:
+          type: string
+          description: Concepto o glosa del asiento.
+        estado:
+          $ref: '#/components/schemas/EstadoAsiento'
+        origenTipo:
+          $ref: '#/components/schemas/OrigenAsiento'
+        origenId:
+          type: [string, 'null']
+          format: uuid
+          description: Operación externa que originó el asiento; nulo si no viene de n8n.
+        modoPrecio:
+          oneOf:
+            - $ref: '#/components/schemas/ModoPrecio'
+            - type: 'null'
+          description: Modo de precio usado para separar el IVA; nulo si ninguna línea llevó IVA.
+        asientoRevertidoId:
+          type: [string, 'null']
+          format: uuid
+          description: En una reversión, el asiento que revierte; nulo en las demás.
+        asientoReversionId:
+          type: [string, 'null']
+          format: uuid
+          description: En un asiento revertido, su reversión; nulo si no está revertido.
+        totalDebe:
+          $ref: '#/components/schemas/Monto'
+        totalHaber:
+          $ref: '#/components/schemas/Monto'
+        creadoEn:
+          $ref: '#/components/schemas/FechaHora'
+        lineas:
+          type: array
+          description: Líneas del asiento ordenadas por numeroLinea.
+          items:
+            $ref: '#/components/schemas/LineaAsiento'
+    ResumenAsiento:
+      type: object
+      description: Cabecera de un asiento para el listado del Libro Diario, sin líneas.
+      required: [id, anio, numero, fecha, concepto, estado, origenTipo, totalDebe, totalHaber]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        anio:
+          type: integer
+          description: Año de la fecha contable.
+        numero:
+          type: integer
+          format: int64
+          description: Número correlativo dentro de la empresa y el año.
+        fecha:
+          $ref: '#/components/schemas/Fecha'
+        concepto:
+          type: string
+          description: Concepto o glosa del asiento.
+        estado:
+          $ref: '#/components/schemas/EstadoAsiento'
+        origenTipo:
+          $ref: '#/components/schemas/OrigenAsiento'
+        totalDebe:
+          $ref: '#/components/schemas/Monto'
+        totalHaber:
+          $ref: '#/components/schemas/Monto'
+    PaginaAsientos:
+      description: Página del Libro Diario.
+      allOf:
+        - $ref: '#/components/schemas/PaginaCursor'
+        - type: object
+          required: [elementos]
+          properties:
+            elementos:
+              type: array
+              description: Asientos de la página.
+              items:
+                $ref: '#/components/schemas/ResumenAsiento'
+    LineaVistaPrevia:
+      type: object
+      description: Línea de la vista previa, ya expandida por el backend pero aún sin guardar.
+      required: [numeroLinea, cuenta, descripcion, debe, haber, origenLinea, numeroLineaOrigen]
+      properties:
+        numeroLinea:
+          type: integer
+          minimum: 1
+          description: Posición de la línea en el asiento expandido, desde 1.
+        cuenta:
+          $ref: '#/components/schemas/ResumenCuenta'
+        descripcion:
+          type: [string, 'null']
+          description: Descripción de la línea; nula si no tiene.
+        debe:
+          $ref: '#/components/schemas/Monto'
+        haber:
+          $ref: '#/components/schemas/Monto'
+        origenLinea:
+          $ref: '#/components/schemas/OrigenLinea'
+        numeroLineaOrigen:
+          type: [integer, 'null']
+          description: En una línea de IVA calculado, el número de la línea que la originó; nulo en las demás.
+    VistaPreviaAsiento:
+      type: object
+      description: >-
+        Resultado de expandir y sumar un asiento sin guardarlo. Se devuelve aunque no cuadre (ADR-036), para validar
+        la partida doble sobre las líneas expandidas por el backend.
+      required: [modoPrecio, tasaIva, lineas, totalDebe, totalHaber, diferencia, cuadra]
+      properties:
+        modoPrecio:
+          oneOf:
+            - $ref: '#/components/schemas/ModoPrecio'
+            - type: 'null'
+          description: Modo de precio aplicado; nulo si ninguna línea lleva IVA.
+        tasaIva:
+          type: [string, 'null']
+          pattern: '^\d{1,3}(\.\d{1,4})?$'
+          examples: ['0.1300']
+          description: Tasa de IVA vigente a la fecha del asiento como cadena decimal; nula si ninguna línea lleva IVA.
+        lineas:
+          type: array
+          description: Líneas expandidas, con las de IVA calculado incluidas.
+          items:
+            $ref: '#/components/schemas/LineaVistaPrevia'
+        totalDebe:
+          $ref: '#/components/schemas/Monto'
+        totalHaber:
+          $ref: '#/components/schemas/Monto'
+        diferencia:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Σ Debe − Σ Haber de las líneas expandidas.
+        cuadra:
+          type: boolean
+          description: true si hay al menos dos líneas, los totales son mayores que cero y el Debe es igual al Haber.
+    NuevaReversion:
+      type: object
+      description: Datos opcionales de una reversión.
+      properties:
+        fecha:
+          $ref: '#/components/schemas/Fecha'
+          description: >-
+            Fecha contable de la reversión; por defecto hoy en hora de El Salvador. No puede ser futura (CON-007) ni
+            anterior a la del asiento original (CON-018).
+
   # --- Parámetros reutilizables ---
   parameters:
     XEmpresaId:
@@ -1432,6 +1941,67 @@ components:
       description: Limita las reglas a un tipo de operación.
       schema:
         $ref: '#/components/schemas/TipoOperacionContable'
+
+    AsientoIdRuta:
+      name: asientoId
+      in: path
+      required: true
+      description: Identificador del asiento.
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    Desde:
+      name: desde
+      in: query
+      required: false
+      description: Fecha contable inicial, inclusive; no puede ser posterior a hasta.
+      schema:
+        $ref: '#/components/schemas/Fecha'
+    Hasta:
+      name: hasta
+      in: query
+      required: false
+      description: Fecha contable final, inclusive.
+      schema:
+        $ref: '#/components/schemas/Fecha'
+    AnioFiltro:
+      name: anio
+      in: query
+      required: false
+      description: Año de la fecha contable de los asientos.
+      schema:
+        type: integer
+        minimum: 2000
+        maximum: 9999
+    NumeroAsientoFiltro:
+      name: numero
+      in: query
+      required: false
+      description: Número correlativo del asiento (se combina con anio para ubicar uno solo).
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    OrigenAsientoFiltro:
+      name: origen
+      in: query
+      required: false
+      description: Limita el listado a un origen de asiento.
+      schema:
+        $ref: '#/components/schemas/OrigenAsiento'
+    EstadoAsientoFiltro:
+      name: estado
+      in: query
+      required: false
+      description: Limita el listado a un estado de asiento.
+      schema:
+        $ref: '#/components/schemas/EstadoAsiento'
+    CuentaIdFiltro:
+      name: cuentaId
+      in: query
+      required: false
+      description: Limita el listado a los asientos con alguna línea en esta cuenta.
+      schema:
+        $ref: '#/components/schemas/Uuid'
 
   # --- Headers reutilizables ---
   headers:
