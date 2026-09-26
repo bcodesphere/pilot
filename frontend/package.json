@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "api:generate": "orval --config orval.config.ts",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:f1": "playwright test f1-nucleo"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",
