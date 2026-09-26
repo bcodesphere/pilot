@@ -4,6 +4,9 @@
 >
 > **La facturación electrónica (DTE) está en segundo plano.** Su diseño se conserva en `docs/diferido/` y se retomará en una versión posterior (sección 20).
 
+> [!IMPORTANT]
+> **Urgencia — SLA del módulo (timeboxing).** El módulo contable de Pilot 1.0, con todo el flujo de trabajo ya definido en este archivo (núcleo, catálogo, Libro Diario, mayorización, estados financieros, reportes, IVA y webhook n8n), tiene un **límite estricto de menos de 24 horas** a partir del **2026-09-25**. El plazo no cambia las reglas críticas (sección 1) ni la Definición de Terminado (0.2). Decisión del 2026-09-25: se sigue el flujo de trabajo definido, sin recortar alcance, con las tareas independientes en paralelo (F1-05 ∥ F1-07, F4 ∥ F5).
+
 | Campo | Valor |
 |---|---|
 | Nombre del producto | Pilot |
@@ -16,7 +19,9 @@
 | Zona horaria de negocio | `America/El_Salvador` (UTC−6, sin horario de verano) |
 | Idioma de producto | Español (`es-SV`) |
 | Estado actual | Fase F1 — Núcleo (ver `docs/plan-de-trabajo.md`) |
-| Última actualización de este archivo | 2026-09-24 |
+| Plazo de Contabilidad 1.0 | **Timebox de 24 horas desde el 2026-09-25** (ver nota de urgencia) |
+| Modelo de negocio | Open-Core / Freemium: plan Gratuito y plan Enterprise con DTE (ADR-031) |
+| Última actualización de este archivo | 2026-09-25 |
 
 ---
 
@@ -95,12 +100,30 @@
 
 ## 2. Alcance de Pilot 1.0
 
+### 2.0 Propósito y alcance del sistema final (ADR-031)
+
+Visión de negocio del producto completo. **No amplía el alcance de 1.0**: lo que no esté en 2.1 y 2.2 sigue en la sección 20.
+
+- **Mercado objetivo:** El Salvador.
+- **Modelo de negocio:** ERP Open-Core / Freemium.
+  - **Plan Gratuito:** micro y pequeñas empresas que operan sin registro fiscal. Pilot 1.0 (núcleo + Contabilidad) pertenece a este plan.
+  - **Plan Enterprise:** suscripción de bajo costo que incluye la integración oficial de Facturación Electrónica (DTE) con el Ministerio de Hacienda, la empresa jurídica (ADR-029) y las apps `ENTERPRISE` (ADR-030).
+
+La solución integral se estructura obligatoriamente en **cuatro capas**; toda funcionalidad nueva declara a cuál pertenece:
+
+| Capa | Propósito | Estado en 1.0 |
+|---|---|---|
+| I. Licenciamiento | Gestión de planes Free/Enterprise | Base: `aplicacion.edicion`, apps Enterprise bloqueadas (`PLT-011`), empresa `PERSONAL`/`JURIDICA` |
+| II. Arquitectura de software | Diseño robusto, escalable y mantenible | Activa: secciones 4 a 16 |
+| III. Acreditación tributaria DTE | Cumplimiento técnico con la normativa del MH | Diferida (sección 20.1); base: lógica fiscal solo en el núcleo (ADR-006) |
+| IV. Blindaje legal y comercial | Términos de servicio, protección de datos y garantías | Base: consentimiento (ADR-028), enmascarado de datos personales, auditoría; textos legales `[VERIFICAR]` con asesoría legal |
+
 ### 2.1 Componente A — Núcleo del ERP
 
 - Registro e inicio de sesión de usuarios (Keycloak, OIDC con PKCE, MFA para todos): nombre, correo, teléfono de El Salvador (`+503`) y contraseña, **sin DUI**, con la casilla opcional "Acepto recibir recomendaciones por correo" (ADR-027, ADR-028).
 - **Empresa personal automática** al primer inicio de sesión, con el usuario como `admin_empresa`. La empresa jurídica (NIT) es de la edición Enterprise (ADR-029).
-- Gestión básica de la empresa (nombre; NIT y NRC opcionales) y de sus usuarios: agregar a un usuario **ya registrado** por su correo, cambiar su rol o desactivarlo (ADR-028).
-- Un usuario puede pertenecer a varias empresas; la empresa activa se elige en la sesión.
+- Los usuarios son **personas naturales**: la empresa `PERSONAL` es su espacio de trabajo y solo se edita su **nombre**. Sin datos empresariales (nombre comercial, NIT, NRC) y sin configuración a nivel de empresa: cada app guarda la suya (ADR-031, ADR-032).
+- Sin miembros en la versión abierta: agregar usuarios, cambiar su rol o desactivarlos es de Enterprise (ADR-032). El mecanismo multiempresa (membresías, roles, `X-Empresa-Id`) se conserva; el selector solo aparece con más de una membresía.
 - API keys para integraciones (n8n).
 - **Catálogo de apps instalables** (estilo Odoo): tablas `aplicacion` y `empresa_aplicacion`, pantalla "Apps" y lanzador en el frontend. **Contabilidad es la única app instalable**; Ventas, Clientes, Proveedores, Inventario y Marketing se muestran bloqueadas como Enterprise. No hay desinstalación en 1.0 (ADR-021, ADR-030).
 
@@ -520,9 +543,9 @@ static void validarPartidaDoble(List<LineaAsiento> lineas) {
 | `PLT-009` | 401 | Falta la credencial (token o API key) o es inválida, vencida o revocada |
 | `PLT-010` | 403 | Rol o alcance insuficiente para la operación |
 | `PLT-011` | 403 | La app es de la edición Enterprise y no se puede instalar (ADR-030) |
-| `PLT-012` | 422 | El correo no pertenece a un usuario registrado (ADR-028) |
-| `PLT-013` | 409 | El usuario ya es miembro de la empresa |
-| `PLT-014` | 422 | La operación dejaría a la empresa sin ningún `admin_empresa` activo |
+| `PLT-012` | 422 | El correo no pertenece a un usuario registrado (ADR-028). Reservado para Enterprise; no se usa en 1.0 (ADR-032) |
+| `PLT-013` | 409 | El usuario ya es miembro de la empresa. Reservado para Enterprise (ADR-032) |
+| `PLT-014` | 422 | La operación dejaría a la empresa sin ningún `admin_empresa` activo. Reservado para Enterprise (ADR-032) |
 | `PLT-015` | 428 | Falta el header `If-Match` en una edición con concurrencia optimista |
 | `PLT-016` | 412 | `If-Match` no coincide con la versión actual del recurso |
 | `PLT-017` | 404 | El recurso no existe o no pertenece a la empresa activa |
@@ -570,8 +593,8 @@ CREATE TABLE empresa (
     id               UUID PRIMARY KEY,
     tipo             VARCHAR(8) NOT NULL,          -- PERSONAL (1.0) o JURIDICA (Enterprise)
     propietario_id   UUID REFERENCES usuario(id),  -- Usuario dueño de la empresa PERSONAL
-    nit              VARCHAR(14) UNIQUE,           -- 14 dígitos; opcional en PERSONAL, obligatorio en JURIDICA
-    nrc              VARCHAR(10),                  -- Registro de IVA; nulo si no es contribuyente [VERIFICAR] formato
+    nit              VARCHAR(14) UNIQUE,           -- 14 dígitos; nulo en PERSONAL (no se captura en 1.0, ADR-031), obligatorio en JURIDICA
+    nrc              VARCHAR(10),                  -- Registro de IVA; solo Enterprise (ADR-031) [VERIFICAR] formato
     nombre           VARCHAR(250) NOT NULL,        -- Razón social
     nombre_comercial VARCHAR(250),
     estado           VARCHAR(15) NOT NULL DEFAULT 'ACTIVA',
@@ -1195,8 +1218,7 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 |---|---|---|
 | `GET /me` | Usuario actual y sus membresías | Autenticado |
 | `PATCH /me` | Retira o vuelve a dar el consentimiento de publicidad | Autenticado |
-| `GET /empresas/{id}` · `PATCH /empresas/{id}` | Consulta y edición de la empresa (nombre, nombre comercial; NIT y NRC opcionales) | `admin_empresa` |
-| `GET /empresas/{id}/usuarios` · `POST …/usuarios` · `PATCH …/usuarios/{usuarioId}` | Listar, agregar un usuario registrado por correo, cambiar rol o desactivar | `admin_empresa` |
+| `GET /empresas/{id}` · `PATCH /empresas/{id}` | Consulta del espacio de trabajo y cambio de su nombre (sin datos empresariales, ADR-032) | `admin_empresa` |
 | `GET /aplicaciones` | Catálogo de apps con su estado para la empresa activa (ADR-030) | Autenticado |
 | `POST /aplicaciones/{codigo}/instalacion` | Instala una app comunitaria y ejecuta su precarga | `admin_empresa` |
 | `GET /api-keys` · `POST /api-keys` · `DELETE /api-keys/{id}` | Gestión de API keys (el secreto se muestra una vez) | `admin_empresa` |
@@ -1238,7 +1260,7 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 
 | Rol | Permisos |
 |---|---|
-| `admin_empresa` | Todo dentro de su empresa: datos, usuarios, API keys, apps y todo lo de `contador` |
+| `admin_empresa` | Todo dentro de su empresa: nombre, API keys, apps y todo lo de `contador` (usuarios solo en Enterprise). En 1.0 es el rol de todo usuario en su espacio (ADR-032) |
 | `contador` | Catálogo, configuración, reglas, asientos, reversiones, reportes |
 | `auditor` | Solo lectura de la contabilidad, la bitácora de n8n y la auditoría |
 | `integracion` | Rol técnico de API keys; solo `POST /integraciones/n8n/operaciones` |
@@ -1396,6 +1418,8 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 | ADR-028 | Registro de usuarios en Keycloak, sin DUI, con consentimiento de publicidad; sin invitaciones pendientes | Aceptada |
 | ADR-029 | Empresa personal automática; empresa jurídica en Enterprise | Aceptada |
 | ADR-030 | Catálogo de apps instalables y apps Enterprise bloqueadas (amplía ADR-021) | Aceptada |
+| ADR-031 | Modelo Open-Core / Freemium y solución en cuatro capas (licenciamiento, arquitectura, DTE, legal) | Aceptada |
+| ADR-032 | Versión abierta para personas naturales: sin datos empresariales ni miembros; configuración por app | Aceptada |
 
 ---
 
@@ -1410,6 +1434,10 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 - [ ] Validación por contador del tratamiento del IVA (`docs/contabilidad/formulario-iva.md`).
 - [ ] ¿El cierre diario debe registrar faltantes y sobrantes de caja? (hoy: no; los cobros deben cuadrar exactamente).
 - [ ] Modelo de dominio separado de JPA o entidades JPA como dominio.
+- [x] Timebox de 24 horas de Contabilidad 1.0: se sigue el flujo definido sin recortes, paralelizando lo independiente (2026-09-25).
+- [ ] Precio, periodicidad y límites de la suscripción Enterprise (ADR-031).
+- [x] Plan Gratuito "sin registro fiscal": NIT y NRC no se capturan ni se editan en la versión abierta; no se agrega ninguna restricción de base de datos (ADR-031, 2026-09-25).
+- [x] Versión abierta para personas naturales: solo el nombre del espacio es editable, configuración por app y miembros en Enterprise (ADR-032, 2026-09-25).
 
 ---
 
@@ -1439,7 +1467,10 @@ Documentado para no perder la visión; **no se implementa en 1.0**. Cualquier in
 ### 20.2.1 Edición Enterprise
 
 - Registro de empresas jurídicas con NIT de 14 dígitos y DUI, mediante un upgrade desde la empresa personal (ADR-029).
-- Instalación de las apps marcadas `ENTERPRISE` en el catálogo (ADR-030), planes y lógica de licenciamiento.
+- Instalación de las apps marcadas `ENTERPRISE` en el catálogo (ADR-030), planes y lógica de licenciamiento (capa I, ADR-031).
+- Facturación electrónica (DTE) con el Ministerio de Hacienda como parte de la suscripción (capa III, ADR-031; sección 20.1).
+- Miembros de la empresa: agregar usuarios registrados por correo, cambiar rol y desactivar (ADR-028, ADR-032), con `PLT-012` a `PLT-014`.
+- Términos de servicio, política de privacidad y garantías de la suscripción (capa IV, ADR-031).
 - Envío de publicidad a los usuarios que dieron su consentimiento (ADR-028).
 
 ### 20.3 Funcionalidades contables futuras
