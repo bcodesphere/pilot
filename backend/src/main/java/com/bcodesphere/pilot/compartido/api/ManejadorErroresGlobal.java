@@ -244,6 +244,7 @@ public class ManejadorErroresGlobal {
             case 404 -> "No encontrado";
             case 405 -> "Método no permitido";
             case 409 -> "Conflicto";
+            case 412 -> "Precondición fallida";
             case 415 -> "Tipo de contenido no soportado";
             case 422 -> "Solicitud no procesable";
             case 428 -> "Precondición requerida";

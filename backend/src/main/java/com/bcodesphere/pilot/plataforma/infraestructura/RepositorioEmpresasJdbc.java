@@ -2,7 +2,9 @@ package com.bcodesphere.pilot.plataforma.infraestructura;
 
 import com.bcodesphere.pilot.plataforma.ContextoEmpresa;
 import com.bcodesphere.pilot.plataforma.aplicacion.RepositorioEmpresas;
+import com.bcodesphere.pilot.plataforma.dominio.EspacioTrabajo;
 import com.bcodesphere.pilot.plataforma.dominio.Rol;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -50,5 +52,35 @@ class RepositorioEmpresasJdbc implements RepositorioEmpresas {
                 .param("rol", rol.codigo())
                 .param("por", ContextoEmpresa.usuarioOSistema())
                 .update();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
+    public Optional<EspacioTrabajo> buscar(UUID id) {
+        // Solo las columnas que expone la versión abierta: nunca nit, nrc ni nombre_comercial (ADR-032)
+        return jdbc.sql("SELECT id, tipo, nombre, estado, version FROM empresa WHERE id = :id")
+                .param("id", id)
+                .query((rs, n) -> new EspacioTrabajo(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("tipo"),
+                        rs.getString("nombre"),
+                        rs.getString("estado"),
+                        rs.getLong("version")))
+                .optional();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean actualizarNombre(UUID id, String nombre, long versionEsperada) {
+        // WHERE version = :v es el control optimista: si otra petición ganó la carrera no actualiza filas y el caso de
+        // uso responde 412. Solo se escriben las columnas concedidas a pilot_app que usa esta operación (V5)
+        return jdbc.sql("UPDATE empresa SET nombre = :nombre, version = version + 1, actualizado_en = now(),"
+                                + " actualizado_por = :por WHERE id = :id AND version = :version")
+                        .param("nombre", nombre)
+                        .param("por", ContextoEmpresa.usuarioOSistema())
+                        .param("id", id)
+                        .param("version", versionEsperada)
+                        .update()
+                > 0;
     }
 }

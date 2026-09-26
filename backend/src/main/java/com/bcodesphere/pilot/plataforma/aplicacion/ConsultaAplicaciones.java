@@ -17,4 +17,13 @@ public interface ConsultaAplicaciones {
      * @return vacío si el código no es una app del catálogo; {@code true} si está instalada; {@code false} si no
      */
     Optional<Boolean> estaInstalada(String codigo, UUID empresaId);
+
+    /**
+     * Indica si un código es el de una app del catálogo. Lee solo la tabla global {@code aplicacion}, así que no
+     * necesita empresa (se usa en el modo «sin empresa», ADR-026).
+     *
+     * @param codigo primer segmento de la ruta después de {@code /api/v1/}
+     * @return {@code true} si el código está en el catálogo
+     */
+    boolean existeEnCatalogo(String codigo);
 }

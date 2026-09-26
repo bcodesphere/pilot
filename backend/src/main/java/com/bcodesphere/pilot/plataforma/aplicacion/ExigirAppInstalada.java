@@ -51,4 +51,18 @@ public class ExigirAppInstalada {
             throw ExcepcionPlataforma.appNoInstalada();
         }
     }
+
+    /**
+     * Indica si el primer segmento de la ruta es el código de una app del catálogo. Sirve para exigir
+     * {@code X-Empresa-Id} antes del controlador en las rutas de una app. Corre en el modo «sin empresa» porque solo
+     * lee la tabla global {@code aplicacion} (ADR-026).
+     *
+     * @param segmento primer segmento después de {@code /api/v1/}
+     * @param usuarioId usuario autenticado (para el contexto y los logs)
+     * @return {@code true} si el segmento es una app del catálogo
+     */
+    public boolean esRutaDeApp(String segmento, UUID usuarioId) {
+        return ContextoEmpresa.ejecutarSinEmpresa(
+                usuarioId.toString(), () -> lectura.execute(s -> aplicaciones.existeEnCatalogo(segmento)));
+    }
 }

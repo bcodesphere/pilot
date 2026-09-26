@@ -61,4 +61,33 @@ public final class ExcepcionPlataforma extends ExcepcionDominio {
     public static ExcepcionPlataforma sinPermiso(String detalle) {
         return new ExcepcionPlataforma("PLT-010", 403, detalle);
     }
+
+    /**
+     * La app es de la edición Enterprise y no se puede instalar en la versión abierta (ADR-030).
+     *
+     * @return error 403 {@code PLT-011}
+     */
+    public static ExcepcionPlataforma appEnterprise() {
+        return new ExcepcionPlataforma(
+                "PLT-011", 403, "La aplicación es de la edición Enterprise y no está disponible");
+    }
+
+    /**
+     * {@code If-Match} está mal formado o no coincide con la versión actual del recurso (concurrencia optimista).
+     *
+     * @return error 412 {@code PLT-016}
+     */
+    public static ExcepcionPlataforma versionNoCoincide() {
+        return new ExcepcionPlataforma(
+                "PLT-016", 412, "El recurso cambió o el header If-Match no coincide con su versión");
+    }
+
+    /**
+     * El recurso no existe o no pertenece a la empresa activa; no distingue ambos casos para no revelar otras empresas.
+     *
+     * @return error 404 {@code PLT-017}
+     */
+    public static ExcepcionPlataforma noEncontrado() {
+        return new ExcepcionPlataforma("PLT-017", 404, "El recurso no existe o no pertenece a la empresa activa");
+    }
 }
