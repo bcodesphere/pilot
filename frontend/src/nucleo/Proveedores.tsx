@@ -1,13 +1,11 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
-/** Cliente de TanStack Query compartido por toda la aplicación. */
-const queryClient = new QueryClient();
-
 /**
- * Agrupa los proveedores globales (por ahora solo TanStack Query).
+ * Agrupa los proveedores globales (TanStack Query).
+ * @param props.cliente cliente de consultas compartido por la aplicación
  * @param props.children árbol de la aplicación
  */
-export function Proveedores({ children }: { children: ReactNode }) {
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+export function Proveedores({ cliente, children }: { cliente: QueryClient; children: ReactNode }) {
+  return <QueryClientProvider client={cliente}>{children}</QueryClientProvider>;
 }

@@ -39,6 +39,27 @@ export default tseslint.config(
     },
   },
   {
+    // Ninguna app importa código de otra app (ADR-021): solo del shell público y de `compartido`
+    files: ['src/apps/*/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^@/apps/',
+              message: 'Una app no puede importar código de otra app (ADR-021).',
+            },
+            {
+              regex: '^(\\.\\./)+([^.].*/)?apps/',
+              message: 'Una app no puede importar código de otra app (ADR-021).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Módulos de dinero: prohibido convertir a number (CLAUDE.md §1.2.2)
     files: ['src/compartido/dinero/**/*.ts'],
     ignores: ['**/*.test.ts'],

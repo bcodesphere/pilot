@@ -7,7 +7,6 @@
  */
 
 export * from './actualizacionEmpresa';
-export * from './actualizacionMiembro';
 export * from './actualizacionUsuarioActual';
 export * from './alcanceApiKey';
 export * from './apiKey';
@@ -23,25 +22,20 @@ export * from './errorCampo';
 export * from './errorInternoResponse';
 export * from './estadoAplicacion';
 export * from './estadoEmpresa';
-export * from './estadoMembresia';
 export * from './fecha';
 export * from './fechaHora';
 export * from './idempotencyKeyParameter';
 export * from './ifMatchParameter';
 export * from './limiteParameter';
 export * from './listarApiKeysParams';
-export * from './listarMiembrosEmpresaParams';
 export * from './membresia';
-export * from './miembroEmpresa';
 export * from './monto';
 export * from './montoConSigno';
 export * from './noAutenticadoResponse';
 export * from './noEncontradoResponse';
 export * from './nuevaApiKey';
-export * from './nuevoMiembro';
 export * from './paginaApiKeys';
 export * from './paginaCursor';
-export * from './paginaMiembrosEmpresa';
 export * from './precondicionFallidaResponse';
 export * from './precondicionRequeridaResponse';
 export * from './problemDetails';

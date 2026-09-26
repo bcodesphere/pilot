@@ -29,7 +29,10 @@ import type {
   ProhibidoResponse
 } from '../modelos';
 
+import { clienteHttp } from '../../nucleo/http/clienteHttp';
 
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
@@ -94,23 +97,16 @@ export const getListarAplicacionesUrl = () => {
  * Devuelve el catálogo completo de apps, ordenado por el orden del catálogo, con su estado para la empresa activa: INSTALADA, DISPONIBLE (comunitaria aún no instalada) o BLOQUEADA_ENTERPRISE. No se pagina porque el catálogo es corto y global. Rol mínimo: auditor (cualquier miembro activo).
  * @summary Catálogo de apps con su estado para la empresa activa
  */
-export const listarAplicaciones = async ( options?: RequestInit): Promise<listarAplicacionesResponse> => {
+export const listarAplicaciones = async ( options?: Parameters<typeof clienteHttp>[1]): Promise<listarAplicacionesResponse> => {
 
-  const res = await fetch(getListarAplicacionesUrl(),
+  return clienteHttp<listarAplicacionesResponse>(getListarAplicacionesUrl(),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: listarAplicacionesResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as listarAplicacionesResponse
-}
+);}
 
 
 
@@ -123,16 +119,16 @@ export const getListarAplicacionesQueryKey = () => {
     }
 
 
-export const getListarAplicacionesQueryOptions = <TData = Awaited<ReturnType<typeof listarAplicaciones>>, TError = NoAutenticadoResponse | ProhibidoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarAplicaciones>>, TError, TData>>, fetch?: RequestInit}
+export const getListarAplicacionesQueryOptions = <TData = Awaited<ReturnType<typeof listarAplicaciones>>, TError = NoAutenticadoResponse | ProhibidoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarAplicaciones>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getListarAplicacionesQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listarAplicaciones>>> = ({ signal }) => listarAplicaciones({ signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listarAplicaciones>>> = ({ signal }) => listarAplicaciones({ signal, ...requestOptions });
 
 
 
@@ -152,7 +148,7 @@ export function useListarAplicaciones<TData = Awaited<ReturnType<typeof listarAp
           TError,
           Awaited<ReturnType<typeof listarAplicaciones>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListarAplicaciones<TData = Awaited<ReturnType<typeof listarAplicaciones>>, TError = NoAutenticadoResponse | ProhibidoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
@@ -162,11 +158,11 @@ export function useListarAplicaciones<TData = Awaited<ReturnType<typeof listarAp
           TError,
           Awaited<ReturnType<typeof listarAplicaciones>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListarAplicaciones<TData = Awaited<ReturnType<typeof listarAplicaciones>>, TError = NoAutenticadoResponse | ProhibidoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarAplicaciones>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarAplicaciones>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -174,7 +170,7 @@ export function useListarAplicaciones<TData = Awaited<ReturnType<typeof listarAp
  */
 
 export function useListarAplicaciones<TData = Awaited<ReturnType<typeof listarAplicaciones>>, TError = NoAutenticadoResponse | ProhibidoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarAplicaciones>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarAplicaciones>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -246,23 +242,16 @@ export const getInstalarAplicacionUrl = (codigo: string,) => {
  * Instala la app indicada y ejecuta su precarga en la misma transacción; si la precarga falla, la instalación se revierte. Responde 201 si la instaló ahora y 200 si ya estaba instalada. No existe desinstalación en 1.0. Las apps Enterprise no se pueden instalar (403 PLT-011). Rol mínimo: admin_empresa.
  * @summary Instala una app comunitaria en la empresa activa
  */
-export const instalarAplicacion = async (codigo: string, options?: RequestInit): Promise<instalarAplicacionResponse> => {
+export const instalarAplicacion = async (codigo: string, options?: Parameters<typeof clienteHttp>[1]): Promise<instalarAplicacionResponse> => {
 
-  const res = await fetch(getInstalarAplicacionUrl(codigo),
+  return clienteHttp<instalarAplicacionResponse>(getInstalarAplicacionUrl(codigo),
   {
     ...options,
     method: 'POST'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: instalarAplicacionResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as instalarAplicacionResponse
-}
+);}
 
 
 
@@ -275,16 +264,16 @@ export const getInstalarAplicacionQueryKey = (codigo: string,) => {
     }
 
 
-export const getInstalarAplicacionQueryOptions = <TData = Awaited<ReturnType<typeof instalarAplicacion>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(codigo: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instalarAplicacion>>, TError, TData>>, fetch?: RequestInit}
+export const getInstalarAplicacionQueryOptions = <TData = Awaited<ReturnType<typeof instalarAplicacion>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(codigo: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instalarAplicacion>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getInstalarAplicacionQueryKey(codigo);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof instalarAplicacion>>> = ({ signal }) => instalarAplicacion(codigo, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof instalarAplicacion>>> = ({ signal }) => instalarAplicacion(codigo, { signal, ...requestOptions });
 
 
 
@@ -304,7 +293,7 @@ export function useInstalarAplicacion<TData = Awaited<ReturnType<typeof instalar
           TError,
           Awaited<ReturnType<typeof instalarAplicacion>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useInstalarAplicacion<TData = Awaited<ReturnType<typeof instalarAplicacion>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
@@ -314,11 +303,11 @@ export function useInstalarAplicacion<TData = Awaited<ReturnType<typeof instalar
           TError,
           Awaited<ReturnType<typeof instalarAplicacion>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useInstalarAplicacion<TData = Awaited<ReturnType<typeof instalarAplicacion>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- codigo: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instalarAplicacion>>, TError, TData>>, fetch?: RequestInit}
+ codigo: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instalarAplicacion>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -326,7 +315,7 @@ export function useInstalarAplicacion<TData = Awaited<ReturnType<typeof instalar
  */
 
 export function useInstalarAplicacion<TData = Awaited<ReturnType<typeof instalarAplicacion>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- codigo: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instalarAplicacion>>, TError, TData>>, fetch?: RequestInit}
+ codigo: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof instalarAplicacion>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

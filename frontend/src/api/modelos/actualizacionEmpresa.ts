@@ -7,31 +7,13 @@
  */
 
 /**
- * Datos editables de la empresa. Los cuatro campos son obligatorios en el cuerpo y los tres últimos aceptan null para vaciarlos, porque con openApiNullable=false el generador no distingue "ausente" de "nulo". El tipo no es editable.
+ * Dato editable del espacio de trabajo: solo el nombre. Nombre comercial, NIT y NRC no se capturan en la versión abierta (ADR-031, ADR-032); son de la edición Enterprise.
  */
 export interface ActualizacionEmpresa {
   /**
-     * Nombre de la empresa.
+     * Nuevo nombre del espacio de trabajo.
      * @minLength 1
      * @maxLength 250
      */
   nombre: string;
-  /**
-     * Nombre comercial; null lo vacía.
-     * @maxLength 250
-     * @nullable
-     */
-  nombreComercial: string | null;
-  /**
-     * NIT de 14 dígitos; null lo vacía (solo válido si la empresa no exige NIT).
-     * @nullable
-     * @pattern ^[0-9]{14}$
-     */
-  nit: string | null;
-  /**
-     * NRC; null lo vacía. [VERIFICAR] formato con la fuente oficial del MH (ADR-029).
-     * @maxLength 10
-     * @nullable
-     */
-  nrc: string | null;
 }

@@ -30,7 +30,10 @@ import type {
   UsuarioActual
 } from '../modelos';
 
+import { clienteHttp } from '../../nucleo/http/clienteHttp';
 
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
@@ -90,23 +93,16 @@ export const getObtenerUsuarioActualUrl = () => {
  * Devuelve el usuario autenticado, su consentimiento de correos de recomendaciones y las empresas a las que pertenece con su rol en cada una (solo membresías activas). No requiere el header X-Empresa-Id porque se usa justamente para elegir la empresa activa. Rol mínimo: autenticado.
  * @summary Usuario actual y sus membresías
  */
-export const obtenerUsuarioActual = async ( options?: RequestInit): Promise<obtenerUsuarioActualResponse> => {
+export const obtenerUsuarioActual = async ( options?: Parameters<typeof clienteHttp>[1]): Promise<obtenerUsuarioActualResponse> => {
 
-  const res = await fetch(getObtenerUsuarioActualUrl(),
+  return clienteHttp<obtenerUsuarioActualResponse>(getObtenerUsuarioActualUrl(),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: obtenerUsuarioActualResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as obtenerUsuarioActualResponse
-}
+);}
 
 
 
@@ -119,16 +115,16 @@ export const getObtenerUsuarioActualQueryKey = () => {
     }
 
 
-export const getObtenerUsuarioActualQueryOptions = <TData = Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError = NoAutenticadoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError, TData>>, fetch?: RequestInit}
+export const getObtenerUsuarioActualQueryOptions = <TData = Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError = NoAutenticadoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getObtenerUsuarioActualQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof obtenerUsuarioActual>>> = ({ signal }) => obtenerUsuarioActual({ signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof obtenerUsuarioActual>>> = ({ signal }) => obtenerUsuarioActual({ signal, ...requestOptions });
 
 
 
@@ -148,7 +144,7 @@ export function useObtenerUsuarioActual<TData = Awaited<ReturnType<typeof obtene
           TError,
           Awaited<ReturnType<typeof obtenerUsuarioActual>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useObtenerUsuarioActual<TData = Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError = NoAutenticadoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
@@ -158,11 +154,11 @@ export function useObtenerUsuarioActual<TData = Awaited<ReturnType<typeof obtene
           TError,
           Awaited<ReturnType<typeof obtenerUsuarioActual>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useObtenerUsuarioActual<TData = Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError = NoAutenticadoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -170,7 +166,7 @@ export function useObtenerUsuarioActual<TData = Awaited<ReturnType<typeof obtene
  */
 
 export function useObtenerUsuarioActual<TData = Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError = NoAutenticadoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError, TData>>, fetch?: RequestInit}
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerUsuarioActual>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -237,7 +233,7 @@ export const getActualizarUsuarioActualUrl = () => {
  * Actualiza solo el consentimiento "Acepto recibir recomendaciones por correo" (ADR-028). Nombre, correo y teléfono no se editan aquí: su fuente de verdad es Keycloak. No requiere X-Empresa-Id. Rol mínimo: autenticado.
  * @summary Retira o vuelve a dar el consentimiento de correos
  */
-export const actualizarUsuarioActual = async (actualizacionUsuarioActual: ActualizacionUsuarioActual, options?: RequestInit): Promise<actualizarUsuarioActualResponse> => {
+export const actualizarUsuarioActual = async (actualizacionUsuarioActual: ActualizacionUsuarioActual, options?: Parameters<typeof clienteHttp>[1]): Promise<actualizarUsuarioActualResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -253,21 +249,14 @@ export const actualizarUsuarioActual = async (actualizacionUsuarioActual: Actual
     }
     return headers;
   };
-const res = await fetch(getActualizarUsuarioActualUrl(),
+return clienteHttp<actualizarUsuarioActualResponse>(getActualizarUsuarioActualUrl(),
   {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(actualizacionUsuarioActual)
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: actualizarUsuarioActualResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as actualizarUsuarioActualResponse
-}
+);}
 
 
 
@@ -280,16 +269,16 @@ export const getActualizarUsuarioActualQueryKey = (actualizacionUsuarioActual?: 
     }
 
 
-export const getActualizarUsuarioActualQueryOptions = <TData = Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(actualizacionUsuarioActual: ActualizacionUsuarioActual, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError, TData>>, fetch?: RequestInit}
+export const getActualizarUsuarioActualQueryOptions = <TData = Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(actualizacionUsuarioActual: ActualizacionUsuarioActual, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getActualizarUsuarioActualQueryKey(actualizacionUsuarioActual);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof actualizarUsuarioActual>>> = ({ signal }) => actualizarUsuarioActual(actualizacionUsuarioActual, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof actualizarUsuarioActual>>> = ({ signal }) => actualizarUsuarioActual(actualizacionUsuarioActual, { signal, ...requestOptions });
 
 
 
@@ -309,7 +298,7 @@ export function useActualizarUsuarioActual<TData = Awaited<ReturnType<typeof act
           TError,
           Awaited<ReturnType<typeof actualizarUsuarioActual>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useActualizarUsuarioActual<TData = Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
@@ -319,11 +308,11 @@ export function useActualizarUsuarioActual<TData = Awaited<ReturnType<typeof act
           TError,
           Awaited<ReturnType<typeof actualizarUsuarioActual>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useActualizarUsuarioActual<TData = Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- actualizacionUsuarioActual: ActualizacionUsuarioActual, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError, TData>>, fetch?: RequestInit}
+ actualizacionUsuarioActual: ActualizacionUsuarioActual, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -331,7 +320,7 @@ export function useActualizarUsuarioActual<TData = Awaited<ReturnType<typeof act
  */
 
 export function useActualizarUsuarioActual<TData = Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- actualizacionUsuarioActual: ActualizacionUsuarioActual, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError, TData>>, fetch?: RequestInit}
+ actualizacionUsuarioActual: ActualizacionUsuarioActual, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarUsuarioActual>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

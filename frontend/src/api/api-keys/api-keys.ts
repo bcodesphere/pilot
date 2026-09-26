@@ -34,7 +34,10 @@ import type {
   SolicitudInvalidaResponse
 } from '../modelos';
 
+import { clienteHttp } from '../../nucleo/http/clienteHttp';
 
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
@@ -116,23 +119,16 @@ export const getListarApiKeysUrl = (params?: ListarApiKeysParams,) => {
  * Lista paginada por cursor de las API keys de la empresa activa, incluidas las revocadas. Nunca devuelve el secreto ni su hash. Rol mínimo: admin_empresa.
  * @summary Lista las API keys de la empresa
  */
-export const listarApiKeys = async (params?: ListarApiKeysParams, options?: RequestInit): Promise<listarApiKeysResponse> => {
+export const listarApiKeys = async (params?: ListarApiKeysParams, options?: Parameters<typeof clienteHttp>[1]): Promise<listarApiKeysResponse> => {
 
-  const res = await fetch(getListarApiKeysUrl(params),
+  return clienteHttp<listarApiKeysResponse>(getListarApiKeysUrl(params),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: listarApiKeysResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as listarApiKeysResponse
-}
+);}
 
 
 
@@ -145,16 +141,16 @@ export const getListarApiKeysQueryKey = (params?: ListarApiKeysParams,) => {
     }
 
 
-export const getListarApiKeysQueryOptions = <TData = Awaited<ReturnType<typeof listarApiKeys>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(params?: ListarApiKeysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarApiKeys>>, TError, TData>>, fetch?: RequestInit}
+export const getListarApiKeysQueryOptions = <TData = Awaited<ReturnType<typeof listarApiKeys>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(params?: ListarApiKeysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarApiKeys>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getListarApiKeysQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listarApiKeys>>> = ({ signal }) => listarApiKeys(params, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listarApiKeys>>> = ({ signal }) => listarApiKeys(params, { signal, ...requestOptions });
 
 
 
@@ -174,7 +170,7 @@ export function useListarApiKeys<TData = Awaited<ReturnType<typeof listarApiKeys
           TError,
           Awaited<ReturnType<typeof listarApiKeys>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListarApiKeys<TData = Awaited<ReturnType<typeof listarApiKeys>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
@@ -184,11 +180,11 @@ export function useListarApiKeys<TData = Awaited<ReturnType<typeof listarApiKeys
           TError,
           Awaited<ReturnType<typeof listarApiKeys>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useListarApiKeys<TData = Awaited<ReturnType<typeof listarApiKeys>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- params?: ListarApiKeysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarApiKeys>>, TError, TData>>, fetch?: RequestInit}
+ params?: ListarApiKeysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarApiKeys>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -196,7 +192,7 @@ export function useListarApiKeys<TData = Awaited<ReturnType<typeof listarApiKeys
  */
 
 export function useListarApiKeys<TData = Awaited<ReturnType<typeof listarApiKeys>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- params?: ListarApiKeysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarApiKeys>>, TError, TData>>, fetch?: RequestInit}
+ params?: ListarApiKeysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarApiKeys>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -268,7 +264,7 @@ export const getCrearApiKeyUrl = () => {
  * Crea una API key con los alcances indicados. El secreto completo (pk_xxxx.secreto) se muestra una sola vez en esta respuesta y no se puede recuperar después; el servidor guarda solo su hash Argon2id. Rol mínimo: admin_empresa.
  * @summary Crea una API key
  */
-export const crearApiKey = async (nuevaApiKey: NuevaApiKey, options?: RequestInit): Promise<crearApiKeyResponse> => {
+export const crearApiKey = async (nuevaApiKey: NuevaApiKey, options?: Parameters<typeof clienteHttp>[1]): Promise<crearApiKeyResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -284,21 +280,14 @@ export const crearApiKey = async (nuevaApiKey: NuevaApiKey, options?: RequestIni
     }
     return headers;
   };
-const res = await fetch(getCrearApiKeyUrl(),
+return clienteHttp<crearApiKeyResponse>(getCrearApiKeyUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(nuevaApiKey)
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: crearApiKeyResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as crearApiKeyResponse
-}
+);}
 
 
 
@@ -311,16 +300,16 @@ export const getCrearApiKeyQueryKey = (nuevaApiKey?: NuevaApiKey,) => {
     }
 
 
-export const getCrearApiKeyQueryOptions = <TData = Awaited<ReturnType<typeof crearApiKey>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(nuevaApiKey: NuevaApiKey, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crearApiKey>>, TError, TData>>, fetch?: RequestInit}
+export const getCrearApiKeyQueryOptions = <TData = Awaited<ReturnType<typeof crearApiKey>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(nuevaApiKey: NuevaApiKey, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crearApiKey>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getCrearApiKeyQueryKey(nuevaApiKey);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof crearApiKey>>> = ({ signal }) => crearApiKey(nuevaApiKey, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof crearApiKey>>> = ({ signal }) => crearApiKey(nuevaApiKey, { signal, ...requestOptions });
 
 
 
@@ -340,7 +329,7 @@ export function useCrearApiKey<TData = Awaited<ReturnType<typeof crearApiKey>>, 
           TError,
           Awaited<ReturnType<typeof crearApiKey>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCrearApiKey<TData = Awaited<ReturnType<typeof crearApiKey>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
@@ -350,11 +339,11 @@ export function useCrearApiKey<TData = Awaited<ReturnType<typeof crearApiKey>>, 
           TError,
           Awaited<ReturnType<typeof crearApiKey>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useCrearApiKey<TData = Awaited<ReturnType<typeof crearApiKey>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- nuevaApiKey: NuevaApiKey, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crearApiKey>>, TError, TData>>, fetch?: RequestInit}
+ nuevaApiKey: NuevaApiKey, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crearApiKey>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -362,7 +351,7 @@ export function useCrearApiKey<TData = Awaited<ReturnType<typeof crearApiKey>>, 
  */
 
 export function useCrearApiKey<TData = Awaited<ReturnType<typeof crearApiKey>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- nuevaApiKey: NuevaApiKey, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crearApiKey>>, TError, TData>>, fetch?: RequestInit}
+ nuevaApiKey: NuevaApiKey, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof crearApiKey>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -429,23 +418,16 @@ export const getRevocarApiKeyUrl = (apiKeyId: string,) => {
  * Revoca la API key de forma definitiva. Es idempotente: revocar una clave ya revocada también responde 204. Rol mínimo: admin_empresa.
  * @summary Revoca una API key
  */
-export const revocarApiKey = async (apiKeyId: string, options?: RequestInit): Promise<revocarApiKeyResponse> => {
+export const revocarApiKey = async (apiKeyId: string, options?: Parameters<typeof clienteHttp>[1]): Promise<revocarApiKeyResponse> => {
 
-  const res = await fetch(getRevocarApiKeyUrl(apiKeyId),
+  return clienteHttp<revocarApiKeyResponse>(getRevocarApiKeyUrl(apiKeyId),
   {
     ...options,
     method: 'DELETE'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: revocarApiKeyResponse['data'] = body ? JSON.parse(body) : undefined
-  return { data, status: res.status, headers: res.headers } as revocarApiKeyResponse
-}
+);}
 
 
 
@@ -458,16 +440,16 @@ export const getRevocarApiKeyQueryKey = (apiKeyId: string,) => {
     }
 
 
-export const getRevocarApiKeyQueryOptions = <TData = Awaited<ReturnType<typeof revocarApiKey>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(apiKeyId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof revocarApiKey>>, TError, TData>>, fetch?: RequestInit}
+export const getRevocarApiKeyQueryOptions = <TData = Awaited<ReturnType<typeof revocarApiKey>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(apiKeyId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof revocarApiKey>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getRevocarApiKeyQueryKey(apiKeyId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof revocarApiKey>>> = ({ signal }) => revocarApiKey(apiKeyId, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof revocarApiKey>>> = ({ signal }) => revocarApiKey(apiKeyId, { signal, ...requestOptions });
 
 
 
@@ -487,7 +469,7 @@ export function useRevocarApiKey<TData = Awaited<ReturnType<typeof revocarApiKey
           TError,
           Awaited<ReturnType<typeof revocarApiKey>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useRevocarApiKey<TData = Awaited<ReturnType<typeof revocarApiKey>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
@@ -497,11 +479,11 @@ export function useRevocarApiKey<TData = Awaited<ReturnType<typeof revocarApiKey
           TError,
           Awaited<ReturnType<typeof revocarApiKey>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useRevocarApiKey<TData = Awaited<ReturnType<typeof revocarApiKey>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- apiKeyId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof revocarApiKey>>, TError, TData>>, fetch?: RequestInit}
+ apiKeyId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof revocarApiKey>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -509,7 +491,7 @@ export function useRevocarApiKey<TData = Awaited<ReturnType<typeof revocarApiKey
  */
 
 export function useRevocarApiKey<TData = Awaited<ReturnType<typeof revocarApiKey>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- apiKeyId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof revocarApiKey>>, TError, TData>>, fetch?: RequestInit}
+ apiKeyId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof revocarApiKey>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
