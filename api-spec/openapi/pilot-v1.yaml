@@ -1,7 +1,8 @@
 # Contrato REST de Pilot 1.0 (fuente de verdad, ADR-003).
 # Contract-first: las interfaces Spring y el cliente Orval se generan desde este archivo.
-# Alcance de F1: núcleo (usuario actual, empresa, catálogo de apps y API keys) más los componentes
-# reutilizables. Los endpoints de contabilidad e integración llegan en F2–F5.
+# Alcance de F2: núcleo de F1 (usuario actual, empresa, catálogo de apps y API keys) más el catálogo de
+# cuentas, la configuración contable y las reglas de contabilización. Asientos, reportes e integración
+# llegan en F3–F5.
 openapi: 3.1.0
 
 # --- Metadatos del contrato ---
@@ -32,8 +33,13 @@ tags:
     description: Módulo plataforma — catálogo de apps e instalación (ADR-030).
   - name: apiKeys
     description: Módulo plataforma — API keys de integración (n8n).
-  - name: contabilidad
-    description: Catálogo de cuentas, asientos, mayorización, estados financieros y reportes.
+  # Etiquetas del módulo contabilidad (una por recurso). Solo responden si la app está instalada (PLT-004).
+  - name: cuentasContables
+    description: Módulo contabilidad — catálogo de cuentas contables de la empresa (CLAUDE.md §10.2, ADR-035).
+  - name: configuracionContable
+    description: Módulo contabilidad — modo de precio por defecto y cuentas de IVA de la empresa (CLAUDE.md §11.3).
+  - name: reglasContabilizacion
+    description: Módulo contabilidad — reglas que asignan una cuenta a cada concepto o forma de pago (ADR-020).
   - name: integracion
     description: Webhook de n8n y bitácora de operaciones externas.
 
@@ -417,6 +423,406 @@ paths:
           $ref: '#/components/responses/DemasiadasPeticiones'
         '500':
           $ref: '#/components/responses/ErrorInterno'
+  # --- Catálogo de cuentas (CLAUDE.md §10.2, ADR-035): completo y sin paginar; concurrencia con ETag/If-Match ---
+  /contabilidad/cuentas:
+    get:
+      operationId: listarCuentasContables
+      tags: [cuentasContables]
+      x-rol-minimo: auditor
+      summary: Lista el catálogo completo de cuentas
+      description: >-
+        Devuelve el catálogo de cuentas de la empresa completo y sin paginar, ordenado por código, para armar el árbol y
+        la búsqueda en el cliente (ADR-035). Los filtros son opcionales y se combinan: busqueda (código o nombre, sin
+        distinguir mayúsculas), soloDetalle (solo cuentas que aceptan movimientos) y soloActivas. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/BusquedaCuenta'
+        - $ref: '#/components/parameters/SoloDetalle'
+        - $ref: '#/components/parameters/SoloActivas'
+      responses:
+        '200':
+          description: Catálogo de cuentas ordenado por código.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CuentaContable'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: validación de forma de los parámetros (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+    post:
+      operationId: crearCuentaContable
+      tags: [cuentasContables]
+      x-rol-minimo: contador
+      summary: Crea una cuenta contable
+      description: >-
+        Crea una cuenta del catálogo. La cuenta padre no se envía: se deduce del código, porque el código del padre
+        es prefijo del de la hija (ADR-035). La clase es el primer dígito del código; la naturaleza por defecto sale de la
+        clase (deudora en 1 y 4, acreedora en 2, 3 y 5) y se puede indicar otra para cuentas complementarias. Rol mínimo:
+        contador.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+      requestBody:
+        required: true
+        description: Código, nombre y naturaleza opcional de la nueva cuenta.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevaCuentaContable'
+      responses:
+        '201':
+          description: Cuenta creada con su ETag de versión.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuentaContable'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '409':
+          $ref: '#/components/responses/Conflicto'
+          description: "409 — CON-014: el código ya existe en el catálogo de la empresa."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — CON-010: el primer dígito del código no es una clase de 1 a 5; CON-011: la cuenta padre tiene movimientos; CON-015: longitud de código no válida (1, 2, 4, 6 u 8 dígitos) o sin cuenta padre existente y activa cuyo código sea su prefijo; PLT-002: validación de forma (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/cuentas/{cuentaId}:
+    get:
+      operationId: obtenerCuentaContable
+      tags: [cuentasContables]
+      x-rol-minimo: auditor
+      summary: Consulta una cuenta contable
+      description: >-
+        Devuelve una cuenta del catálogo con el header ETag de su versión actual, que debe enviarse como If-Match al
+        editarla. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/CuentaIdRuta'
+      responses:
+        '200':
+          description: Cuenta con su ETag de versión.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuentaContable'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: el recurso no existe o no pertenece a la empresa activa."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+    patch:
+      operationId: actualizarCuentaContable
+      tags: [cuentasContables]
+      x-rol-minimo: contador
+      summary: Edita una cuenta contable
+      description: >-
+        Cambia el código, el nombre, la naturaleza o el estado activa de una cuenta; solo se envían los campos a
+        cambiar. Exige If-Match con el ETag leído (concurrencia optimista) y devuelve el nuevo ETag. El código no puede
+        cambiarse si la cuenta tiene movimientos (CON-011) y una cuenta con saldo distinto de cero no puede desactivarse
+        (CON-012). Si la cuenta está en uso por la configuración contable o por una regla activa, no se puede desactivar ni
+        dejar de ser de detalle (CON-016). Rol mínimo: contador.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/CuentaIdRuta'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        description: Campos de la cuenta a modificar (al menos uno).
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizacionCuentaContable'
+      responses:
+        '200':
+          description: Cuenta actualizada con su nuevo ETag.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuentaContable'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: el recurso no existe o no pertenece a la empresa activa."
+        '409':
+          $ref: '#/components/responses/Conflicto'
+          description: "409 — CON-014: el nuevo código ya existe en el catálogo de la empresa."
+        '412':
+          $ref: '#/components/responses/PrecondicionFallida'
+          description: "412 — PLT-016: If-Match no coincide con la versión actual; volver a leer el recurso."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — CON-010: el primer dígito del código no es una clase de 1 a 5; CON-011: cambiar el código de una cuenta con movimientos, o crear una hija en una cuenta con movimientos; CON-012: desactivar una cuenta con saldo distinto de cero; CON-015: longitud de código no válida o sin cuenta padre existente y activa cuyo código sea su prefijo; CON-016: la cuenta está en uso por la configuración contable o por una regla activa; PLT-002: validación de forma (incluye errores)."
+        '428':
+          $ref: '#/components/responses/PrecondicionRequerida'
+          description: "428 — PLT-015: falta el header If-Match."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  # --- Configuración contable (CLAUDE.md §11.3): una por empresa, PUT completo ---
+  /contabilidad/configuracion:
+    get:
+      operationId: obtenerConfiguracionContable
+      tags: [configuracionContable]
+      x-rol-minimo: auditor
+      summary: Consulta la configuración contable
+      description: >-
+        Devuelve el modo de precio por defecto y las cuentas de IVA débito y crédito fiscal de la empresa. La respuesta
+        trae el header ETag con la versión actual, que debe enviarse como If-Match al reemplazarla. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+      responses:
+        '200':
+          description: Configuración contable con su ETag de versión.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfiguracionContable'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: la empresa no tiene configuración contable."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+    put:
+      operationId: actualizarConfiguracionContable
+      tags: [configuracionContable]
+      x-rol-minimo: contador
+      summary: Reemplaza la configuración contable
+      description: >-
+        Reemplaza la configuración completa (modo de precio y ambas cuentas de IVA). Exige If-Match con el ETag leído y
+        devuelve el nuevo ETag. Cada cuenta debe existir en la empresa, estar activa y ser de detalle (CON-006). El cambio
+        queda en la auditoría y aplica solo a los asientos futuros (CLAUDE.md §11.3). Rol mínimo: contador.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        description: Configuración completa que reemplaza a la actual.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizacionConfiguracionContable'
+      responses:
+        '200':
+          description: Configuración actualizada con su nuevo ETag.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfiguracionContable'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: la empresa no tiene configuración contable."
+        '412':
+          $ref: '#/components/responses/PrecondicionFallida'
+          description: "412 — PLT-016: If-Match no coincide con la versión actual; volver a leer el recurso."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — CON-006: una cuenta no existe en la empresa, está inactiva o no es de detalle; PLT-002: validación de forma (incluye errores)."
+        '428':
+          $ref: '#/components/responses/PrecondicionRequerida'
+          description: "428 — PLT-015: falta el header If-Match."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  # --- Reglas de contabilización (ADR-020, ADR-035): cuenta por tipo de operación × categoría × código ---
+  /contabilidad/reglas-contabilizacion:
+    get:
+      operationId: listarReglasContabilizacion
+      tags: [reglasContabilizacion]
+      x-rol-minimo: auditor
+      summary: Lista las reglas de contabilización
+      description: >-
+        Devuelve las reglas de contabilización de la empresa, sin paginar, ordenadas por tipo de operación, categoría y
+        código. El filtro tipoOperacion es opcional. Cada regla trae su version, que es el valor que se envía entre
+        comillas como If-Match al editarla. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/TipoOperacionFiltro'
+      responses:
+        '200':
+          description: Reglas ordenadas por tipo de operación, categoría y código.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReglaContabilizacion'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: validación de forma de los parámetros (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/reglas-contabilizacion/{reglaId}:
+    put:
+      operationId: actualizarReglaContabilizacion
+      tags: [reglasContabilizacion]
+      x-rol-minimo: contador
+      summary: Reemplaza una regla de contabilización
+      description: >-
+        Reemplaza la cuenta y el estado de una regla; el tipo de operación, la categoría y el código no cambian.
+        No existe GET individual, así que If-Match es la version de la regla (leída del listado) entre comillas, con el
+        mismo formato del ETag; la respuesta devuelve el nuevo ETag. Una regla activa exige una cuenta (PLT-002 si
+        activa es true y cuentaId es nulo, ADR-035); la cuenta debe existir, estar activa y ser de detalle (CON-006).
+        Rol mínimo: contador.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/ReglaIdRuta'
+        - $ref: '#/components/parameters/IfMatch'
+      requestBody:
+        required: true
+        description: Cuenta y estado de la regla.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizacionReglaContabilizacion'
+      responses:
+        '200':
+          description: Regla actualizada con su nuevo ETag.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            ETag:
+              $ref: '#/components/headers/ETag'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReglaContabilizacion'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: el recurso no existe o no pertenece a la empresa activa."
+        '412':
+          $ref: '#/components/responses/PrecondicionFallida'
+          description: "412 — PLT-016: If-Match no coincide con la versión actual; volver a leer el recurso."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — CON-006: la cuenta no existe en la empresa, está inactiva o no es de detalle; PLT-002: validación de forma (incluye errores), o activa es true con cuentaId nulo."
+        '428':
+          $ref: '#/components/responses/PrecondicionRequerida'
+          description: "428 — PLT-015: falta el header If-Match."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
 
 components:
   # --- Esquemas de seguridad ---
@@ -722,6 +1128,189 @@ components:
                 Secreto completo (pk_xxxx.secreto). Se muestra una sola vez y no se puede recuperar;
                 el servidor guarda únicamente su hash Argon2id.
 
+    # --- Contabilidad: enumeraciones y catálogo de cuentas (CLAUDE.md §10.2, ADR-035) ---
+    ModoPrecio:
+      type: string
+      enum: [CON_IVA, SIN_IVA]
+      description: >-
+        Cómo se interpreta un monto: CON_IVA (el monto incluye IVA) o SIN_IVA (el IVA se suma). Solo cambia la
+        interpretación, no las tasas (ADR-015).
+    NaturalezaCuenta:
+      type: string
+      enum: [DEUDORA, ACREEDORA]
+      description: Naturaleza de la cuenta; deudora aumenta con el Debe (clases 1 y 4), acreedora con el Haber (2, 3 y 5).
+    TipoOperacionContable:
+      type: string
+      enum: [CIERRE_INGRESOS_DIARIO]
+      description: Tipo de operación externa contabilizable; en 1.0 solo el cierre de ingresos diarios (ADR-017).
+    CategoriaRegla:
+      type: string
+      enum: [INGRESO, COBRO]
+      description: Categoría de la regla; INGRESO es un concepto de venta y COBRO una forma de pago (ADR-020).
+    ResumenCuenta:
+      type: object
+      description: Referencia corta a una cuenta contable, para mostrarla dentro de otros recursos.
+      required: [id, codigo, nombre]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        codigo:
+          type: string
+          description: Código de la cuenta.
+        nombre:
+          type: string
+          description: Nombre de la cuenta.
+    CuentaContable:
+      type: object
+      description: Cuenta del catálogo de la empresa; también viaja su versión como ETag.
+      required: [id, codigo, nombre, clase, nivel, cuentaPadreId, naturaleza, aceptaMovimientos, activa, version]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        codigo:
+          type: string
+          description: Código de la cuenta; su primer dígito es la clase.
+        nombre:
+          type: string
+          description: Nombre de la cuenta.
+        clase:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Clase de la cuenta (primer dígito del código) 1 Activo, 2 Pasivo, 3 Capital, 4 Costos y Gastos, 5 Ingresos.
+        nivel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Nivel por longitud del código, 1 clase, 2 grupo, 3 cuenta, 4 subcuenta, 5 detalle.
+        cuentaPadreId:
+          type: [string, 'null']
+          format: uuid
+          description: Cuenta padre (su código es prefijo del de esta cuenta); nulo en las clases.
+        naturaleza:
+          $ref: '#/components/schemas/NaturalezaCuenta'
+        aceptaMovimientos:
+          type: boolean
+          description: true solo en las cuentas de detalle, sin hijas; únicas que aceptan movimientos.
+        activa:
+          type: boolean
+          description: Si la cuenta está activa; una cuenta inactiva no acepta movimientos.
+        version:
+          type: integer
+          format: int64
+          description: Versión para concurrencia optimista; también viaja como ETag (CLAUDE.md §8.3).
+    NuevaCuentaContable:
+      type: object
+      description: >-
+        Datos para crear una cuenta. La cuenta padre no se envía porque se deduce del código (ADR-035). El patrón
+        del código no exige la clase para que la regla de negocio responda CON-010 y CON-015.
+      required: [codigo, nombre]
+      properties:
+        codigo:
+          type: string
+          pattern: '^[0-9]{1,8}$'
+          description: Código de 1 a 8 dígitos; su primer dígito debe ser una clase de 1 a 5 (CON-010).
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Nombre de la cuenta.
+        naturaleza:
+          $ref: '#/components/schemas/NaturalezaCuenta'
+          description: Naturaleza de la cuenta; si se omite se usa la de su clase.
+    ActualizacionCuentaContable:
+      type: object
+      description: Campos editables de una cuenta; solo se envían los que cambian y debe venir al menos uno.
+      minProperties: 1
+      properties:
+        codigo:
+          type: string
+          pattern: '^[0-9]{1,8}$'
+          description: Nuevo código; no puede cambiarse si la cuenta tiene movimientos (CON-011).
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Nuevo nombre de la cuenta.
+        naturaleza:
+          $ref: '#/components/schemas/NaturalezaCuenta'
+          description: Nueva naturaleza, para cuentas complementarias.
+        activa:
+          type: boolean
+          description: false desactiva la cuenta (CON-012 si tiene saldo, CON-016 si está en uso); true la reactiva.
+
+    # --- Configuración contable (CLAUDE.md §11.3) ---
+    ConfiguracionContable:
+      type: object
+      description: Configuración contable de la empresa; también viaja su versión como ETag.
+      required: [modoPrecioDefecto, cuentaIvaDebito, cuentaIvaCredito, version]
+      properties:
+        modoPrecioDefecto:
+          $ref: '#/components/schemas/ModoPrecio'
+        cuentaIvaDebito:
+          $ref: '#/components/schemas/ResumenCuenta'
+          description: Cuenta de IVA débito fiscal (pasivo), usada en las ventas.
+        cuentaIvaCredito:
+          $ref: '#/components/schemas/ResumenCuenta'
+          description: Cuenta de IVA crédito fiscal (activo), usada en las compras.
+        version:
+          type: integer
+          format: int64
+          description: Versión para concurrencia optimista; también viaja como ETag (CLAUDE.md §8.3).
+    ActualizacionConfiguracionContable:
+      type: object
+      description: Configuración completa que reemplaza a la actual (PUT completo); todos los campos son obligatorios.
+      required: [modoPrecioDefecto, cuentaIvaDebitoId, cuentaIvaCreditoId]
+      properties:
+        modoPrecioDefecto:
+          $ref: '#/components/schemas/ModoPrecio'
+        cuentaIvaDebitoId:
+          $ref: '#/components/schemas/Uuid'
+          description: Cuenta de detalle activa para el IVA débito fiscal (CON-006).
+        cuentaIvaCreditoId:
+          $ref: '#/components/schemas/Uuid'
+          description: Cuenta de detalle activa para el IVA crédito fiscal (CON-006).
+
+    # --- Reglas de contabilización (ADR-020, ADR-035) ---
+    ReglaContabilizacion:
+      type: object
+      description: Regla que asigna una cuenta a un código de una operación externa; su versión es el valor de If-Match.
+      required: [id, tipoOperacion, categoria, codigo, cuenta, activa, version]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        tipoOperacion:
+          $ref: '#/components/schemas/TipoOperacionContable'
+        categoria:
+          $ref: '#/components/schemas/CategoriaRegla'
+        codigo:
+          type: string
+          description: Código del concepto de ingreso o de la forma de pago, p. ej. VENTAS_GRAVADAS o EFECTIVO.
+        cuenta:
+          oneOf:
+            - $ref: '#/components/schemas/ResumenCuenta'
+            - type: 'null'
+          description: Cuenta de detalle que usa la regla; nula solo si la regla está inactiva (ADR-035).
+        activa:
+          type: boolean
+          description: Si la regla está activa; una regla activa siempre tiene cuenta.
+        version:
+          type: integer
+          format: int64
+          description: Versión para concurrencia optimista; se envía entre comillas como If-Match (CLAUDE.md §8.3).
+    ActualizacionReglaContabilizacion:
+      type: object
+      description: Cuenta y estado de una regla (PUT completo); ambos campos son obligatorios.
+      required: [cuentaId, activa]
+      properties:
+        cuentaId:
+          type: [string, 'null']
+          format: uuid
+          description: Cuenta de detalle activa de la regla (CON-006); nula solo si activa es false.
+        activa:
+          type: boolean
+          description: true activa la regla y exige cuentaId (PLT-002 si es nulo); false la desactiva.
+
   # --- Parámetros reutilizables ---
   parameters:
     XEmpresaId:
@@ -797,6 +1386,52 @@ components:
       description: Identificador de la API key.
       schema:
         $ref: '#/components/schemas/Uuid'
+
+    CuentaIdRuta:
+      name: cuentaId
+      in: path
+      required: true
+      description: Identificador de la cuenta contable.
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    ReglaIdRuta:
+      name: reglaId
+      in: path
+      required: true
+      description: Identificador de la regla de contabilización.
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    BusquedaCuenta:
+      name: busqueda
+      in: query
+      required: false
+      description: Texto a buscar en el código o el nombre de la cuenta, sin distinguir mayúsculas.
+      schema:
+        type: string
+        maxLength: 100
+    SoloDetalle:
+      name: soloDetalle
+      in: query
+      required: false
+      description: true devuelve solo las cuentas de detalle (las que aceptan movimientos).
+      schema:
+        type: boolean
+        default: false
+    SoloActivas:
+      name: soloActivas
+      in: query
+      required: false
+      description: true omite las cuentas inactivas.
+      schema:
+        type: boolean
+        default: false
+    TipoOperacionFiltro:
+      name: tipoOperacion
+      in: query
+      required: false
+      description: Limita las reglas a un tipo de operación.
+      schema:
+        $ref: '#/components/schemas/TipoOperacionContable'
 
   # --- Headers reutilizables ---
   headers:
