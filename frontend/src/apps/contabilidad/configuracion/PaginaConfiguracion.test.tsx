@@ -176,3 +176,43 @@ describe('pantalla Configuración', () => {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument();
   });
 });
+
+describe('pantalla Configuración: sin configuración y errores', () => {
+  // Caso: 404 PLT-017 (empresa sin precarga) se distingue del error genérico y no muestra formulario
+  it('con 404 PLT-017 muestra el mensaje específico y ningún formulario', async () => {
+    montarContabilidad(
+      '/contabilidad/configuracion',
+      'contador',
+      base((url, init) =>
+        url.endsWith('/contabilidad/configuracion') && (init.method ?? 'GET') === 'GET'
+          ? problema(404, 'PLT-017')
+          : undefined,
+      ),
+    );
+    expect(
+      await screen.findByText(
+        'Este espacio de trabajo no tiene configuración contable. Contacta al soporte de Pilot.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No pudimos cargar la configuración contable.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
+  });
+
+  // Caso de control: un 500 conserva el mensaje genérico.
+  // Los 5xx se reintentan 2 veces con espera (clienteConsultas), por eso el plazo ampliado
+  it('con 500 sigue mostrando el mensaje genérico', { timeout: 15_000 }, async () => {
+    montarContabilidad(
+      '/contabilidad/configuracion',
+      'contador',
+      base((url, init) =>
+        url.endsWith('/contabilidad/configuracion') && (init.method ?? 'GET') === 'GET'
+          ? problema(500, 'PLT-500')
+          : undefined,
+      ),
+    );
+    expect(
+      await screen.findByText('No pudimos cargar la configuración contable.', undefined, { timeout: 10_000 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/no tiene configuración contable/)).not.toBeInTheDocument();
+  });
+});

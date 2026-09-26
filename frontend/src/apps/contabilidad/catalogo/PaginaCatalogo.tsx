@@ -169,7 +169,15 @@ export function PaginaCatalogo() {
       )}
       {consulta.isError && <Alert variant="error">No pudimos cargar el catálogo de cuentas.</Alert>}
 
-      {cuentas && (
+      {/* Catálogo sin cuentas (consulta exitosa y sin búsqueda activa): estado vacío explicativo */}
+      {cuentas && cuentas.length === 0 && !texto.trim() && (
+        <div role="status" className="space-y-1 text-sm text-neutral-600">
+          <p>El catálogo de cuentas está vacío.</p>
+          {puedeEscribir && <p>Crea las cuentas de clase (1 a 5) con «Nueva cuenta».</p>}
+        </div>
+      )}
+
+      {cuentas && cuentas.length > 0 && (
         <div aria-label="Árbol de cuentas">
           {busqueda && busqueda.visibles.size === 0 ? (
             <p role="status" className="text-sm text-neutral-600">

@@ -340,3 +340,24 @@ describe('pantalla Catálogo: rol auditor', () => {
     expect(screen.queryByRole('button', { name: /^Editar/ })).not.toBeInTheDocument();
   });
 });
+
+describe('pantalla Catálogo: estado vacío', () => {
+  /** Manejador que devuelve un catálogo sin cuentas. */
+  const vacio = (url: string, init: RequestInit) =>
+    url.endsWith('/contabilidad/cuentas') && (init.method ?? 'GET') === 'GET' ? json([]) : undefined;
+
+  // Caso: empresa con Contabilidad instalada y sin precarga; quien escribe recibe la indicación de crear cuentas
+  it('con catálogo vacío y permiso de escritura explica que está vacío y cómo crear cuentas', async () => {
+    montarContabilidad('/contabilidad/catalogo', 'contador', vacio);
+    const estado = await screen.findByText('El catálogo de cuentas está vacío.');
+    expect(estado.closest('[role="status"]')).toBeInTheDocument();
+    expect(screen.getByText('Crea las cuentas de clase (1 a 5) con «Nueva cuenta».')).toBeInTheDocument();
+  });
+
+  // Caso: el auditor no puede crear cuentas, así que no se le indica hacerlo
+  it('con catálogo vacío y sin permiso de escritura no sugiere crear cuentas', async () => {
+    montarContabilidad('/contabilidad/catalogo', 'auditor', vacio);
+    expect(await screen.findByText('El catálogo de cuentas está vacío.')).toBeInTheDocument();
+    expect(screen.queryByText(/Crea las cuentas de clase/)).not.toBeInTheDocument();
+  });
+});

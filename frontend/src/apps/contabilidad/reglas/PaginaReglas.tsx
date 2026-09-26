@@ -35,6 +35,8 @@ export function PaginaReglas() {
     clienteConsultas.invalidateQueries({ queryKey: getListarReglasContabilizacionQueryKey(PARAMETROS) });
 
   // La regla OTRO inactiva rechaza los cierres que la usen hasta que se le asigne cuenta (ADR-035)
+  // Consulta exitosa sin ninguna regla: la empresa no tiene precarga
+  const sinReglas = reglas?.length === 0;
   const otroInactiva = reglas?.some((r) => r.codigo === 'OTRO' && !r.activa) ?? false;
 
   return (
@@ -53,6 +55,12 @@ export function PaginaReglas() {
       )}
       {consulta.isError && <Alert variant="error">No pudimos cargar las reglas de contabilización.</Alert>}
 
+      {sinReglas && (
+        <p role="status" className="text-sm text-neutral-600">
+          No hay reglas de contabilización configuradas. Contacta al soporte de Pilot.
+        </p>
+      )}
+
       {otroInactiva && (
         <Alert variant="warning">
           Los cierres que usen &quot;Otro&quot; se rechazarán hasta que le asignes una cuenta
@@ -60,6 +68,7 @@ export function PaginaReglas() {
       )}
 
       {reglas &&
+        !sinReglas &&
         GRUPOS.map(({ categoria, titulo }) => (
           <section key={categoria} aria-labelledby={`grupo-${categoria}`} className="space-y-1">
             <h3 id={`grupo-${categoria}`} className="text-base font-semibold">

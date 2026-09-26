@@ -83,6 +83,8 @@ export function PaginaConfiguracion() {
     },
   });
 
+  // 404 PLT-017 al leer: la empresa no tiene fila de configuración (sin precarga); no es un fallo de red
+  const sinConfiguracion = esErrorApi(consulta.error, 'PLT-017') && consulta.error.status === 404;
   const conflicto = esErrorApi(guardar.error, 'PLT-016');
   const errorGeneral =
     guardar.isError && !conflicto && campoDeError(guardar.error) !== 'cuenta'
@@ -102,7 +104,13 @@ export function PaginaConfiguracion() {
           Cargando…
         </p>
       )}
-      {(consulta.isError || consultaCuentas.isError) && (
+      {sinConfiguracion && (
+        <Alert variant="error">
+          Este espacio de trabajo no tiene configuración contable. Contacta al soporte de Pilot.
+        </Alert>
+      )}
+      {/* Los demás fallos (red, 5xx, cuentas) conservan el mensaje genérico */}
+      {!sinConfiguracion && (consulta.isError || consultaCuentas.isError) && (
         <Alert variant="error">No pudimos cargar la configuración contable.</Alert>
       )}
 

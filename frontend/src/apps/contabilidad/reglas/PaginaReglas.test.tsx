@@ -164,3 +164,24 @@ describe('pantalla Reglas', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 });
+
+describe('pantalla Reglas: estado vacío', () => {
+  // Caso: consulta exitosa sin reglas; se avisa y no se dibujan grupos vacíos ni el aviso de OTRO
+  it('con cero reglas muestra el estado vacío, sin grupos ni aviso de "Otro"', async () => {
+    montarContabilidad(
+      '/contabilidad/reglas',
+      'contador',
+      base((url, init) =>
+        url.includes('/contabilidad/reglas-contabilizacion') && (init.method ?? 'GET') === 'GET'
+          ? json([])
+          : undefined,
+      ),
+    );
+    expect(
+      await screen.findByText('No hay reglas de contabilización configuradas. Contacta al soporte de Pilot.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Conceptos de ingreso' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Formas de pago' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Los cierres que usen/)).not.toBeInTheDocument();
+  });
+});
