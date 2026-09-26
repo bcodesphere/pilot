@@ -88,7 +88,7 @@ F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 8. Frontend: shell con lanzador de apps instaladas y pantalla "Apps" con el catálogo.
 
 **Criterios de aceptación**
-- Un usuario nuevo se registra, verifica su correo, inicia sesión (con MFA), encuentra su empresa personal ya creada, instala Contabilidad desde "Apps" y la ve en el lanzador.
+- Un usuario nuevo se registra, configura su MFA, verifica su correo (Keycloak pide el TOTP antes que la verificación; ADR-027), encuentra su empresa personal ya creada, instala Contabilidad desde "Apps" y la ve en el lanzador.
 - Las apps Enterprise aparecen bloqueadas y su instalación se rechaza con 403.
 - Con membresías de prueba en dos empresas, cambiar `X-Empresa-Id` solo muestra los datos de la empresa activa; un usuario nunca ve los datos de otro (ADR-032: en 1.0 no se agregan miembros desde la interfaz).
 - Un `X-Empresa-Id` sin membresía devuelve 403 `PLT-003`.

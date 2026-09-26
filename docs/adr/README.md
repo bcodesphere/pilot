@@ -37,6 +37,8 @@ Cada ADR registra contexto, decisión, alternativas y consecuencias. Un ADR acep
 | [ADR-031](ADR-031-open-core-y-cuatro-capas.md) | Modelo Open-Core / Freemium y solución en cuatro capas | Aceptada |
 | [ADR-032](ADR-032-version-abierta-personas-naturales.md) | Versión abierta para personas naturales: sin datos empresariales ni miembros | Aceptada |
 | [ADR-033](ADR-033-vencimiento-api-keys.md) | Vencimiento de una API key elegido por fecha: final del día en hora de El Salvador | Aceptada |
+| [ADR-034](ADR-034-datos-contables-precargados.md) | Datos contables precargados: catálogo base en borrador y fecha técnica del IVA | Aceptada |
+| [ADR-035](ADR-035-catalogo-y-configuracion-contable.md) | Catálogo y configuración contable de F2: plantillas, regla sin cuenta, catálogo sin paginar y códigos | Aceptada |
 
 Los ADR diferidos están documentados en `docs/diferido/vision-completa-con-dte.md` (sección 22 de ese archivo).
 

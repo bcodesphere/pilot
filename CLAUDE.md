@@ -446,7 +446,7 @@ pnpm lint && pnpm test                                    # Lint y pruebas
 pnpm e2e                                                  # Pruebas end-to-end (Playwright)
 
 # --- Contratos ---
-npx @stoplight/spectral-cli lint api-spec/openapi/pilot-v1.yaml   # Valida el contrato REST
+npx @stoplight/spectral-cli lint api-spec/openapi/pilot-v1.yaml --ruleset api-spec/.spectral.yaml   # Valida el contrato REST (igual que la CI)
 ```
 
 `[DECISIÓN]` Agregar un `Makefile` o `justfile` que envuelva estos comandos.
@@ -567,7 +567,7 @@ static void validarPartidaDoble(List<LineaAsiento> lineas) {
 | Módulo | Tablas | RLS |
 |---|---|---|
 | `plataforma` | `usuario` (global), `empresa`, `empresa_usuario`, `api_key`, `aplicacion` (global), `empresa_aplicacion`, `auditoria`, `auditoria_global` (global), `idempotencia` | Sí, salvo tablas globales |
-| `contabilidad` | `tasa_impuesto` (global), `plantilla_cuenta` (global), `cuenta_contable`, `configuracion_contable`, `regla_contabilizacion`, `correlativo_asiento`, `asiento`, `asiento_linea`, `saldo_cuenta_mensual` | Sí, salvo tablas globales |
+| `contabilidad` | `tasa_impuesto` (global), `plantilla_cuenta`, `plantilla_regla_contabilizacion` y `plantilla_configuracion_contable` (globales), `cuenta_contable`, `configuracion_contable`, `regla_contabilizacion`, `correlativo_asiento`, `asiento`, `asiento_linea`, `saldo_cuenta_mensual` | Sí, salvo tablas globales |
 | `integracion` | `operacion_externa`, `intento_operacion_externa` | Sí |
 
 Columnas comunes en toda tabla de negocio editable: `id UUID`, `empresa_id UUID`, `creado_en`, `creado_por`, `actualizado_en`, `actualizado_por`, `version BIGINT`. Las tablas globales son de solo lectura para `pilot_app` y se cargan por migración.
@@ -684,7 +684,7 @@ CREATE TABLE tasa_impuesto (
 CREATE TABLE cuenta_contable (
     id                 UUID PRIMARY KEY,
     empresa_id         UUID NOT NULL,
-    codigo             VARCHAR(20) NOT NULL CHECK (codigo ~ '^[1-5][0-9]*$'),  -- Solo clases 1 a 5
+    codigo             VARCHAR(8) NOT NULL CHECK (codigo ~ '^[1-5][0-9]*$'),   -- Solo clases 1 a 5; longitud 1, 2, 4, 6 u 8
     nombre             VARCHAR(200) NOT NULL,
     clase              SMALLINT GENERATED ALWAYS AS (substr(codigo, 1, 1)::smallint) STORED,
     nivel              SMALLINT NOT NULL,          -- 1 clase, 2 grupo, 3 cuenta, 4 subcuenta, 5 detalle
@@ -714,11 +714,18 @@ CREATE TABLE regla_contabilizacion (
     tipo_operacion  VARCHAR(40) NOT NULL,          -- Ej.: CIERRE_INGRESOS_DIARIO
     categoria       VARCHAR(10) NOT NULL,          -- INGRESO (concepto) o COBRO (forma de pago)
     codigo          VARCHAR(40) NOT NULL,          -- Ej.: VENTAS_GRAVADAS, EFECTIVO, TARJETA
-    cuenta_id       UUID NOT NULL,                 -- Cuenta de detalle a usar
+    cuenta_id       UUID,                          -- Cuenta de detalle a usar; nula solo si la regla está inactiva (ADR-035)
     activa          BOOLEAN NOT NULL DEFAULT true,
     version         BIGINT NOT NULL DEFAULT 0,
-    UNIQUE (empresa_id, tipo_operacion, categoria, codigo)
+    UNIQUE (empresa_id, tipo_operacion, categoria, codigo),
+    CHECK (NOT activa OR cuenta_id IS NOT NULL)    -- Una regla activa siempre tiene cuenta
 );
+
+-- PLANTILLAS GLOBALES (solo lectura para pilot_app, cargadas por migración; ADR-034, ADR-035).
+-- Al instalar Contabilidad se copian a la empresa en la misma transacción que la instalación.
+--   plantilla_cuenta (codigo, nombre, naturaleza)                         -- catálogo base (borrador)
+--   plantilla_regla_contabilizacion (tipo_operacion, categoria, codigo, cuenta_codigo NULL)  -- reglas de 12.5
+--   plantilla_configuracion_contable (modo_precio_defecto, cuenta_iva_debito_codigo, cuenta_iva_credito_codigo)  -- una fila
 
 -- CORRELATIVO: numeración de asientos por empresa y año, sin duplicados entre transacciones
 CREATE TABLE correlativo_asiento (
@@ -942,12 +949,23 @@ export const asientoSchema = z
 
 ### 10.2 Catálogo de cuentas
 
-- Al instalar la app Contabilidad en una empresa (evento `AplicacionInstalada`, ADR-030) se copia `plantilla_cuenta`, cargada desde el catálogo base de `docs/contabilidad/catalogo-base.md` (`[VERIFICAR]` con contador).
+- Al instalar la app Contabilidad en una empresa (evento `AplicacionInstalada`, ADR-030) se copia `plantilla_cuenta`, cargada desde el catálogo base de `docs/contabilidad/catalogo-base.md`. Se carga como borrador (ADR-034); la validación del contador sigue `[VERIFICAR]` y un cambio va en una migración nueva.
 - **Clases:** 1 Activo, 2 Pasivo, 3 Capital Contable, 4 Costos y Gastos, 5 Ingresos. Otros primeros dígitos se rechazan (`CON-010`).
 - **Niveles por longitud del código:** clase (1 dígito), grupo (2), cuenta (4), subcuenta (6), detalle (8). El código de la cuenta padre debe ser prefijo del código hija.
 - **Naturaleza por defecto:** deudora en clases 1 y 4; acreedora en 2, 3 y 5. Se puede cambiar para cuentas complementarias (p. ej. depreciación acumulada en la clase 1, acreedora).
 - Solo las cuentas sin hijas aceptan movimientos. Crear una hija en una cuenta con movimientos se rechaza (`CON-011`).
-- El código no puede cambiarse si la cuenta tiene movimientos (`CON-011`); una cuenta con saldo distinto de cero no puede desactivarse (`CON-012`).
+- El código no puede cambiarse si la cuenta tiene movimientos (`CON-011`); el código nuevo conserva la longitud y el padre, y la cuenta no puede tener hijas (`CON-015`, ADR-035). Una cuenta con saldo distinto de cero no puede desactivarse (`CON-012`).
+- Hasta F3 no existen movimientos: `CON-011` y `CON-012` se consultan por un puerto de lectura de movimientos que en F2 responde "sin movimientos" y en F3 lee `asiento_linea` y `saldo_cuenta_mensual` (ADR-035).
+
+| Código | HTTP | Causa |
+|---|---|---|
+| `CON-006` | 422 | La cuenta no existe en la empresa, está inactiva o no es de detalle (también en configuración y reglas) |
+| `CON-010` | 422 | El primer dígito del código no es una clase de 1 a 5 |
+| `CON-011` | 422 | Cambiar el código de una cuenta con movimientos, o crear una hija en una cuenta con movimientos |
+| `CON-012` | 422 | Desactivar una cuenta con saldo distinto de cero |
+| `CON-014` | 409 | El código ya existe en el catálogo de la empresa |
+| `CON-015` | 422 | Longitud de código no válida (1, 2, 4, 6 u 8 dígitos) o sin cuenta padre existente y activa cuyo código sea su prefijo |
+| `CON-016` | 422 | La cuenta está en uso por la configuración contable o por una regla activa: no se puede desactivar ni dejar de ser de detalle |
 
 ### 10.3 Mayorización automática en tiempo real (ADR-018)
 
@@ -1158,7 +1176,7 @@ Casos dorados obligatorios (t = 13 %): `CON_IVA` 113.00 → 100.00 + 13.00 · `S
 | COBRO | `TRANSFERENCIA` | 11010103 Bancos |
 | COBRO | `CHEQUE` | 11010103 Bancos |
 | COBRO | `CREDITO` | 11020101 Clientes |
-| COBRO | `OTRO` | Sin cuenta: debe configurarse antes de usarse |
+| COBRO | `OTRO` | Sin cuenta e inactiva: debe configurarse y activarse antes de usarse (ADR-035) |
 
 ### 12.6 Idempotencia y concurrencia
 
@@ -1222,7 +1240,7 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 | `GET /aplicaciones` | Catálogo de apps con su estado para la empresa activa (ADR-030) | Autenticado |
 | `POST /aplicaciones/{codigo}/instalacion` | Instala una app comunitaria y ejecuta su precarga | `admin_empresa` |
 | `GET /api-keys` · `POST /api-keys` · `DELETE /api-keys/{id}` | Gestión de API keys (el secreto se muestra una vez) | `admin_empresa` |
-| `GET /contabilidad/cuentas` · `POST` · `PATCH /{id}` | Catálogo de cuentas (árbol, búsqueda) | leer: `auditor`; escribir: `contador` |
+| `GET /contabilidad/cuentas` · `GET /{id}` · `POST` · `PATCH /{id}` | Catálogo de cuentas completo sin paginar, para el árbol y la búsqueda (ADR-035) | leer: `auditor`; escribir: `contador` |
 | `GET /contabilidad/configuracion` · `PUT` | Modo de precio y cuentas de IVA | leer: `auditor`; escribir: `contador` |
 | `GET /contabilidad/reglas-contabilizacion` · `PUT /{id}` | Reglas por tipo de operación, categoría y código | leer: `auditor`; escribir: `contador` |
 | `POST /contabilidad/asientos` | Registra un asiento manual (`Idempotency-Key`) | `contador` |
@@ -1421,6 +1439,8 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 | ADR-031 | Modelo Open-Core / Freemium y solución en cuatro capas (licenciamiento, arquitectura, DTE, legal) | Aceptada |
 | ADR-032 | Versión abierta para personas naturales: sin datos empresariales ni miembros; configuración por app | Aceptada |
 | ADR-033 | Vencimiento de una API key elegido por fecha: 23:59:59 de ese día en hora de El Salvador | Aceptada |
+| ADR-034 | Catálogo base cargado como borrador y IVA 13 % con fecha técnica `vigente_desde` 2000-01-01 | Aceptada |
+| ADR-035 | Catálogo y configuración contable de F2: plantillas globales, regla `OTRO` sin cuenta, catálogo sin paginar, códigos `CON-014` a `CON-016` | Aceptada |
 
 ---
 
@@ -1440,6 +1460,8 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 - [x] Plan Gratuito "sin registro fiscal": NIT y NRC no se capturan ni se editan en la versión abierta; no se agrega ninguna restricción de base de datos (ADR-031, 2026-09-25).
 - [x] Versión abierta para personas naturales: solo el nombre del espacio es editable, configuración por app y miembros en Enterprise (ADR-032, 2026-09-25).
 - [x] Vencimiento de una API key elegido por fecha: vence al final de ese día en hora de El Salvador (ADR-033, 2026-09-26).
+- [x] Catálogo base y tasa de IVA: se cargan el borrador y el 13 % con fecha técnica 2000-01-01 mientras valida el contador (ADR-034, 2026-09-26).
+- [x] Orden de MFA: Keycloak configura el TOTP antes de verificar el correo; se acepta (ADR-027, 2026-09-26).
 
 ---
 
