@@ -6,7 +6,11 @@ import { ManejadorErroresGlobales } from './apps/ManejadorErroresGlobales';
 import { RutaApp } from './apps/RutaApp';
 import { Layout } from './Layout';
 import { PaginaApps } from './PaginaApps';
+import { PaginaApiKeys } from './api-keys/PaginaApiKeys';
+import { PaginaEspacio } from './espacio/PaginaEspacio';
 import { PaginaInicio } from './PaginaInicio';
+import { PaginaPerfil } from './perfil/PaginaPerfil';
+import { RequiereAdmin } from './RequiereAdmin';
 import { ProveedorSesion } from './sesion/ProveedorSesion';
 
 /**
@@ -35,6 +39,24 @@ export function crearRutas(gestor: GestorSesion, entorno: Pick<Entorno, 'apiBase
           children: [
             { index: true, element: <PaginaInicio /> },
             { path: 'apps', element: <PaginaApps /> },
+            { path: 'perfil', element: <PaginaPerfil /> },
+            // Administración: solo `admin_empresa` (ADR-032); las rutas van antes de `:codigo/*`
+            {
+              path: 'configuracion/espacio',
+              element: (
+                <RequiereAdmin>
+                  <PaginaEspacio />
+                </RequiereAdmin>
+              ),
+            },
+            {
+              path: 'configuracion/api-keys',
+              element: (
+                <RequiereAdmin>
+                  <PaginaApiKeys />
+                </RequiereAdmin>
+              ),
+            },
             { path: ':codigo/*', element: <RutaApp /> },
           ],
         },

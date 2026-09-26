@@ -15,11 +15,15 @@ export const json = (cuerpo: unknown, status = 200) =>
   new Response(JSON.stringify(cuerpo), { status, headers: { 'content-type': 'application/json' } });
 
 /** Membresía de ejemplo. */
-export const membresia = (id: string, nombre: string): Membresia => ({
+export const membresia = (
+  id: string,
+  nombre: string,
+  rol: Membresia['rol'] = 'admin_empresa',
+): Membresia => ({
   empresaId: id,
   nombreEmpresa: nombre,
   tipoEmpresa: 'PERSONAL',
-  rol: 'admin_empresa',
+  rol,
 });
 
 /** App del catálogo de ejemplo. */
@@ -39,6 +43,11 @@ export interface OpcionesShell {
   apps?: AplicacionCatalogo[];
   /** Respuesta especial para `/aplicaciones` (p. ej. un 403 PLT-004). */
   respuestaApps?: () => Response;
+  /**
+   * Manejador de pruebas de pantallas: se consulta primero; si devuelve una respuesta, se usa
+   * (permite simular `PATCH`, `POST`, `DELETE` y rutas nuevas sin tocar el arnés base).
+   */
+  manejador?: (url: string, init: RequestInit) => Response | Promise<Response> | undefined;
   /** Simula que no hay sesión en memoria (primer acceso o F5). */
   sinSesion?: boolean;
 }
@@ -60,7 +69,9 @@ export function montarShell(opciones: OpcionesShell = {}) {
     signoutRedirect: vi.fn().mockResolvedValue(undefined),
   };
 
-  const fetchMock = vi.fn(async (url: string) => {
+  const fetchMock = vi.fn(async (url: string, init: RequestInit = {}) => {
+    const propia = opciones.manejador?.(url, init);
+    if (propia) return propia;
     if (url.endsWith('/me')) {
       return json({
         id: 'u-1',
