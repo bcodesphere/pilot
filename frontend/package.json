@@ -15,7 +15,8 @@
     "test": "vitest run",
     "api:generate": "orval --config orval.config.ts",
     "e2e": "playwright test",
-    "e2e:f1": "playwright test f1-nucleo"
+    "e2e:f1": "playwright test f1-nucleo",
+    "e2e:f2": "playwright test f2-contabilidad"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",

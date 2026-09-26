@@ -1,6 +1,5 @@
-import { randomBytes } from 'node:crypto';
 import { expect, test, type Page, type Response } from '@playwright/test';
-import { esperarCorreo, primerEnlace } from './soporte/mailpit';
+import { datosUsuarioNuevo, registrarUsuario, URL_API, URL_KEYCLOAK } from './soporte/registro';
 import { codigoTotp, msHastaSiguienteVentana } from './soporte/totp';
 
 /**
@@ -12,13 +11,6 @@ import { codigoTotp, msHastaSiguienteVentana } from './soporte/totp';
  * `sessionStorage` (CLAUDE.md 1.2.10); que la revocación de una API key responde 204; y que el recorrido no produce
  * errores de consola ni respuestas 5xx de la API. Ningún secreto ni token se imprime.
  */
-
-/** Dirección de Keycloak y de la API del entorno local; sobrescribibles con `E2E_*`. */
-const URL_KEYCLOAK = process.env.E2E_KEYCLOAK_URL ?? 'http://localhost:8180';
-const URL_API = process.env.E2E_API_URL ?? 'http://localhost:8080';
-
-/** Asunto del correo de verificación del realm (infra/keycloak/temas/pilot/email/messages/messages_es.properties). */
-const ASUNTO_VERIFICACION = 'Verifica tu correo en Pilot';
 
 /** Tokens que Keycloak entregó al navegador (solo para compararlos con el almacenamiento; nunca se imprimen). */
 interface TokensVistos {
@@ -35,13 +27,6 @@ interface PeticionFallida {
 }
 
 /**
- * Convierte una marca alfanumérica en solo letras (el validador de nombres de Keycloak rechaza símbolos y conviene
- * evitar dígitos en el apellido).
- */
-const soloLetras = (marca: string) =>
-  [...marca].map((c) => (/\d/.test(c) ? String.fromCharCode(97 + Number(c)) : c)).join('');
-
-/**
  * Lee el contenido de `localStorage` y `sessionStorage` del navegador como texto. Se evalúa como cadena dentro de la
  * página: la regla de ESLint que prohíbe esos globales protege el código de la aplicación, y aquí se leen justamente
  * para comprobar que NO guardan tokens.
@@ -53,16 +38,9 @@ test('registro, correo real, MFA, empresa personal, apps y API keys (criterio 1 
   page,
 }, testInfo) => {
   // ------------------------------------------------------------------------------------------ datos únicos
-  // 1. Un usuario nuevo por ejecución: correo con marca de tiempo y contraseña aleatoria que nunca se imprime
-  const marca = Date.now().toString(36);
-  const correo = `e2e-f1-${marca}@pilot.test`;
-  const contrasena = `${randomBytes(18).toString('base64url')}Aa1!`;
-  const nombre = 'Elena';
-  const apellido = `Prueba${soloLetras(marca)}`;
-  const nombreCompleto = `${nombre} ${apellido}`;
-  const telefono = `7${Math.floor(Math.random() * 10_000_000)
-    .toString()
-    .padStart(7, '0')}`;
+  // 1. Un usuario nuevo por ejecución (correo con marca de tiempo y contraseña aleatoria que nunca se imprime)
+  const usuario = datosUsuarioNuevo('e2e-f1');
+  const { correo, contrasena, nombreCompleto } = usuario;
 
   // -------------------------------------------------------------------------------------- observadores
   // 2. Tokens de Keycloak, respuestas de la API y errores, recogidos durante todo el recorrido
@@ -120,65 +98,9 @@ test('registro, correo real, MFA, empresa personal, apps y API keys (criterio 1 
     }
   };
 
-  // ----------------------------------------------------------------------------------- 1. registro
-  await test.step('Pilot redirige a Keycloak y la persona se registra', async () => {
-    // 1. Abrir Pilot sin sesión lleva al login de Keycloak (OIDC con PKCE)
-    await page.goto('/');
-    await page.waitForURL(`${URL_KEYCLOAK}/realms/pilot/**`);
-
-    // 2. "Registrarse" abre el formulario de autorregistro (ADR-028: sin DUI, con teléfono y consentimiento opcional)
-    await page.getByRole('link', { name: /registrarse/i }).click();
-    await page.fill('#email', correo);
-    await page.fill('#password', contrasena);
-    await page.fill('#password-confirm', contrasena);
-    await page.fill('#firstName', nombre);
-    await page.fill('#lastName', apellido);
-    await page.fill('#telefono', telefono);
-    await page.check('#recomendaciones_correo-true');
-    await page.locator('input[type="submit"]').click();
-  });
-
-  // --------------------------------------------------------------------------------------- 2. TOTP
-  // Orden real del realm: la acción CONFIGURE_TOTP (prioridad 10) precede a VERIFY_EMAIL (prioridad 50), así que
-  // Keycloak pide primero el TOTP y solo después envía el correo de verificación.
-  let ventanaDelCodigoDeConfiguracion = 0;
-  let semillaTotp = '';
-  await test.step('Configura el TOTP con la semilla en modo texto y un código RFC 6238', async () => {
-    await page.waitForURL(/execution=CONFIGURE_TOTP/);
-
-    // 1. Modo texto: "¿No consigues escanear?" muestra la semilla Base32
-    await page.locator('#mode-manual').click();
-    const semilla = await page.locator('#kc-totp-secret-key').innerText();
-    expect(semilla.replace(/\s/g, '')).toMatch(/^[A-Z2-7]{16,}$/);
-
-    // 2. Si la ventana de 30 s está por terminar, se espera a la siguiente para no enviar un código vencido
-    if (msHastaSiguienteVentana() < 4_000) await page.waitForTimeout(msHastaSiguienteVentana() + 500);
-
-    // 3. Código TOTP propio (node:crypto), nombre del dispositivo y confirmación
-    ventanaDelCodigoDeConfiguracion = Math.floor(Date.now() / 30_000);
-    await page.fill('#totp', codigoTotp(semilla));
-    await page.fill('#userLabel', 'dispositivo e2e');
-    await page.locator('#saveTOTPBtn').click();
-
-    // 4. Guarda la semilla para el segundo inicio de sesión (solo en memoria de la prueba; no se imprime)
-    semillaTotp = semilla;
-  });
-
-  // ------------------------------------------------------------------------ 3. correo de verificación
-  await test.step('Verifica el correo con el mensaje real recibido en Mailpit', async () => {
-    await page.waitForURL(/execution=VERIFY_EMAIL/);
-
-    // 1. El correo llega a Mailpit con el asunto del realm y para la dirección registrada
-    const correoRecibido = await esperarCorreo(correo);
-    expect(correoRecibido.asunto).toBe(ASUNTO_VERIFICACION);
-    expect(correoRecibido.para).toContain(correo);
-
-    // 2. El enlace de verificación es el de Keycloak; abrirlo completa el registro y entra a Pilot
-    const enlace = primerEnlace(correoRecibido.texto);
-    expect(enlace).toContain('/login-actions/action-token');
-    await page.goto(enlace);
-    await page.waitForURL('http://localhost:5173/**');
-  });
+  // ------------------------------------------------------ 1 a 3. registro, TOTP y correo de verificación
+  // Recorrido compartido con el e2e de F2 (soporte/registro.ts): mismas comprobaciones que antes de extraerlo
+  const { semillaTotp, ventanaDelCodigoDeConfiguracion } = await registrarUsuario(page, usuario);
 
   // --------------------------------------------------------------------- 4. token y almacenamiento
   await test.step('Keycloak entrega refresh_token y ningún token queda en el almacenamiento', async () => {
