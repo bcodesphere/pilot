@@ -18,7 +18,7 @@
 | Moneda | USD (única moneda contable) |
 | Zona horaria de negocio | `America/El_Salvador` (UTC−6, sin horario de verano) |
 | Idioma de producto | Español (`es-SV`) |
-| Estado actual | Fase F1 — Núcleo (ver `docs/plan-de-trabajo.md`) |
+| Estado actual | Fase F3 — Libro Diario (F1 y F2 cerradas; ver `docs/plan-de-trabajo.md`) |
 | Plazo de Contabilidad 1.0 | **Timebox de 24 horas desde el 2026-09-25** (ver nota de urgencia) |
 | Modelo de negocio | Open-Core / Freemium: plan Gratuito y plan Enterprise con DTE (ADR-031) |
 | Última actualización de este archivo | 2026-09-26 |
@@ -743,7 +743,7 @@ CREATE TABLE asiento (
     numero                BIGINT NOT NULL,           -- Correlativo por empresa y año
     fecha                 DATE NOT NULL,             -- Fecha contable (hora de El Salvador)
     concepto              VARCHAR(500) NOT NULL,
-    estado                VARCHAR(12) NOT NULL,      -- CONTABILIZADO o REVERTIDO
+    estado                VARCHAR(13) NOT NULL,      -- CONTABILIZADO o REVERTIDO
     origen_tipo           VARCHAR(12) NOT NULL,      -- MANUAL, N8N o REVERSION
     origen_id             UUID,                      -- operacion_externa.id si viene de n8n
     modo_precio           VARCHAR(7),                -- Modo usado para separar el IVA
@@ -752,7 +752,7 @@ CREATE TABLE asiento (
     total_debe            NUMERIC(19,2) NOT NULL,
     total_haber           NUMERIC(19,2) NOT NULL,
     creado_en             TIMESTAMPTZ NOT NULL DEFAULT now(),
-    creado_por            UUID NOT NULL,
+    creado_por            VARCHAR(64) NOT NULL,      -- app.usuario_id; en asientos de n8n no es un usuario (como V11, ADR-036)
     version               BIGINT NOT NULL DEFAULT 0,
     UNIQUE (empresa_id, anio, numero),
     CHECK (total_debe = total_haber AND total_debe > 0)  -- Partida doble a nivel de cabecera
@@ -882,21 +882,26 @@ CREATE TABLE intento_operacion_externa (
 
 **Formulario:** Fecha, Concepto (cabecera), modo de precio (si alguna línea lleva IVA) y líneas con Código/Cuenta, Descripción opcional, Debe, Haber y casilla "lleva IVA" (sección 11.2).
 
-| Código | Validación | Frontend | Backend | Base de datos |
-|---|---|---|---|---|
-| CON-001 | Mínimo 2 líneas | ✔ | ✔ | Trigger |
-| CON-002 | Cada línea tiene solo Debe o solo Haber (no ambos, no ninguno) | ✔ | ✔ | `CHECK` |
-| CON-003 | Montos no negativos, con máximo 2 decimales | ✔ | ✔ | `CHECK` + `NUMERIC(19,2)` |
-| CON-004 | Totales mayores que cero | ✔ | ✔ | `CHECK` |
-| CON-005 | Σ Debe = Σ Haber (se informa la diferencia) | ✔ bloquea Guardar | ✔ | Trigger + `CHECK` |
-| CON-006 | Cuenta existente, activa, de la empresa y de detalle | ✔ (buscador filtrado) | ✔ | FK + RLS |
-| CON-007 | Fecha obligatoria y no futura `[DECISIÓN]` confirmar si se permiten fechas futuras | ✔ | ✔ | — |
-| CON-013 | "Lleva IVA" no se permite sobre cuentas de IVA | ✔ | ✔ | — |
-| — | Concepto obligatorio (máx. 500), máximo 200 líneas | ✔ | ✔ | Longitud |
+| Código | HTTP | Validación | Frontend | Backend | Base de datos |
+|---|---|---|---|---|---|
+| CON-001 | 422 | Mínimo 2 líneas | ✔ | ✔ | Trigger |
+| CON-002 | 422 | Cada línea tiene solo Debe o solo Haber (no ambos, no ninguno) | ✔ | ✔ | `CHECK` |
+| CON-003 | 422 | Montos no negativos, con máximo 2 decimales | ✔ | ✔ | `CHECK` + `NUMERIC(19,2)` |
+| CON-004 | 422 | Totales mayores que cero | ✔ | ✔ | `CHECK` |
+| CON-005 | 422 | Σ Debe = Σ Haber (se informa la diferencia) | ✔ bloquea Guardar | ✔ | Trigger + `CHECK` |
+| CON-006 | 422 | Cuenta existente, activa, de la empresa y de detalle | ✔ (buscador filtrado) | ✔ | FK + RLS |
+| CON-007 | 422 | Fecha obligatoria y no futura en hora de El Salvador (decisión del 2026-09-26, ADR-036) | ✔ | ✔ | — |
+| CON-013 | 422 | "Lleva IVA" no se permite sobre cuentas de IVA | ✔ | ✔ | — |
+| CON-017 | 422 | Hay una tasa de IVA vigente a la fecha del asiento (ADR-036) | — | ✔ | — |
+| CON-008 | 409 | Reversión: el asiento ya está revertido | ✔ (oculta el botón) | ✔ | — |
+| CON-009 | 409 | Reversión: una reversión no se revierte | ✔ (oculta el botón) | ✔ | — |
+| CON-018 | 422 | Reversión: la fecha no es anterior a la del asiento original (ADR-036) | ✔ | ✔ | — |
+| — | 422 `PLT-002` | Concepto obligatorio (máx. 500), máximo 200 líneas | ✔ | ✔ | Longitud |
 
+- **Vista previa (ADR-036):** responde 200 con las líneas expandidas, los totales, la diferencia y `cuadra`, aunque no cuadre; 422 solo si no se puede expandir (`CON-002`, `CON-003`, `CON-006`, `CON-007`, `CON-013`, `CON-017`). Los montos de entrada usan el esquema `MontoEntrada` para que la regla de negocio, y no la validación de forma, responda `CON-001` y `CON-003`.
 - **Validación sobre las líneas expandidas:** cuando alguna línea "lleva IVA", el frontend pide `POST /contabilidad/asientos/vista-previa` (con retardo de 300 ms) y valida la partida doble sobre las líneas que devuelve el backend, porque en modo `SIN_IVA` la expansión cambia los totales. Sin líneas con IVA, valida localmente con `decimal.js`.
 - **Guardado** (`RegistrarAsientoManual`, una transacción): expandir IVA → validar → asignar número (`UPDATE correlativo_asiento … RETURNING`) → insertar cabecera y líneas → mayorizar (10.3) → auditar → guardar respuesta de idempotencia.
-- **Reversión** (`RevertirAsiento`): crea un asiento `origen_tipo = REVERSION` con Debe y Haber intercambiados, fecha elegida por el usuario (por defecto hoy) y concepto "Reversión del asiento N.º …"; marca el original `REVERTIDO`. Un asiento revertido o una reversión no pueden revertirse (`CON-008`, `CON-009`). Si el original venía de n8n, la operación pasa a `REVERTIDO` y la app de origen puede reenviarla corregida (12.8).
+- **Reversión** (`RevertirAsiento`): crea un asiento `origen_tipo = REVERSION` con Debe y Haber intercambiados, fecha elegida por el usuario (por defecto hoy) y concepto "Reversión del asiento N.º …"; marca el original `REVERTIDO`. La fecha no puede ser futura (`CON-007`) ni anterior a la del original (422 `CON-018`). Un asiento revertido (409 `CON-008`) o una reversión (409 `CON-009`) no pueden revertirse. La reversión publica el evento síncrono `AsientoRevertido` (ADR-036). Si el original venía de n8n, la operación pasa a `REVERTIDO` y la app de origen puede reenviarla corregida (12.8).
 
 ```ts
 import Decimal from 'decimal.js';
@@ -1441,6 +1446,7 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 | ADR-033 | Vencimiento de una API key elegido por fecha: 23:59:59 de ese día en hora de El Salvador | Aceptada |
 | ADR-034 | Catálogo base cargado como borrador y IVA 13 % con fecha técnica `vigente_desde` 2000-01-01 | Aceptada |
 | ADR-035 | Catálogo y configuración contable de F2: plantillas globales, regla `OTRO` sin cuenta, catálogo sin paginar, códigos `CON-014` a `CON-016` | Aceptada |
+| ADR-036 | Libro Diario de F3: estados HTTP y códigos `CON-017`/`CON-018`, vista previa que no rechaza descuadres, `MontoEntrada`, reversión con fecha ≥ original y evento `AsientoRevertido`, defensas adicionales de BD | Aceptada |
 
 ---
 
@@ -1449,7 +1455,7 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 - [ ] Organización y nombre del repositorio en GitHub.
 - [ ] Tamaño del equipo (afecta las estimaciones del plan).
 - [ ] Hosting de producción y dominio.
-- [ ] ¿Se permiten asientos con fecha futura? (hoy: no, `CON-007`).
+- [x] Asientos con fecha futura: no se permiten (`CON-007`); una reversión no puede fecharse antes que su original (`CON-018`) (ADR-036, 2026-09-26).
 - [ ] Límite de peticiones del webhook (propuesto: 60/min por API key).
 - [ ] Catálogo de cuentas base y reglas por defecto: validación con contador.
 - [ ] Validación por contador del tratamiento del IVA (`docs/contabilidad/formulario-iva.md`).
