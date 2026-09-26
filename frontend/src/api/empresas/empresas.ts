@@ -22,25 +22,22 @@ import type {
 
 import type {
   ActualizacionEmpresa,
-  ActualizacionMiembro,
-  ConflictoResponse,
   DemasiadasPeticionesResponse,
   Empresa,
   EntidadNoProcesableResponse,
   ErrorInternoResponse,
-  ListarMiembrosEmpresaParams,
-  MiembroEmpresa,
   NoAutenticadoResponse,
   NoEncontradoResponse,
-  NuevoMiembro,
-  PaginaMiembrosEmpresa,
   PrecondicionFallidaResponse,
   PrecondicionRequeridaResponse,
   ProhibidoResponse,
   SolicitudInvalidaResponse
 } from '../modelos';
 
+import { clienteHttp } from '../../nucleo/http/clienteHttp';
 
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
@@ -110,23 +107,16 @@ export const getObtenerEmpresaUrl = (empresaId: string,) => {
  * Devuelve la empresa activa. {empresaId} debe ser igual a X-Empresa-Id; si no lo es, responde 404 PLT-017 para no revelar la existencia de otras empresas. La respuesta trae el header ETag con la versión actual, que debe enviarse como If-Match al editar. Rol mínimo: admin_empresa.
  * @summary Consulta la empresa activa
  */
-export const obtenerEmpresa = async (empresaId: string, options?: RequestInit): Promise<obtenerEmpresaResponse> => {
+export const obtenerEmpresa = async (empresaId: string, options?: Parameters<typeof clienteHttp>[1]): Promise<obtenerEmpresaResponse> => {
 
-  const res = await fetch(getObtenerEmpresaUrl(empresaId),
+  return clienteHttp<obtenerEmpresaResponse>(getObtenerEmpresaUrl(empresaId),
   {
     ...options,
     method: 'GET'
 
 
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: obtenerEmpresaResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as obtenerEmpresaResponse
-}
+);}
 
 
 
@@ -139,16 +129,16 @@ export const getObtenerEmpresaQueryKey = (empresaId: string,) => {
     }
 
 
-export const getObtenerEmpresaQueryOptions = <TData = Awaited<ReturnType<typeof obtenerEmpresa>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(empresaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerEmpresa>>, TError, TData>>, fetch?: RequestInit}
+export const getObtenerEmpresaQueryOptions = <TData = Awaited<ReturnType<typeof obtenerEmpresa>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(empresaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerEmpresa>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getObtenerEmpresaQueryKey(empresaId);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof obtenerEmpresa>>> = ({ signal }) => obtenerEmpresa(empresaId, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof obtenerEmpresa>>> = ({ signal }) => obtenerEmpresa(empresaId, { signal, ...requestOptions });
 
 
 
@@ -168,7 +158,7 @@ export function useObtenerEmpresa<TData = Awaited<ReturnType<typeof obtenerEmpre
           TError,
           Awaited<ReturnType<typeof obtenerEmpresa>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useObtenerEmpresa<TData = Awaited<ReturnType<typeof obtenerEmpresa>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
@@ -178,11 +168,11 @@ export function useObtenerEmpresa<TData = Awaited<ReturnType<typeof obtenerEmpre
           TError,
           Awaited<ReturnType<typeof obtenerEmpresa>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useObtenerEmpresa<TData = Awaited<ReturnType<typeof obtenerEmpresa>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerEmpresa>>, TError, TData>>, fetch?: RequestInit}
+ empresaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerEmpresa>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -190,7 +180,7 @@ export function useObtenerEmpresa<TData = Awaited<ReturnType<typeof obtenerEmpre
  */
 
 export function useObtenerEmpresa<TData = Awaited<ReturnType<typeof obtenerEmpresa>>, TError = NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerEmpresa>>, TError, TData>>, fetch?: RequestInit}
+ empresaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof obtenerEmpresa>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
@@ -274,11 +264,11 @@ export const getActualizarEmpresaUrl = (empresaId: string,) => {
 }
 
 /**
- * Reemplaza nombre, nombre comercial, NIT y NRC de la empresa activa; el tipo no es editable. Los cuatro campos son obligatorios en el cuerpo y los tres últimos aceptan null para vaciarlos: con openApiNullable=false el generador no distingue "ausente" de "nulo", así que se exige enviar todo. Exige If-Match con el ETag leído (concurrencia optimista) y devuelve el nuevo ETag. {empresaId} debe ser igual a X-Empresa-Id; si no, 404 PLT-017. Rol mínimo: admin_empresa.
+ * Cambia el nombre del espacio de trabajo (empresa activa). Es lo único editable en la versión abierta: los usuarios son personas naturales y no se capturan datos empresariales (ADR-031, ADR-032); cada app guarda su propia configuración. Exige If-Match con el ETag leído (concurrencia optimista) y devuelve el nuevo ETag. {empresaId} debe ser igual a X-Empresa-Id; si no, 404 PLT-017. Rol mínimo: admin_empresa.
  * @summary Edita la empresa activa
  */
 export const actualizarEmpresa = async (empresaId: string,
-    actualizacionEmpresa: ActualizacionEmpresa, options?: RequestInit): Promise<actualizarEmpresaResponse> => {
+    actualizacionEmpresa: ActualizacionEmpresa, options?: Parameters<typeof clienteHttp>[1]): Promise<actualizarEmpresaResponse> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -294,21 +284,14 @@ export const actualizarEmpresa = async (empresaId: string,
     }
     return headers;
   };
-const res = await fetch(getActualizarEmpresaUrl(empresaId),
+return clienteHttp<actualizarEmpresaResponse>(getActualizarEmpresaUrl(empresaId),
   {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
     body: JSON.stringify(actualizacionEmpresa)
   }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: actualizarEmpresaResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as actualizarEmpresaResponse
-}
+);}
 
 
 
@@ -323,16 +306,16 @@ export const getActualizarEmpresaQueryKey = (empresaId: string,
 
 
 export const getActualizarEmpresaQueryOptions = <TData = Awaited<ReturnType<typeof actualizarEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | PrecondicionFallidaResponse | EntidadNoProcesableResponse | PrecondicionRequeridaResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(empresaId: string,
-    actualizacionEmpresa: ActualizacionEmpresa, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarEmpresa>>, TError, TData>>, fetch?: RequestInit}
+    actualizacionEmpresa: ActualizacionEmpresa, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarEmpresa>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
 ) => {
 
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
   const queryKey =  queryOptions?.queryKey ?? getActualizarEmpresaQueryKey(empresaId,actualizacionEmpresa);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof actualizarEmpresa>>> = ({ signal }) => actualizarEmpresa(empresaId,actualizacionEmpresa, { signal, ...fetchOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof actualizarEmpresa>>> = ({ signal }) => actualizarEmpresa(empresaId,actualizacionEmpresa, { signal, ...requestOptions });
 
 
 
@@ -353,7 +336,7 @@ export function useActualizarEmpresa<TData = Awaited<ReturnType<typeof actualiza
           TError,
           Awaited<ReturnType<typeof actualizarEmpresa>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useActualizarEmpresa<TData = Awaited<ReturnType<typeof actualizarEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | PrecondicionFallidaResponse | EntidadNoProcesableResponse | PrecondicionRequeridaResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
@@ -364,12 +347,12 @@ export function useActualizarEmpresa<TData = Awaited<ReturnType<typeof actualiza
           TError,
           Awaited<ReturnType<typeof actualizarEmpresa>>
         > , 'initialData'
-      >, fetch?: RequestInit}
+      >, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useActualizarEmpresa<TData = Awaited<ReturnType<typeof actualizarEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | PrecondicionFallidaResponse | EntidadNoProcesableResponse | PrecondicionRequeridaResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
  empresaId: string,
-    actualizacionEmpresa: ActualizacionEmpresa, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarEmpresa>>, TError, TData>>, fetch?: RequestInit}
+    actualizacionEmpresa: ActualizacionEmpresa, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarEmpresa>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -378,552 +361,11 @@ export function useActualizarEmpresa<TData = Awaited<ReturnType<typeof actualiza
 
 export function useActualizarEmpresa<TData = Awaited<ReturnType<typeof actualizarEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | PrecondicionFallidaResponse | EntidadNoProcesableResponse | PrecondicionRequeridaResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
  empresaId: string,
-    actualizacionEmpresa: ActualizacionEmpresa, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarEmpresa>>, TError, TData>>, fetch?: RequestInit}
+    actualizacionEmpresa: ActualizacionEmpresa, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarEmpresa>>, TError, TData>>, request?: SecondParameter<typeof clienteHttp>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getActualizarEmpresaQueryOptions(empresaId,actualizacionEmpresa,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-export type listarMiembrosEmpresaResponse200 = {
-  data: PaginaMiembrosEmpresa
-  status: 200
-}
-
-export type listarMiembrosEmpresaResponse400 = {
-  data: SolicitudInvalidaResponse
-  status: 400
-}
-
-export type listarMiembrosEmpresaResponse401 = {
-  data: NoAutenticadoResponse
-  status: 401
-}
-
-export type listarMiembrosEmpresaResponse403 = {
-  data: ProhibidoResponse
-  status: 403
-}
-
-export type listarMiembrosEmpresaResponse404 = {
-  data: NoEncontradoResponse
-  status: 404
-}
-
-export type listarMiembrosEmpresaResponse422 = {
-  data: EntidadNoProcesableResponse
-  status: 422
-}
-
-export type listarMiembrosEmpresaResponse429 = {
-  data: DemasiadasPeticionesResponse
-  status: 429
-}
-
-export type listarMiembrosEmpresaResponse500 = {
-  data: ErrorInternoResponse
-  status: 500
-}
-
-export type listarMiembrosEmpresaResponseSuccess = (listarMiembrosEmpresaResponse200) & {
-  headers: Headers;
-};
-export type listarMiembrosEmpresaResponseError = (listarMiembrosEmpresaResponse400 | listarMiembrosEmpresaResponse401 | listarMiembrosEmpresaResponse403 | listarMiembrosEmpresaResponse404 | listarMiembrosEmpresaResponse422 | listarMiembrosEmpresaResponse429 | listarMiembrosEmpresaResponse500) & {
-  headers: Headers;
-};
-
-export type listarMiembrosEmpresaResponse = (listarMiembrosEmpresaResponseSuccess | listarMiembrosEmpresaResponseError)
-
-export const getListarMiembrosEmpresaUrl = (empresaId: string,
-    params?: ListarMiembrosEmpresaParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/empresas/${empresaId}/usuarios?${stringifiedParams}` : `/empresas/${empresaId}/usuarios`
-}
-
-/**
- * Lista paginada por cursor de los miembros de la empresa activa, activos e inactivos. {empresaId} debe ser igual a X-Empresa-Id; si no, 404 PLT-017. Rol mínimo: admin_empresa.
- * @summary Lista los miembros de la empresa
- */
-export const listarMiembrosEmpresa = async (empresaId: string,
-    params?: ListarMiembrosEmpresaParams, options?: RequestInit): Promise<listarMiembrosEmpresaResponse> => {
-
-  const res = await fetch(getListarMiembrosEmpresaUrl(empresaId,params),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: listarMiembrosEmpresaResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as listarMiembrosEmpresaResponse
-}
-
-
-
-
-
-export const getListarMiembrosEmpresaQueryKey = (empresaId: string,
-    params?: ListarMiembrosEmpresaParams,) => {
-    return [
-    `/empresas/${empresaId}/usuarios`, ...(params ? [params] : [])
-    ] as const;
-    }
-
-
-export const getListarMiembrosEmpresaQueryOptions = <TData = Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(empresaId: string,
-    params?: ListarMiembrosEmpresaParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError, TData>>, fetch?: RequestInit}
-) => {
-
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListarMiembrosEmpresaQueryKey(empresaId,params);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listarMiembrosEmpresa>>> = ({ signal }) => listarMiembrosEmpresa(empresaId,params, { signal, ...fetchOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: empresaId !== null && empresaId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ListarMiembrosEmpresaQueryResult = NonNullable<Awaited<ReturnType<typeof listarMiembrosEmpresa>>>
-export type ListarMiembrosEmpresaQueryError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse
-
-
-export function useListarMiembrosEmpresa<TData = Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    params: undefined |  ListarMiembrosEmpresaParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listarMiembrosEmpresa>>,
-          TError,
-          Awaited<ReturnType<typeof listarMiembrosEmpresa>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListarMiembrosEmpresa<TData = Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    params?: ListarMiembrosEmpresaParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listarMiembrosEmpresa>>,
-          TError,
-          Awaited<ReturnType<typeof listarMiembrosEmpresa>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListarMiembrosEmpresa<TData = Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    params?: ListarMiembrosEmpresaParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Lista los miembros de la empresa
- */
-
-export function useListarMiembrosEmpresa<TData = Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    params?: ListarMiembrosEmpresaParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listarMiembrosEmpresa>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getListarMiembrosEmpresaQueryOptions(empresaId,params,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-export type agregarMiembroEmpresaResponse201 = {
-  data: MiembroEmpresa
-  status: 201
-}
-
-export type agregarMiembroEmpresaResponse400 = {
-  data: SolicitudInvalidaResponse
-  status: 400
-}
-
-export type agregarMiembroEmpresaResponse401 = {
-  data: NoAutenticadoResponse
-  status: 401
-}
-
-export type agregarMiembroEmpresaResponse403 = {
-  data: ProhibidoResponse
-  status: 403
-}
-
-export type agregarMiembroEmpresaResponse404 = {
-  data: NoEncontradoResponse
-  status: 404
-}
-
-export type agregarMiembroEmpresaResponse409 = {
-  data: ConflictoResponse
-  status: 409
-}
-
-export type agregarMiembroEmpresaResponse422 = {
-  data: EntidadNoProcesableResponse
-  status: 422
-}
-
-export type agregarMiembroEmpresaResponse429 = {
-  data: DemasiadasPeticionesResponse
-  status: 429
-}
-
-export type agregarMiembroEmpresaResponse500 = {
-  data: ErrorInternoResponse
-  status: 500
-}
-
-export type agregarMiembroEmpresaResponseSuccess = (agregarMiembroEmpresaResponse201) & {
-  headers: Headers;
-};
-export type agregarMiembroEmpresaResponseError = (agregarMiembroEmpresaResponse400 | agregarMiembroEmpresaResponse401 | agregarMiembroEmpresaResponse403 | agregarMiembroEmpresaResponse404 | agregarMiembroEmpresaResponse409 | agregarMiembroEmpresaResponse422 | agregarMiembroEmpresaResponse429 | agregarMiembroEmpresaResponse500) & {
-  headers: Headers;
-};
-
-export type agregarMiembroEmpresaResponse = (agregarMiembroEmpresaResponseSuccess | agregarMiembroEmpresaResponseError)
-
-export const getAgregarMiembroEmpresaUrl = (empresaId: string,) => {
-
-
-
-
-  return `/empresas/${empresaId}/usuarios`
-}
-
-/**
- * Agrega a la empresa a un usuario ya registrado, identificado por su correo, con el rol indicado. No existen invitaciones (ADR-028): si el correo no pertenece a un usuario registrado responde 422 PLT-012. Si ya es miembro, activo o inactivo, responde 409 PLT-013. Rol mínimo: admin_empresa.
- * @summary Agrega un usuario registrado a la empresa
- */
-export const agregarMiembroEmpresa = async (empresaId: string,
-    nuevoMiembro: NuevoMiembro, options?: RequestInit): Promise<agregarMiembroEmpresaResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-const res = await fetch(getAgregarMiembroEmpresaUrl(empresaId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(nuevoMiembro)
-  }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: agregarMiembroEmpresaResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as agregarMiembroEmpresaResponse
-}
-
-
-
-
-
-export const getAgregarMiembroEmpresaQueryKey = (empresaId: string,
-    nuevoMiembro?: NuevoMiembro,) => {
-    return [
-    'POST', `/empresas/${empresaId}/usuarios`, nuevoMiembro
-    ] as const;
-    }
-
-
-export const getAgregarMiembroEmpresaQueryOptions = <TData = Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | ConflictoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(empresaId: string,
-    nuevoMiembro: NuevoMiembro, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError, TData>>, fetch?: RequestInit}
-) => {
-
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getAgregarMiembroEmpresaQueryKey(empresaId,nuevoMiembro);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof agregarMiembroEmpresa>>> = ({ signal }) => agregarMiembroEmpresa(empresaId,nuevoMiembro, { signal, ...fetchOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: empresaId !== null && empresaId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type AgregarMiembroEmpresaQueryResult = NonNullable<Awaited<ReturnType<typeof agregarMiembroEmpresa>>>
-export type AgregarMiembroEmpresaQueryError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | ConflictoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse
-
-
-export function useAgregarMiembroEmpresa<TData = Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | ConflictoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    nuevoMiembro: NuevoMiembro, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof agregarMiembroEmpresa>>,
-          TError,
-          Awaited<ReturnType<typeof agregarMiembroEmpresa>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useAgregarMiembroEmpresa<TData = Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | ConflictoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    nuevoMiembro: NuevoMiembro, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof agregarMiembroEmpresa>>,
-          TError,
-          Awaited<ReturnType<typeof agregarMiembroEmpresa>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useAgregarMiembroEmpresa<TData = Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | ConflictoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    nuevoMiembro: NuevoMiembro, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Agrega un usuario registrado a la empresa
- */
-
-export function useAgregarMiembroEmpresa<TData = Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | ConflictoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    nuevoMiembro: NuevoMiembro, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof agregarMiembroEmpresa>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getAgregarMiembroEmpresaQueryOptions(empresaId,nuevoMiembro,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-export type actualizarMiembroEmpresaResponse200 = {
-  data: MiembroEmpresa
-  status: 200
-}
-
-export type actualizarMiembroEmpresaResponse400 = {
-  data: SolicitudInvalidaResponse
-  status: 400
-}
-
-export type actualizarMiembroEmpresaResponse401 = {
-  data: NoAutenticadoResponse
-  status: 401
-}
-
-export type actualizarMiembroEmpresaResponse403 = {
-  data: ProhibidoResponse
-  status: 403
-}
-
-export type actualizarMiembroEmpresaResponse404 = {
-  data: NoEncontradoResponse
-  status: 404
-}
-
-export type actualizarMiembroEmpresaResponse422 = {
-  data: EntidadNoProcesableResponse
-  status: 422
-}
-
-export type actualizarMiembroEmpresaResponse429 = {
-  data: DemasiadasPeticionesResponse
-  status: 429
-}
-
-export type actualizarMiembroEmpresaResponse500 = {
-  data: ErrorInternoResponse
-  status: 500
-}
-
-export type actualizarMiembroEmpresaResponseSuccess = (actualizarMiembroEmpresaResponse200) & {
-  headers: Headers;
-};
-export type actualizarMiembroEmpresaResponseError = (actualizarMiembroEmpresaResponse400 | actualizarMiembroEmpresaResponse401 | actualizarMiembroEmpresaResponse403 | actualizarMiembroEmpresaResponse404 | actualizarMiembroEmpresaResponse422 | actualizarMiembroEmpresaResponse429 | actualizarMiembroEmpresaResponse500) & {
-  headers: Headers;
-};
-
-export type actualizarMiembroEmpresaResponse = (actualizarMiembroEmpresaResponseSuccess | actualizarMiembroEmpresaResponseError)
-
-export const getActualizarMiembroEmpresaUrl = (empresaId: string,
-    usuarioId: string,) => {
-
-
-
-
-  return `/empresas/${empresaId}/usuarios/${usuarioId}`
-}
-
-/**
- * Cambia el rol de un miembro o lo activa/desactiva; ambos campos son obligatorios. Si la operación dejaría a la empresa sin ningún admin_empresa activo responde 422 PLT-014. Rol mínimo: admin_empresa.
- * @summary Cambia el rol o el estado de un miembro
- */
-export const actualizarMiembroEmpresa = async (empresaId: string,
-    usuarioId: string,
-    actualizacionMiembro: ActualizacionMiembro, options?: RequestInit): Promise<actualizarMiembroEmpresaResponse> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-const res = await fetch(getActualizarMiembroEmpresaUrl(empresaId,usuarioId),
-  {
-    ...options,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(actualizacionMiembro)
-  }
-)
-
-
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-
-  const data: actualizarMiembroEmpresaResponse['data'] = body ? JSON.parse(body) : {}
-  return { data, status: res.status, headers: res.headers } as actualizarMiembroEmpresaResponse
-}
-
-
-
-
-
-export const getActualizarMiembroEmpresaQueryKey = (empresaId: string,
-    usuarioId: string,
-    actualizacionMiembro?: ActualizacionMiembro,) => {
-    return [
-    'PATCH', `/empresas/${empresaId}/usuarios/${usuarioId}`, actualizacionMiembro
-    ] as const;
-    }
-
-
-export const getActualizarMiembroEmpresaQueryOptions = <TData = Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(empresaId: string,
-    usuarioId: string,
-    actualizacionMiembro: ActualizacionMiembro, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError, TData>>, fetch?: RequestInit}
-) => {
-
-const {query: queryOptions, fetch: fetchOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getActualizarMiembroEmpresaQueryKey(empresaId,usuarioId,actualizacionMiembro);
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof actualizarMiembroEmpresa>>> = ({ signal }) => actualizarMiembroEmpresa(empresaId,usuarioId,actualizacionMiembro, { signal, ...fetchOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, enabled: empresaId !== null && empresaId !== undefined && usuarioId !== null && usuarioId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type ActualizarMiembroEmpresaQueryResult = NonNullable<Awaited<ReturnType<typeof actualizarMiembroEmpresa>>>
-export type ActualizarMiembroEmpresaQueryError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse
-
-
-export function useActualizarMiembroEmpresa<TData = Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    usuarioId: string,
-    actualizacionMiembro: ActualizacionMiembro, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof actualizarMiembroEmpresa>>,
-          TError,
-          Awaited<ReturnType<typeof actualizarMiembroEmpresa>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useActualizarMiembroEmpresa<TData = Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    usuarioId: string,
-    actualizacionMiembro: ActualizacionMiembro, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof actualizarMiembroEmpresa>>,
-          TError,
-          Awaited<ReturnType<typeof actualizarMiembroEmpresa>>
-        > , 'initialData'
-      >, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useActualizarMiembroEmpresa<TData = Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    usuarioId: string,
-    actualizacionMiembro: ActualizacionMiembro, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-/**
- * @summary Cambia el rol o el estado de un miembro
- */
-
-export function useActualizarMiembroEmpresa<TData = Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError = SolicitudInvalidaResponse | NoAutenticadoResponse | ProhibidoResponse | NoEncontradoResponse | EntidadNoProcesableResponse | DemasiadasPeticionesResponse | ErrorInternoResponse>(
- empresaId: string,
-    usuarioId: string,
-    actualizacionMiembro: ActualizacionMiembro, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof actualizarMiembroEmpresa>>, TError, TData>>, fetch?: RequestInit}
- , queryClient?: QueryClient
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getActualizarMiembroEmpresaQueryOptions(empresaId,usuarioId,actualizacionMiembro,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

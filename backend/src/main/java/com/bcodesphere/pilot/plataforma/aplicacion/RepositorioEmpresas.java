@@ -1,6 +1,8 @@
 package com.bcodesphere.pilot.plataforma.aplicacion;
 
+import com.bcodesphere.pilot.plataforma.dominio.EspacioTrabajo;
 import com.bcodesphere.pilot.plataforma.dominio.Rol;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -27,4 +29,23 @@ public interface RepositorioEmpresas {
      * @param rol rol asignado
      */
     void crearMembresia(UUID empresaId, UUID usuarioId, Rol rol);
+
+    /**
+     * Lee el espacio de trabajo de la empresa activa (solo id, tipo, nombre, estado y versión).
+     *
+     * @param id empresa buscada
+     * @return el espacio, o vacío si RLS no lo deja ver (otra empresa) o no existe
+     */
+    Optional<EspacioTrabajo> buscar(UUID id);
+
+    /**
+     * Cambia el nombre con concurrencia optimista: solo actualiza si la versión guardada es la esperada, la
+     * incrementa y fija quién y cuándo. No toca ninguna otra columna.
+     *
+     * @param id empresa
+     * @param nombre nombre nuevo, ya normalizado
+     * @param versionEsperada versión que el cliente leyó
+     * @return {@code true} si actualizó la fila; {@code false} si la versión ya no coincide (carrera o dato viejo)
+     */
+    boolean actualizarNombre(UUID id, String nombre, long versionEsperada);
 }

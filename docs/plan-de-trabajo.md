@@ -7,6 +7,10 @@
 | Fecha del plan | 2026-09-23 |
 | Supuesto de equipo | 1–2 desarrolladores a tiempo completo `[DECISIÓN]` confirmar |
 | Estimación total | ≈ 12–14 semanas |
+| **Plazo comprometido** | **Menos de 24 horas desde el 2026-09-25 (timebox)** |
+
+> [!IMPORTANT]
+> **Urgencia — SLA del módulo contable.** Contabilidad 1.0, con todo el flujo de trabajo definido en este plan, debe estar finalizada en **menos de 24 horas** a partir del 2026-09-25. La estimación original (≈ 12–14 semanas para 1–2 personas) no cabe en ese plazo. Decisión del 2026-09-25: se sigue el flujo de trabajo definido sin recortar alcance, ejecutando en paralelo las tareas independientes (F1-05 ∥ F1-07, F4 ∥ F5). El orden de las fases y los criterios de aceptación no cambian.
 
 ---
 
@@ -79,14 +83,14 @@ F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 3. Modo sin empresa en el gestor de transacciones (ADR-026). Alta del usuario la primera vez que inicia sesión (desde el `sub` del token) junto con su **empresa personal** y su membresía `admin_empresa` (ADR-029).
 4. Catálogo de apps: `GET /aplicaciones` con estado por empresa e instalación de Contabilidad (`POST /aplicaciones/{codigo}/instalacion`) que publica `AplicacionInstalada` (ADR-030).
 5. Selector de empresa activa (`X-Empresa-Id`) validado contra las membresías.
-6. Gestión básica: editar la empresa, agregar usuarios ya registrados por correo, cambiar rol, desactivar membresía.
+6. Gestión básica: cambiar el nombre del espacio de trabajo (sin datos empresariales, ADR-032). Los miembros son de Enterprise.
 7. API keys: crear (secreto visible una sola vez), listar, revocar; hash Argon2id; alcances.
 8. Frontend: shell con lanzador de apps instaladas y pantalla "Apps" con el catálogo.
 
 **Criterios de aceptación**
 - Un usuario nuevo se registra, verifica su correo, inicia sesión (con MFA), encuentra su empresa personal ya creada, instala Contabilidad desde "Apps" y la ve en el lanzador.
 - Las apps Enterprise aparecen bloqueadas y su instalación se rechaza con 403.
-- Un usuario con dos empresas cambia de empresa y solo ve los datos de la empresa activa.
+- Con membresías de prueba en dos empresas, cambiar `X-Empresa-Id` solo muestra los datos de la empresa activa; un usuario nunca ve los datos de otro (ADR-032: en 1.0 no se agregan miembros desde la interfaz).
 - Un `X-Empresa-Id` sin membresía devuelve 403 `PLT-003`.
 - Una API key revocada o vencida devuelve 401; sin el alcance requerido, 403.
 - Agregar una fila en `aplicacion` no requiere cambios en el shell.

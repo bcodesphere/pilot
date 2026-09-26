@@ -34,6 +34,8 @@ Cada ADR registra contexto, decisión, alternativas y consecuencias. Un ADR acep
 | [ADR-028](ADR-028-registro-usuarios-keycloak.md) | Registro de usuarios en Keycloak, sin DUI, con consentimiento de publicidad | Aceptada |
 | [ADR-029](ADR-029-empresa-personal.md) | Empresa personal automática; empresa jurídica en Enterprise | Aceptada |
 | [ADR-030](ADR-030-catalogo-apps-instalables.md) | Catálogo de apps instalables y apps Enterprise bloqueadas | Aceptada |
+| [ADR-031](ADR-031-open-core-y-cuatro-capas.md) | Modelo Open-Core / Freemium y solución en cuatro capas | Aceptada |
+| [ADR-032](ADR-032-version-abierta-personas-naturales.md) | Versión abierta para personas naturales: sin datos empresariales ni miembros | Aceptada |
 
 Los ADR diferidos están documentados en `docs/diferido/vision-completa-con-dte.md` (sección 22 de ese archivo).
 

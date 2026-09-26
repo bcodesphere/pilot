@@ -1,6 +1,6 @@
 # Contrato REST de Pilot 1.0 (fuente de verdad, ADR-003).
 # Contract-first: las interfaces Spring y el cliente Orval se generan desde este archivo.
-# Alcance de F1: núcleo (usuario actual, empresa, miembros, catálogo de apps y API keys) más los componentes
+# Alcance de F1: núcleo (usuario actual, empresa, catálogo de apps y API keys) más los componentes
 # reutilizables. Los endpoints de contabilidad e integración llegan en F2–F5.
 openapi: 3.1.0
 
@@ -27,7 +27,7 @@ tags:
   - name: usuarioActual
     description: Módulo plataforma — usuario autenticado, sus membresías y su consentimiento de correos.
   - name: empresas
-    description: Módulo plataforma — empresa activa y sus miembros.
+    description: Módulo plataforma — empresa activa (espacio de trabajo).
   - name: aplicaciones
     description: Módulo plataforma — catálogo de apps e instalación (ADR-030).
   - name: apiKeys
@@ -159,9 +159,9 @@ paths:
       x-rol-minimo: admin_empresa
       summary: Edita la empresa activa
       description: >-
-        Reemplaza nombre, nombre comercial, NIT y NRC de la empresa activa; el tipo no es editable. Los cuatro campos
-        son obligatorios en el cuerpo y los tres últimos aceptan null para vaciarlos: con openApiNullable=false el
-        generador no distingue "ausente" de "nulo", así que se exige enviar todo. Exige If-Match con el ETag leído
+        Cambia el nombre del espacio de trabajo (empresa activa). Es lo único editable en la versión abierta: los
+        usuarios son personas naturales y no se capturan datos empresariales (ADR-031, ADR-032); cada app guarda su
+        propia configuración. Exige If-Match con el ETag leído
         (concurrencia optimista) y devuelve el nuevo ETag. {empresaId} debe ser igual a X-Empresa-Id; si no, 404
         PLT-017. Rol mínimo: admin_empresa.
       parameters:
@@ -171,7 +171,7 @@ paths:
         - $ref: '#/components/parameters/IfMatch'
       requestBody:
         required: true
-        description: Datos completos editables de la empresa (los cuatro campos son obligatorios).
+        description: Nuevo nombre del espacio de trabajo.
         content:
           application/json:
             schema:
@@ -209,155 +209,6 @@ paths:
         '428':
           $ref: '#/components/responses/PrecondicionRequerida'
           description: "428 — PLT-015: falta el header If-Match."
-        '429':
-          $ref: '#/components/responses/DemasiadasPeticiones'
-        '500':
-          $ref: '#/components/responses/ErrorInterno'
-
-  # --- Miembros de la empresa (ADR-028): solo usuarios ya registrados, sin invitaciones pendientes ---
-  /empresas/{empresaId}/usuarios:
-    get:
-      operationId: listarMiembrosEmpresa
-      tags: [empresas]
-      x-rol-minimo: admin_empresa
-      summary: Lista los miembros de la empresa
-      description: >-
-        Lista paginada por cursor de los miembros de la empresa activa, activos e inactivos. {empresaId} debe ser
-        igual a X-Empresa-Id; si no, 404 PLT-017. Rol mínimo: admin_empresa.
-      parameters:
-        - $ref: '#/components/parameters/XRequestId'
-        - $ref: '#/components/parameters/XEmpresaId'
-        - $ref: '#/components/parameters/EmpresaIdRuta'
-        - $ref: '#/components/parameters/Limite'
-        - $ref: '#/components/parameters/Cursor'
-      responses:
-        '200':
-          description: Página de miembros de la empresa.
-          headers:
-            X-Request-Id:
-              $ref: '#/components/headers/X-Request-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginaMiembrosEmpresa'
-        '400':
-          $ref: '#/components/responses/SolicitudInvalida'
-          description: "400 — PLT-001: parámetros con tipos incorrectos."
-        '401':
-          $ref: '#/components/responses/NoAutenticado'
-          description: "401 — PLT-009: falta el token, es inválido o está vencido."
-        '403':
-          $ref: '#/components/responses/Prohibido'
-          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
-        '404':
-          $ref: '#/components/responses/NoEncontrado'
-          description: "404 — PLT-017: {empresaId} no coincide con X-Empresa-Id o la empresa no existe."
-        '422':
-          $ref: '#/components/responses/EntidadNoProcesable'
-          description: "422 — PLT-002: validación de forma (incluye errores)."
-        '429':
-          $ref: '#/components/responses/DemasiadasPeticiones'
-        '500':
-          $ref: '#/components/responses/ErrorInterno'
-    post:
-      operationId: agregarMiembroEmpresa
-      tags: [empresas]
-      x-rol-minimo: admin_empresa
-      summary: Agrega un usuario registrado a la empresa
-      description: >-
-        Agrega a la empresa a un usuario ya registrado, identificado por su correo, con el rol indicado. No existen
-        invitaciones (ADR-028): si el correo no pertenece a un usuario registrado responde 422 PLT-012. Si ya es
-        miembro, activo o inactivo, responde 409 PLT-013. Rol mínimo: admin_empresa.
-      parameters:
-        - $ref: '#/components/parameters/XRequestId'
-        - $ref: '#/components/parameters/XEmpresaId'
-        - $ref: '#/components/parameters/EmpresaIdRuta'
-      requestBody:
-        required: true
-        description: Correo del usuario registrado y rol que tendrá en la empresa.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NuevoMiembro'
-      responses:
-        '201':
-          description: Miembro agregado a la empresa.
-          headers:
-            X-Request-Id:
-              $ref: '#/components/headers/X-Request-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MiembroEmpresa'
-        '400':
-          $ref: '#/components/responses/SolicitudInvalida'
-          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
-        '401':
-          $ref: '#/components/responses/NoAutenticado'
-          description: "401 — PLT-009: falta el token, es inválido o está vencido."
-        '403':
-          $ref: '#/components/responses/Prohibido'
-          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
-        '404':
-          $ref: '#/components/responses/NoEncontrado'
-          description: "404 — PLT-017: {empresaId} no coincide con X-Empresa-Id o la empresa no existe."
-        '409':
-          $ref: '#/components/responses/Conflicto'
-          description: "409 — PLT-013: el usuario ya es miembro de la empresa (activo o inactivo)."
-        '422':
-          $ref: '#/components/responses/EntidadNoProcesable'
-          description: "422 — PLT-012: el correo no pertenece a un usuario registrado; PLT-002: validación de forma (incluye errores)."
-        '429':
-          $ref: '#/components/responses/DemasiadasPeticiones'
-        '500':
-          $ref: '#/components/responses/ErrorInterno'
-
-  /empresas/{empresaId}/usuarios/{usuarioId}:
-    patch:
-      operationId: actualizarMiembroEmpresa
-      tags: [empresas]
-      x-rol-minimo: admin_empresa
-      summary: Cambia el rol o el estado de un miembro
-      description: >-
-        Cambia el rol de un miembro o lo activa/desactiva; ambos campos son obligatorios. Si la operación dejaría a
-        la empresa sin ningún admin_empresa activo responde 422 PLT-014. Rol mínimo: admin_empresa.
-      parameters:
-        - $ref: '#/components/parameters/XRequestId'
-        - $ref: '#/components/parameters/XEmpresaId'
-        - $ref: '#/components/parameters/EmpresaIdRuta'
-        - $ref: '#/components/parameters/UsuarioIdRuta'
-      requestBody:
-        required: true
-        description: Nuevo rol y estado del miembro.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ActualizacionMiembro'
-      responses:
-        '200':
-          description: Miembro actualizado.
-          headers:
-            X-Request-Id:
-              $ref: '#/components/headers/X-Request-Id'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MiembroEmpresa'
-        '400':
-          $ref: '#/components/responses/SolicitudInvalida'
-          description: "400 — PLT-001: cuerpo JSON ilegible o con tipos incorrectos."
-        '401':
-          $ref: '#/components/responses/NoAutenticado'
-          description: "401 — PLT-009: falta el token, es inválido o está vencido."
-        '403':
-          $ref: '#/components/responses/Prohibido'
-          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-010: el rol no alcanza para esta operación."
-        '404':
-          $ref: '#/components/responses/NoEncontrado'
-          description: "404 — PLT-017: {empresaId} no coincide con X-Empresa-Id o el usuario no es miembro de la empresa."
-        '422':
-          $ref: '#/components/responses/EntidadNoProcesable'
-          description: "422 — PLT-014: la empresa quedaría sin admin_empresa activo; PLT-002: validación de forma (incluye errores)."
         '429':
           $ref: '#/components/responses/DemasiadasPeticiones'
         '500':
@@ -664,10 +515,6 @@ components:
       type: string
       enum: [admin_empresa, contador, auditor]
       description: Rol del usuario dentro de la empresa (CLAUDE.md §14.2). El rol técnico integracion no aplica a usuarios.
-    EstadoMembresia:
-      type: string
-      enum: [ACTIVA, INACTIVA]
-      description: Estado de la membresía; una INACTIVA no permite acceder a la empresa (ADR-028).
     TipoEmpresa:
       type: string
       enum: [PERSONAL, JURIDICA]
@@ -741,8 +588,10 @@ components:
     # --- Empresa (ADR-029) ---
     Empresa:
       type: object
-      description: Empresa activa de la sesión.
-      required: [id, tipo, nombre, nombreComercial, nit, nrc, estado, version]
+      description: >-
+        Espacio de trabajo activo de la sesión. En la versión abierta es la empresa PERSONAL del usuario, sin datos
+        empresariales (ADR-032).
+      required: [id, tipo, nombre, estado, version]
       properties:
         id:
           $ref: '#/components/schemas/Uuid'
@@ -750,20 +599,7 @@ components:
           $ref: '#/components/schemas/TipoEmpresa'
         nombre:
           type: string
-          description: Nombre de la empresa.
-        nombreComercial:
-          type: [string, 'null']
-          description: Nombre comercial; nulo si no se ha registrado.
-        nit:
-          type: [string, 'null']
-          pattern: '^[0-9]{14}$'
-          description: NIT de 14 dígitos; opcional en la empresa PERSONAL, nulo si no se ha registrado.
-        nrc:
-          type: [string, 'null']
-          maxLength: 10
-          description: >-
-            Número de Registro de Contribuyente; nulo si no es contribuyente.
-            [VERIFICAR] formato del NRC con la fuente oficial del MH (ADR-029); por eso no tiene patrón.
+          description: Nombre del espacio de trabajo; al crearlo es el nombre del usuario.
         estado:
           $ref: '#/components/schemas/EstadoEmpresa'
         version:
@@ -773,81 +609,15 @@ components:
     ActualizacionEmpresa:
       type: object
       description: >-
-        Datos editables de la empresa. Los cuatro campos son obligatorios en el cuerpo y los tres últimos aceptan
-        null para vaciarlos, porque con openApiNullable=false el generador no distingue "ausente" de "nulo".
-        El tipo no es editable.
-      required: [nombre, nombreComercial, nit, nrc]
+        Dato editable del espacio de trabajo: solo el nombre. Nombre comercial, NIT y NRC no se capturan en la
+        versión abierta (ADR-031, ADR-032); son de la edición Enterprise.
+      required: [nombre]
       properties:
         nombre:
           type: string
           minLength: 1
           maxLength: 250
-          description: Nombre de la empresa.
-        nombreComercial:
-          type: [string, 'null']
-          maxLength: 250
-          description: Nombre comercial; null lo vacía.
-        nit:
-          type: [string, 'null']
-          pattern: '^[0-9]{14}$'
-          description: NIT de 14 dígitos; null lo vacía (solo válido si la empresa no exige NIT).
-        nrc:
-          type: [string, 'null']
-          maxLength: 10
-          description: NRC; null lo vacía. [VERIFICAR] formato con la fuente oficial del MH (ADR-029).
-
-    # --- Miembros de la empresa (ADR-028) ---
-    MiembroEmpresa:
-      type: object
-      description: Usuario que pertenece a la empresa activa, con su rol y estado.
-      required: [usuarioId, nombre, correo, rol, estado, desde]
-      properties:
-        usuarioId:
-          $ref: '#/components/schemas/Uuid'
-        nombre:
-          type: string
-          description: Nombre completo del usuario.
-        correo:
-          type: string
-          description: Correo del usuario (dato personal; se enmascara en logs).
-        rol:
-          $ref: '#/components/schemas/Rol'
-        estado:
-          $ref: '#/components/schemas/EstadoMembresia'
-        desde:
-          $ref: '#/components/schemas/FechaHora'
-    PaginaMiembrosEmpresa:
-      description: Página de miembros de la empresa.
-      allOf:
-        - $ref: '#/components/schemas/PaginaCursor'
-        - type: object
-          required: [elementos]
-          properties:
-            elementos:
-              type: array
-              description: Miembros de la página.
-              items:
-                $ref: '#/components/schemas/MiembroEmpresa'
-    NuevoMiembro:
-      type: object
-      description: Usuario ya registrado que se agrega a la empresa; no existen invitaciones (ADR-028).
-      required: [correo, rol]
-      properties:
-        correo:
-          type: string
-          format: email
-          description: Correo del usuario registrado.
-        rol:
-          $ref: '#/components/schemas/Rol'
-    ActualizacionMiembro:
-      type: object
-      description: Cambio de rol y estado de un miembro.
-      required: [rol, estado]
-      properties:
-        rol:
-          $ref: '#/components/schemas/Rol'
-        estado:
-          $ref: '#/components/schemas/EstadoMembresia'
+          description: Nuevo nombre del espacio de trabajo.
 
     # --- Catálogo de apps (ADR-030) ---
     AplicacionCatalogo:
@@ -1009,13 +779,6 @@ components:
       in: path
       required: true
       description: Empresa del recurso; debe ser igual al header X-Empresa-Id, si no responde 404 PLT-017.
-      schema:
-        $ref: '#/components/schemas/Uuid'
-    UsuarioIdRuta:
-      name: usuarioId
-      in: path
-      required: true
-      description: Identificador del usuario miembro de la empresa.
       schema:
         $ref: '#/components/schemas/Uuid'
     CodigoAplicacion:

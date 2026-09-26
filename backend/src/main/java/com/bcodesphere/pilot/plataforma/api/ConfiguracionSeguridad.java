@@ -1,5 +1,6 @@
 package com.bcodesphere.pilot.plataforma.api;
 
+import com.bcodesphere.pilot.plataforma.aplicacion.AutenticarApiKey;
 import com.bcodesphere.pilot.plataforma.aplicacion.ExigirAppInstalada;
 import com.bcodesphere.pilot.plataforma.aplicacion.ResolverIdentidad;
 import com.bcodesphere.pilot.plataforma.aplicacion.ValidarMembresia;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
@@ -22,14 +24,17 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
- * Seguridad HTTP de Pilot (CLAUDE.md 14, ADR-008): API sin sesión, autenticada con el token de acceso de Keycloak
- * (bearer JWT), con CORS para el frontend y roles por empresa con jerarquía.
+ * Seguridad HTTP de Pilot (CLAUDE.md 14, ADR-008): API sin sesión, con CORS para el frontend y roles por empresa con
+ * jerarquía. Hay dos cadenas de filtros excluyentes: la de integraciones ({@code /api/v1/integraciones/**}), que solo
+ * acepta API keys, y la general, que solo acepta el token de acceso de Keycloak (bearer JWT). Así una API key nunca
+ * pasa por la cadena de usuarios (no es un JWT válido: 401) ni un JWT por la de integraciones (401).
  *
  * <p>Sin estado y sin CSRF: al usarse un bearer token en el header {@code Authorization} y no cookies, un sitio
  * externo no puede hacer que el navegador envíe la credencial, así que el ataque CSRF no aplica.
@@ -46,7 +51,41 @@ class ConfiguracionSeguridad {
     private static final List<String> HEADERS_EXPUESTOS = List.of("ETag", "X-Request-Id", "Idempotency-Replayed");
 
     /**
-     * Cadena de filtros de seguridad.
+     * Cadena de las integraciones: solo API keys (CLAUDE.md 12.1, ADR-026). Va ANTES de la general ({@code @Order(1)})
+     * porque Spring aplica la primera cadena cuyo {@code securityMatcher} coincide.
+     *
+     * @param http constructor de la cadena
+     * @param autenticacion caso de uso que verifica la API key
+     * @param resolvedor resolvedor de excepciones de MVC, para responder 401 y 403 en Problem Details
+     * @return la cadena aplicada solo a {@code /api/v1/integraciones/**}
+     * @throws Exception si la configuración falla
+     */
+    @Bean
+    @Order(1)
+    SecurityFilterChain cadenaDeIntegraciones(
+            HttpSecurity http,
+            AutenticarApiKey autenticacion,
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolvedor)
+            throws Exception {
+        PuntoEntradaProblemas problemas = new PuntoEntradaProblemas(resolvedor);
+        http
+                // 1. Solo las rutas de integraciones; el resto lo atiende la cadena de usuarios
+                .securityMatcher("/api/v1/integraciones/**")
+                // 2. Sin sesión ni CSRF (bearer en el header) y sin CORS: n8n llama de servidor a servidor, no desde un
+                //    navegador, así que ningún origen web queda autorizado
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // 3. Toda ruta exige una API key válida; el alcance lo exige cada operación
+                .authorizeHttpRequests(a -> a.anyRequest().authenticated())
+                .exceptionHandling(e -> e.authenticationEntryPoint(problemas).accessDeniedHandler(problemas))
+                // 4. La API key se autentica justo antes de la autorización (sin oauth2ResourceServer: un JWT aquí es
+                // 401)
+                .addFilterBefore(new FiltroApiKey(autenticacion, problemas), AuthorizationFilter.class);
+        return http.build();
+    }
+
+    /**
+     * Cadena de filtros de seguridad de los usuarios (resto de la API), con el token de Keycloak.
      *
      * @param http constructor de la cadena
      * @param identidad caso de uso de identidad (alta y sincronización)
@@ -57,6 +96,7 @@ class ConfiguracionSeguridad {
      * @throws Exception si la configuración falla
      */
     @Bean
+    @Order(2)
     SecurityFilterChain cadenaDeSeguridad(
             HttpSecurity http,
             ResolverIdentidad identidad,

@@ -27,6 +27,10 @@
     <!-- BOM de Spring Modulith (no lo gestiona el padre de Boot 4.1.1) -->
     <spring-modulith.version>2.1.1</spring-modulith.version>
 
+    <!-- BouncyCastle: lo exige Argon2PasswordEncoder (hash de API keys, CLAUDE.md 14.1). No lo gestiona el padre de Boot
+         4.1.1, así que se fija la versión estable vigente verificada en Maven Central (F1-06). -->
+    <bouncycastle.version>1.86</bouncycastle.version>
+
     <!-- Bibliotecas de prueba fuera de los BOM -->
     <archunit.version>1.5.0</archunit.version>
 
@@ -70,6 +74,9 @@
          seguridad pasaron a llamarse spring-boot-starter-security-*; el antiguo spring-boot-starter-oauth2-resource-server
          quedó obsoleto (su descripción lo dice) y por eso no se usa. Versiones gestionadas por el padre (4.1.1). -->
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId></dependency>
+
+    <!-- Argon2id para el hash del secreto de las API keys (Argon2PasswordEncoder de spring-security-crypto necesita BouncyCastle) -->
+    <dependency><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk18on</artifactId><version>${bouncycastle.version}</version></dependency>
 
     <!-- Spring Modulith: límites de módulos -->
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-core</artifactId></dependency>

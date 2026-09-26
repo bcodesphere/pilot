@@ -10,30 +10,13 @@ import type { TipoEmpresa } from './tipoEmpresa';
 import type { Uuid } from './uuid';
 
 /**
- * Empresa activa de la sesión.
+ * Espacio de trabajo activo de la sesión. En la versión abierta es la empresa PERSONAL del usuario, sin datos empresariales (ADR-032).
  */
 export interface Empresa {
   id: Uuid;
   tipo: TipoEmpresa;
-  /** Nombre de la empresa. */
+  /** Nombre del espacio de trabajo; al crearlo es el nombre del usuario. */
   nombre: string;
-  /**
-     * Nombre comercial; nulo si no se ha registrado.
-     * @nullable
-     */
-  nombreComercial: string | null;
-  /**
-     * NIT de 14 dígitos; opcional en la empresa PERSONAL, nulo si no se ha registrado.
-     * @nullable
-     * @pattern ^[0-9]{14}$
-     */
-  nit: string | null;
-  /**
-     * Número de Registro de Contribuyente; nulo si no es contribuyente. [VERIFICAR] formato del NRC con la fuente oficial del MH (ADR-029); por eso no tiene patrón.
-     * @maxLength 10
-     * @nullable
-     */
-  nrc: string | null;
   estado: EstadoEmpresa;
   /** Versión para concurrencia optimista; también viaja como ETag (CLAUDE.md §8.3). */
   version: number;

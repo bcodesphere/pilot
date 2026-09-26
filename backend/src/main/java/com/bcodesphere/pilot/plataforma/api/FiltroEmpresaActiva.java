@@ -2,6 +2,8 @@ package com.bcodesphere.pilot.plataforma.api;
 
 import com.bcodesphere.pilot.compartido.ClavesMdc;
 import com.bcodesphere.pilot.compartido.EmpresaId;
+import com.bcodesphere.pilot.compartido.ErrorCampo;
+import com.bcodesphere.pilot.compartido.ExcepcionValidacion;
 import com.bcodesphere.pilot.plataforma.ContextoEmpresa;
 import com.bcodesphere.pilot.plataforma.ExcepcionPlataforma;
 import com.bcodesphere.pilot.plataforma.aplicacion.ExigirAppInstalada;
@@ -38,7 +40,8 @@ import org.springframework.web.util.UrlPathHelper;
  *   <li>Resuelve al usuario del token (alta automática en el primer inicio de sesión) y lo publica en el MDC.
  *   <li>Si llega {@code X-Empresa-Id}: valida el UUID (400 PLT-001) y la membresía (403 PLT-003), comprueba que la app
  *       de la ruta esté instalada (403 PLT-004) y ejecuta el resto de la petición con la empresa en el contexto.
- *   <li>Si no llega, la petición sigue sin empresa; las operaciones que la exigen la piden con un header obligatorio.
+ *   <li>Si no llega, la petición sigue sin empresa (las operaciones que la exigen la piden con un header obligatorio),
+ *       salvo en las rutas de una app del catálogo, que se rechazan antes del controlador (422 PLT-002).
  * </ol>
  *
  * <p>No es un bean: se construye dentro de la cadena de seguridad para que Spring Boot no lo registre además como
@@ -139,6 +142,15 @@ final class FiltroEmpresaActiva extends OncePerRequestFilter {
         // 2. Sin X-Empresa-Id la petición sigue sin empresa (y sin rol de empresa)
         String header = request.getHeader(HEADER_EMPRESA);
         if (header == null) {
+            // 2.1 Defensa en profundidad: una ruta de app del catálogo sin X-Empresa-Id se rechaza aquí con la misma
+            //     respuesta que daría el controlador (422 PLT-002); así ninguna ruta de app queda sin empresa
+            String appSinEmpresa = primerSegmentoDeApi(request);
+            if (appSinEmpresa != null && aplicaciones.esRutaDeApp(appSinEmpresa, usuario.id())) {
+                throw new ExcepcionValidacion(
+                        "PLT-002",
+                        "La solicitud contiene datos inválidos",
+                        List.of(new ErrorCampo(HEADER_EMPRESA, "El header es obligatorio")));
+            }
             return new Contexto(autenticacion(token, autoridades, usuario.id()), usuario.id(), null);
         }
 

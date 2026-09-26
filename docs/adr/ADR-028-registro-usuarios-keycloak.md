@@ -1,6 +1,6 @@
 # ADR-028 — Registro de usuarios en Keycloak, sin DUI
 
-- **Estado:** Aceptada
+- **Estado:** Aceptada (punto 6 modificado por ADR-032: agregar miembros es de Enterprise)
 - **Fecha:** 2026-09-24
 
 ## Contexto

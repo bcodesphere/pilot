@@ -29,8 +29,7 @@ class ConsultaAplicacionesJdbc implements ConsultaAplicaciones {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<Boolean> estaInstalada(String codigo, UUID empresaId) {
-        // Una sola consulta: si el código no está en el catálogo no hay fila (no es una app); si está, dice si se
-        // instaló
+        // Una sola consulta: sin fila = no es una app; con fila, dice si se instaló
         return jdbc.sql("SELECT EXISTS (SELECT 1 FROM empresa_aplicacion ea"
                         + " WHERE ea.aplicacion_codigo = a.codigo AND ea.empresa_id = :empresa)"
                         + " FROM aplicacion a WHERE a.codigo = :codigo")
@@ -38,5 +37,15 @@ class ConsultaAplicacionesJdbc implements ConsultaAplicaciones {
                 .param("codigo", codigo)
                 .query(Boolean.class)
                 .optional();
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean existeEnCatalogo(String codigo) {
+        // Solo la tabla global aplicacion: los códigos salen de la base, nunca del código (ADR-021)
+        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM aplicacion WHERE codigo = :codigo)")
+                .param("codigo", codigo)
+                .query(Boolean.class)
+                .single();
     }
 }

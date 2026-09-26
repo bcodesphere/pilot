@@ -1,6 +1,6 @@
 # ADR-029 — Empresa personal automática; empresa jurídica en Enterprise
 
-- **Estado:** Aceptada
+- **Estado:** Aceptada (puntos 4 y 5 modificados por ADR-031 y ADR-032: sin datos empresariales ni miembros en la versión abierta)
 - **Fecha:** 2026-09-24
 
 ## Contexto

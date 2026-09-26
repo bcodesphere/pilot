@@ -20,7 +20,7 @@ La guía técnica (§4.5) ya indicaba funciones `SECURITY DEFINER` mínimas, per
      - `membresias_de_usuario(usuario_id)` → empresa, nombre, rol y estado de las membresías activas;
      - `membresia_activa(usuario_id, empresa_id)` → rol o vacío;
      - `api_key_por_prefijo(prefijo)` → id, empresa, hash, alcances, expiración y revocación.
-4. **Regla de ArchUnit:** solo las clases de `plataforma` autorizadas (resolución de identidad, validación de membresía, consulta de membresías de `/me` y, desde F1-06, autenticación por API key) pueden llamar a `ejecutarSinEmpresa`. La lista vive en `ArquitecturaModulosTest` (regla `SOLO_LAS_AUTORIZADAS_USAN_EL_MODO_SIN_EMPRESA`); agregar una clase exige justificarla en la revisión.
+4. **Regla de ArchUnit:** solo las clases de `plataforma` autorizadas (resolución de identidad, validación de membresía, consulta de membresías de `/me`, `ExigirAppInstalada` —que solo lee la tabla global `aplicacion` para exigir `X-Empresa-Id` en las rutas de app, desde F1-05— y, desde F1-06, `AutenticarApiKey`, que busca la clave con `api_key_por_prefijo`) pueden llamar a `ejecutarSinEmpresa`. La lista vive en `ArquitecturaModulosTest` (regla `SOLO_LAS_AUTORIZADAS_USAN_EL_MODO_SIN_EMPRESA`); agregar una clase exige justificarla en la revisión.
 5. Una vez validada la empresa, el resto de la petición corre con `ContextoEmpresa.ejecutarCon(...)` como hasta ahora.
 
 ## Por qué un rol propio y no `pilot_owner`

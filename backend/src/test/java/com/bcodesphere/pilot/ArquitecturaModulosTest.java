@@ -44,15 +44,24 @@ class ArquitecturaModulosTest {
 
     /**
      * Clases autorizadas a llamar a {@code ContextoEmpresa.ejecutarSinEmpresa} (ADR-026 punto 4). Lista MÍNIMA y
-     * explícita: la resolución de identidad, la validación de membresía y la consulta de membresías de {@code /me}.
-     * La autenticación por API key se agregará aquí en F1-06. {@code ContextoEmpresa} figura porque su variante
-     * {@code Runnable} delega en la de {@code Supplier}.
+     * explícita:
+     *
+     * <ul>
+     *   <li>la resolución de identidad, la validación de membresía y la consulta de membresías de {@code /me};
+     *   <li>{@code ExigirAppInstalada}, que lee solo la tabla global {@code aplicacion} para exigir
+     *       {@code X-Empresa-Id} en las rutas de app (F1-05);
+     *   <li>{@code AutenticarApiKey}, que busca la API key por prefijo con la función {@code api_key_por_prefijo}
+     *       antes de conocer la empresa (F1-06);
+     *   <li>{@code ContextoEmpresa}, porque su variante {@code Runnable} delega en la de {@code Supplier}.
+     * </ul>
      */
     private static final String[] AUTORIZADAS_SIN_EMPRESA = {
         "com.bcodesphere.pilot.plataforma.ContextoEmpresa",
         "com.bcodesphere.pilot.plataforma.aplicacion.ResolverIdentidad",
         "com.bcodesphere.pilot.plataforma.aplicacion.ValidarMembresia",
-        "com.bcodesphere.pilot.plataforma.aplicacion.ConsultarUsuarioActual"
+        "com.bcodesphere.pilot.plataforma.aplicacion.ConsultarUsuarioActual",
+        "com.bcodesphere.pilot.plataforma.aplicacion.ExigirAppInstalada",
+        "com.bcodesphere.pilot.plataforma.aplicacion.AutenticarApiKey"
     };
 
     /**
