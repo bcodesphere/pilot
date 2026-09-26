@@ -1,11 +1,11 @@
 package com.bcodesphere.pilot.plataforma.api;
 
+import com.bcodesphere.pilot.compartido.VersionEtag;
 import com.bcodesphere.pilot.compartido.api.contrato.ActualizacionEmpresa;
 import com.bcodesphere.pilot.compartido.api.contrato.Empresa;
 import com.bcodesphere.pilot.compartido.api.contrato.EmpresasApi;
 import com.bcodesphere.pilot.plataforma.aplicacion.GestionarEspacioTrabajo;
 import com.bcodesphere.pilot.plataforma.dominio.EspacioTrabajo;
-import com.bcodesphere.pilot.plataforma.dominio.VersionEtag;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;

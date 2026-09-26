@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.postgresql.util.PSQLException;
 
 /**
  * Pruebas de las migraciones del núcleo (F1-03): usuario, empresa, membresías, apps, API keys y funciones de
@@ -171,10 +172,22 @@ class MigracionesNucleoIT {
         }
     }
 
-    /** Ejecuta como dueño una sentencia que debe violar una restricción CHECK o UNIQUE (que aplican a todos los roles). */
-    private static void assertRestriccion(String sql, Object... params) throws SQLException {
+    /**
+     * Ejecuta como dueño una sentencia que debe violar una restricción (CHECK, UNIQUE, FK o EXCLUDE; aplican a todos
+     * los roles) y afirma el SQLState y el nombre exacto de la restricción, para que la prueba no pase por otra causa.
+     *
+     * @param sqlState SQLState esperado (23514 check, 23505 unique, 23503 foreign key, 23P01 exclusion)
+     * @param restriccion nombre de la restricción o índice violado
+     */
+    private static void assertRestriccion(String sqlState, String restriccion, String sql, Object... params)
+            throws SQLException {
         try (Connection c = PostgresContenedor.dataSourceDuenio().getConnection()) {
-            assertThatThrownBy(() -> ejecutar(c, sql, params)).isInstanceOf(SQLException.class);
+            assertThatThrownBy(() -> ejecutar(c, sql, params)).isInstanceOfSatisfying(SQLException.class, e -> {
+                assertThat(e.getSQLState()).isEqualTo(sqlState);
+                assertThat((Object) e).isInstanceOf(PSQLException.class);
+                assertThat(((PSQLException) e).getServerErrorMessage().getConstraint())
+                        .isEqualTo(restriccion);
+            });
         }
     }
 
@@ -347,6 +360,8 @@ class MigracionesNucleoIT {
     @Test
     void rechazaTelefonoInvalido() throws SQLException {
         assertRestriccion(
+                "23514",
+                "ck_usuario_telefono",
                 "INSERT INTO usuario (id, sub_keycloak, correo, nombre, telefono)"
                         + " VALUES (?, 'sub-tel', 'tel@prueba.sv', 'X', '+5037000000')",
                 UUID.randomUUID());
@@ -356,6 +371,8 @@ class MigracionesNucleoIT {
     @Test
     void rechazaCorreoConMayusculas() throws SQLException {
         assertRestriccion(
+                "23514",
+                "ck_usuario_correo_minuscula",
                 "INSERT INTO usuario (id, sub_keycloak, correo, nombre, telefono)"
                         + " VALUES (?, 'sub-may', 'Mayus@prueba.sv', 'X', '+50370000000')",
                 UUID.randomUUID());
@@ -365,6 +382,8 @@ class MigracionesNucleoIT {
     @Test
     void rechazaEstadoDeUsuarioDesconocido() throws SQLException {
         assertRestriccion(
+                "23514",
+                "ck_usuario_estado",
                 "INSERT INTO usuario (id, sub_keycloak, correo, nombre, telefono, estado)"
                         + " VALUES (?, 'sub-est', 'est@prueba.sv', 'X', '+50370000000', 'OTRO')",
                 UUID.randomUUID());
@@ -374,6 +393,8 @@ class MigracionesNucleoIT {
     @Test
     void rechazaNitDeTrece() throws SQLException {
         assertRestriccion(
+                "23514",
+                "ck_empresa_nit_formato",
                 "INSERT INTO empresa (id, tipo, nit, nombre) VALUES (?, 'JURIDICA', '0123456789012', 'X')",
                 UUID.randomUUID());
     }
@@ -381,13 +402,19 @@ class MigracionesNucleoIT {
     /** Regla: la empresa jurídica exige NIT (ADR-029). */
     @Test
     void rechazaJuridicaSinNit() throws SQLException {
-        assertRestriccion("INSERT INTO empresa (id, tipo, nombre) VALUES (?, 'JURIDICA', 'X')", UUID.randomUUID());
+        assertRestriccion(
+                "23514",
+                "ck_empresa_juridica_con_nit",
+                "INSERT INTO empresa (id, tipo, nombre) VALUES (?, 'JURIDICA', 'X')",
+                UUID.randomUUID());
     }
 
     /** Regla: una sola empresa PERSONAL por propietario (índice uq_empresa_personal). */
     @Test
     void rechazaSegundaEmpresaPersonalDelMismoPropietario() throws SQLException {
         assertRestriccion(
+                "23505",
+                "uq_empresa_personal",
                 "INSERT INTO empresa (id, tipo, propietario_id, nombre) VALUES (?, 'PERSONAL', ?, 'Otra')",
                 UUID.randomUUID(),
                 U1);
@@ -397,18 +424,26 @@ class MigracionesNucleoIT {
     @Test
     void rechazaRolInexistente() throws SQLException {
         assertRestriccion(
-                "INSERT INTO empresa_usuario (empresa_id, usuario_id, rol) VALUES (?, ?, 'superadmin')", C, U2);
+                "23514",
+                "ck_empresa_usuario_rol",
+                "INSERT INTO empresa_usuario (empresa_id, usuario_id, rol) VALUES (?, ?, 'superadmin')",
+                C,
+                U2);
     }
 
     /** Regla: una API key solo puede tener alcances conocidos (integracion:operaciones) y al menos uno. */
     @Test
     void rechazaAlcanceDesconocidoOVacio() throws SQLException {
         assertRestriccion(
+                "23514",
+                "ck_api_key_alcances",
                 "INSERT INTO api_key (id, empresa_id, nombre, prefijo, hash_secreto, alcances, creado_por)"
                         + " VALUES (?, ?, 'n', 'pk_alc00001', 'h', ARRAY['contabilidad:escribir'], 'sistema')",
                 UUID.randomUUID(),
                 A);
         assertRestriccion(
+                "23514",
+                "ck_api_key_alcances",
                 "INSERT INTO api_key (id, empresa_id, nombre, prefijo, hash_secreto, alcances, creado_por)"
                         + " VALUES (?, ?, 'n', 'pk_alc00002', 'h', ARRAY[]::text[], 'sistema')",
                 UUID.randomUUID(),
@@ -419,6 +454,8 @@ class MigracionesNucleoIT {
     @Test
     void rechazaPrefijoConFormatoInvalido() throws SQLException {
         assertRestriccion(
+                "23514",
+                "ck_api_key_prefijo",
                 "INSERT INTO api_key (id, empresa_id, nombre, prefijo, hash_secreto, alcances, creado_por)"
                         + " VALUES (?, ?, 'n', 'PK_MAYUS123', 'h', ARRAY['integracion:operaciones'], 'sistema')",
                 UUID.randomUUID(),

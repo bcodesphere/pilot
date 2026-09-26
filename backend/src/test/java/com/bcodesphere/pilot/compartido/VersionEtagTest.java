@@ -1,9 +1,8 @@
-package com.bcodesphere.pilot.plataforma.dominio;
+package com.bcodesphere.pilot.compartido;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.bcodesphere.pilot.plataforma.ExcepcionPlataforma;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -22,9 +21,10 @@ class VersionEtagTest {
     @ParameterizedTest
     @ValueSource(strings = {"3", "W/\"3\"", "*", "\"3\", \"4\"", "\"-1\"", "\"abc\"", "\"\"", ""})
     void unIfMatchMalFormadoDa412(String valor) {
-        assertThatThrownBy(() -> VersionEtag.parsear(valor)).isInstanceOfSatisfying(ExcepcionPlataforma.class, e -> {
-            assertThat(e.codigo()).isEqualTo("PLT-016");
-            assertThat(e.estadoHttp()).isEqualTo(412);
-        });
+        assertThatThrownBy(() -> VersionEtag.parsear(valor))
+                .isInstanceOfSatisfying(ExcepcionVersionNoCoincide.class, e -> {
+                    assertThat(e.codigo()).isEqualTo("PLT-016");
+                    assertThat(e.estadoHttp()).isEqualTo(412);
+                });
     }
 }

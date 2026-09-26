@@ -4,7 +4,7 @@
  */
 @ApplicationModule(
         displayName = "contabilidad",
-        allowedDependencies = {"plataforma", "compartido"})
+        allowedDependencies = {"plataforma", "compartido", "compartido::contrato"})
 package com.bcodesphere.pilot.contabilidad;
 
 import org.springframework.modulith.ApplicationModule;
