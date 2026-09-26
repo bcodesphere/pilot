@@ -21,7 +21,7 @@
 | Estado actual | Fase F1 — Núcleo (ver `docs/plan-de-trabajo.md`) |
 | Plazo de Contabilidad 1.0 | **Timebox de 24 horas desde el 2026-09-25** (ver nota de urgencia) |
 | Modelo de negocio | Open-Core / Freemium: plan Gratuito y plan Enterprise con DTE (ADR-031) |
-| Última actualización de este archivo | 2026-09-25 |
+| Última actualización de este archivo | 2026-09-26 |
 
 ---
 
@@ -1250,7 +1250,7 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 - Objetivo: OWASP ASVS nivel 2.
 - TLS en todo el tráfico externo; PostgreSQL y la consola de Keycloak solo en red privada.
 - MFA (TOTP) obligatorio para todos los usuarios (Keycloak, ADR-027).
-- API keys con prefijo visible, secreto mostrado una sola vez, hash Argon2id, alcances y expiración.
+- API keys con prefijo visible, secreto mostrado una sola vez, hash Argon2id, alcances y expiración (una fecha elegida vence al final de ese día en hora de El Salvador, ADR-033).
 - Auditoría de solo inserción; asientos inmutables por permisos de base de datos.
 - Límite de peticiones en el webhook por API key.
 - Secretos: SOPS + age o secretos de Docker.
@@ -1420,6 +1420,7 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 | ADR-030 | Catálogo de apps instalables y apps Enterprise bloqueadas (amplía ADR-021) | Aceptada |
 | ADR-031 | Modelo Open-Core / Freemium y solución en cuatro capas (licenciamiento, arquitectura, DTE, legal) | Aceptada |
 | ADR-032 | Versión abierta para personas naturales: sin datos empresariales ni miembros; configuración por app | Aceptada |
+| ADR-033 | Vencimiento de una API key elegido por fecha: 23:59:59 de ese día en hora de El Salvador | Aceptada |
 
 ---
 
@@ -1438,6 +1439,7 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 - [ ] Precio, periodicidad y límites de la suscripción Enterprise (ADR-031).
 - [x] Plan Gratuito "sin registro fiscal": NIT y NRC no se capturan ni se editan en la versión abierta; no se agrega ninguna restricción de base de datos (ADR-031, 2026-09-25).
 - [x] Versión abierta para personas naturales: solo el nombre del espacio es editable, configuración por app y miembros en Enterprise (ADR-032, 2026-09-25).
+- [x] Vencimiento de una API key elegido por fecha: vence al final de ese día en hora de El Salvador (ADR-033, 2026-09-26).
 
 ---
 

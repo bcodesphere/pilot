@@ -36,6 +36,7 @@ Cada ADR registra contexto, decisión, alternativas y consecuencias. Un ADR acep
 | [ADR-030](ADR-030-catalogo-apps-instalables.md) | Catálogo de apps instalables y apps Enterprise bloqueadas | Aceptada |
 | [ADR-031](ADR-031-open-core-y-cuatro-capas.md) | Modelo Open-Core / Freemium y solución en cuatro capas | Aceptada |
 | [ADR-032](ADR-032-version-abierta-personas-naturales.md) | Versión abierta para personas naturales: sin datos empresariales ni miembros | Aceptada |
+| [ADR-033](ADR-033-vencimiento-api-keys.md) | Vencimiento de una API key elegido por fecha: final del día en hora de El Salvador | Aceptada |
 
 Los ADR diferidos están documentados en `docs/diferido/vision-completa-con-dte.md` (sección 22 de ese archivo).
 
