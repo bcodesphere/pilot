@@ -1,0 +1,11 @@
+{
+  "fuente": "CLAUDE.md §10.1: máximo 200 líneas (validación de forma); api-spec NuevoAsiento.lineas maxItems 200",
+  "resultado": "INVALIDO",
+  "fecha": "2026-01-15",
+  "lineasGeneradasCantidad": 201,
+  "lineasGeneradasCuentaA": "11010101",
+  "lineasGeneradasCuentaB": "51010101",
+  "lineasGeneradasMonto": "1.00",
+  "httpEsperado": 422,
+  "codigoEsperado": "PLT-002"
+}

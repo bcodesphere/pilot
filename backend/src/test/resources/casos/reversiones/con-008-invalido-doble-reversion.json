@@ -1,0 +1,6 @@
+{
+  "fuente": "CLAUDE.md §10.1 CON-008 y ADR-019: un asiento ya revertido no se revierte otra vez",
+  "escenario": "DOBLE_REVERSION",
+  "httpEsperado": 409,
+  "codigoEsperado": "CON-008"
+}

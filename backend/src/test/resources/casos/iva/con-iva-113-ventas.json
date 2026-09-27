@@ -1,0 +1,14 @@
+{
+  "fuente": "CLAUDE.md §11.1 caso dorado 1 (CON_IVA 113.00 → 100.00 + 13.00) y §11.2 ejemplo CON_IVA: Caja 113.00 (Debe) / Ventas 113.00 \"lleva IVA\" (Haber) → Caja 113.00 / Ventas 100.00 + IVA débito fiscal 13.00",
+  "modoPrecio": "CON_IVA",
+  "fecha": "2026-01-15",
+  "lineas": [
+    { "cuentaCodigo": "11010101", "debe": "113.00", "haber": "0", "llevaIva": false },
+    { "cuentaCodigo": "51010101", "debe": "0", "haber": "113.00", "llevaIva": true }
+  ],
+  "lineasEsperadas": [
+    { "cuentaCodigo": "11010101", "debe": "113.00", "haber": "0.00", "origenLinea": "USUARIO" },
+    { "cuentaCodigo": "51010101", "debe": "0.00", "haber": "100.00", "origenLinea": "USUARIO" },
+    { "cuentaCodigo": "IVA_DEBITO", "debe": "0.00", "haber": "13.00", "origenLinea": "IVA_CALCULADO", "numeroLineaOrigen": 2 }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "fuente": "CLAUDE.md §10.1 CON-009 y ADR-019: una reversión no se revierte",
+  "escenario": "REVERTIR_REVERSION",
+  "httpEsperado": 409,
+  "codigoEsperado": "CON-009"
+}

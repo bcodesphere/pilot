@@ -1,0 +1,14 @@
+{
+  "fuente": "CLAUDE.md §11.1 caso dorado 2 (SIN_IVA 100.00 → 100.00 + 13.00) y §11.2 ejemplo SIN_IVA: Compras 100.00 \"lleva IVA\" (Debe) / Caja 113.00 (Haber) → Compras 100.00 + IVA crédito fiscal 13.00 / Caja 113.00",
+  "modoPrecio": "SIN_IVA",
+  "fecha": "2026-01-15",
+  "lineas": [
+    { "cuentaCodigo": "41020101", "debe": "100.00", "haber": "0", "llevaIva": true },
+    { "cuentaCodigo": "11010101", "debe": "0", "haber": "113.00", "llevaIva": false }
+  ],
+  "lineasEsperadas": [
+    { "cuentaCodigo": "41020101", "debe": "100.00", "haber": "0.00", "origenLinea": "USUARIO" },
+    { "cuentaCodigo": "IVA_CREDITO", "debe": "13.00", "haber": "0.00", "origenLinea": "IVA_CALCULADO", "numeroLineaOrigen": 1 },
+    { "cuentaCodigo": "11010101", "debe": "0.00", "haber": "113.00", "origenLinea": "USUARIO" }
+  ]
+}

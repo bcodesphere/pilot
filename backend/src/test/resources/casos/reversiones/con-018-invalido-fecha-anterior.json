@@ -1,0 +1,6 @@
+{
+  "fuente": "ADR-036 (decisión del 2026-09-26): la fecha de una reversión no puede ser anterior a la del asiento original",
+  "escenario": "FECHA_ANTERIOR",
+  "httpEsperado": 422,
+  "codigoEsperado": "CON-018"
+}
