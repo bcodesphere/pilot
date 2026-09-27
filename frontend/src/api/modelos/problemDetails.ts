@@ -7,6 +7,7 @@
  */
 import type { ErrorCampo } from './errorCampo';
 import type { MontoConSigno } from './montoConSigno';
+import type { Uuid } from './uuid';
 
 /**
  * Error según RFC 9457 (application/problem+json) con extensiones de Pilot.
@@ -31,4 +32,8 @@ export interface ProblemDetails {
   errores?: ErrorCampo[];
   /** Diferencia Σ Debe − Σ Haber; solo en descuadres y cobros que no cuadran. */
   diferencia?: MontoConSigno;
+  /** Operación externa ya contabilizada; solo en 409 INT-004 (ADR-039 §5). */
+  operacionId?: Uuid;
+  /** Asiento generado por la operación ya contabilizada; solo en 409 INT-004 (ADR-039 §5). */
+  asientoId?: Uuid;
 }

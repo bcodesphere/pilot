@@ -1,8 +1,15 @@
 # Contrato REST de Pilot 1.0 (fuente de verdad, ADR-003).
 # Contract-first: las interfaces Spring y el cliente Orval se generan desde este archivo.
-# Alcance de F3: núcleo de F1 (usuario actual, empresa, catálogo de apps y API keys), el catálogo de
-# cuentas, la configuración contable y las reglas de contabilización de F2, más el Libro Diario de F3
-# (registro, vista previa, consulta y reversión de asientos). Reportes e integración llegan en F4–F5.
+# Alcance de F4: los reportes contables en JSON (Libro Mayor, Balanza de Comprobación, Estado de
+# Situación Financiera, Estado de Resultados, resumen de IVA y diagnóstico de mayorización, ADR-038) y
+# sus exportaciones a PDF, XLSX y CSV como operaciones binarias propias, sobre el núcleo de F1 (usuario
+# actual, empresa, catálogo de apps y API keys), el catálogo de cuentas y la configuración contable de
+# F2, y el Libro Diario de F3 (registro, vista previa, consulta y reversión de asientos).
+# Alcance de F5: el webhook de operaciones de n8n (POST /integraciones/n8n/operaciones, primer tipo
+# CIERRE_INGRESOS_DIARIO), validado contra su esquema JSON versionado en
+# api-spec/esquemas/operaciones/ antes de interpretarlo (regla 1.1.14), y la bitácora de operaciones
+# aceptadas, revertidas y rechazadas con su exportación a PDF, XLSX y CSV (ADR-039), sobre el núcleo,
+# el catálogo y configuración contable, el Libro Diario y los reportes de las fases anteriores.
 openapi: 3.1.0
 
 # --- Metadatos del contrato ---
@@ -42,8 +49,20 @@ tags:
     description: Módulo contabilidad — reglas que asignan una cuenta a cada concepto o forma de pago (ADR-020).
   - name: asientos
     description: "Módulo contabilidad — Libro Diario: registro, vista previa, consulta y reversión de asientos."
-  - name: integracion
-    description: Webhook de n8n y bitácora de operaciones externas.
+  - name: reportesContables
+    description: >-
+      Módulo contabilidad — reportes en JSON: Libro Mayor, Balanza de Comprobación, Estado de Situación
+      Financiera, Estado de Resultados, resumen de IVA y diagnóstico de mayorización (ADR-038).
+  - name: exportacionesContables
+    description: Módulo contabilidad — exportación de reportes a PDF, XLSX y CSV (ADR-038).
+  - name: operacionesN8n
+    description: >-
+      Módulo integración — webhook de operaciones de negocio enviadas por n8n (CLAUDE.md §12, ADR-017,
+      ADR-020, ADR-039).
+  - name: bitacoraOperaciones
+    description: >-
+      Módulo integración — bitácora de operaciones aceptadas, revertidas y rechazadas (CLAUDE.md §10.5,
+      ADR-039).
 
 # --- Seguridad global: usuarios con OIDC; las rutas de n8n sobrescriben con apiKey ---
 security:
@@ -1080,6 +1099,802 @@ paths:
         '500':
           $ref: '#/components/responses/ErrorInterno'
 
+  # --- Reportes contables (CLAUDE.md §10.4, §10.5, ADR-038): JSON completo, sin paginar; el rango lo acota el usuario ---
+  /contabilidad/mayor:
+    get:
+      operationId: obtenerLibroMayor
+      tags: [reportesContables]
+      x-rol-minimo: auditor
+      summary: Libro Mayor / auxiliar de una cuenta
+      description: >-
+        Devuelve el Libro Mayor de la cuenta indicada en el rango de fechas: saldo inicial, movimientos con saldo
+        acumulado línea a línea, totales y saldo final. Acepta cualquier cuenta; en una cuenta padre, los movimientos
+        son los de todas sus cuentas de detalle y cada línea identifica su propia cuenta (ADR-038 §5). Rol mínimo:
+        auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/CuentaIdMayor'
+        - $ref: '#/components/parameters/DesdeReporte'
+        - $ref: '#/components/parameters/HastaReporte'
+      responses:
+        '200':
+          description: Libro Mayor de la cuenta en el rango pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibroMayor'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: la cuenta no existe o no pertenece a la empresa activa."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: desde es posterior a hasta."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/balanza:
+    get:
+      operationId: obtenerBalanza
+      tags: [reportesContables]
+      x-rol-minimo: auditor
+      summary: Balanza de Comprobación
+      description: >-
+        Devuelve la Balanza de Comprobación del rango de fechas con una fila por cuenta hasta el nivel pedido (1 a 5;
+        5 por defecto), con saldo inicial, Debe, Haber y saldo final. Los totales salen solo de las cuentas de
+        detalle, para no contar dos veces los saldos de las cuentas padre (ADR-038 §6). Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/DesdeReporte'
+        - $ref: '#/components/parameters/HastaReporte'
+        - $ref: '#/components/parameters/NivelReporte'
+      responses:
+        '200':
+          description: Balanza de Comprobación del rango pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanzaComprobacion'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: desde es posterior a hasta, o nivel fuera de 1 a 5."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/estados/situacion-financiera:
+    get:
+      operationId: obtenerEstadoSituacionFinanciera
+      tags: [reportesContables]
+      x-rol-minimo: auditor
+      summary: Estado de Situación Financiera
+      description: >-
+        Devuelve el Estado de Situación Financiera de gestión a la fecha de corte pedida: Activo, Pasivo, Patrimonio,
+        resultados de ejercicios anteriores no cerrados y utilidad del ejercicio, con la comprobación Activo = Pasivo
+        + Patrimonio + resultados anteriores + utilidad del ejercicio (ADR-016) y su alerta si no cuadra (CLAUDE.md
+        §10.4). Terminología NIIF para PYMES (ADR-037). Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/FechaCorte'
+        - $ref: '#/components/parameters/NivelReporte'
+        - $ref: '#/components/parameters/IncluirCeros'
+      responses:
+        '200':
+          description: Estado de Situación Financiera a la fecha de corte.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoSituacionFinanciera'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: nivel fuera de 1 a 5."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/estados/resultados:
+    get:
+      operationId: obtenerEstadoResultados
+      tags: [reportesContables]
+      x-rol-minimo: auditor
+      summary: Estado de Resultados
+      description: >-
+        Devuelve el Estado de Resultados de gestión del rango de fechas: ingresos, costos y gastos (sin el grupo 44),
+        la utilidad antes de impuesto, el impuesto sobre la renta aparte y la utilidad del ejercicio (ADR-037). Rol
+        mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/DesdeReporte'
+        - $ref: '#/components/parameters/HastaReporte'
+        - $ref: '#/components/parameters/NivelReporte'
+        - $ref: '#/components/parameters/IncluirCeros'
+      responses:
+        '200':
+          description: Estado de Resultados del rango pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoResultados'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: desde es posterior a hasta, o nivel fuera de 1 a 5."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/reportes/iva:
+    get:
+      operationId: obtenerResumenIva
+      tags: [reportesContables]
+      x-rol-minimo: auditor
+      summary: Resumen de IVA mensual
+      description: >-
+        Devuelve el resumen de IVA del mes: IVA débito fiscal e IVA crédito fiscal, cada uno desglosado por el
+        origen del asiento (MANUAL, N8N, REVERSION), y la diferencia estimada entre ambos. Es un punto de partida
+        para preparar la declaración de IVA, no la reemplaza (CLAUDE.md §10.5). Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/AnioReporte'
+        - $ref: '#/components/parameters/MesReporte'
+      responses:
+        '200':
+          description: Resumen de IVA del mes pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumenIva'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: la empresa no tiene configuración contable."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: mes fuera de 1 a 12."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/diagnostico/mayorizacion:
+    get:
+      operationId: diagnosticarMayorizacion
+      tags: [reportesContables]
+      x-rol-minimo: contador
+      summary: Diagnóstico de mayorización
+      description: >-
+        Verifica, para toda cuenta, año y mes con movimiento, que saldo_cuenta_mensual sea igual a la suma de las
+        líneas de asiento_linea (invariante de ADR-018), y lista las diferencias encontradas. Rol mínimo: contador,
+        porque expone un diagnóstico técnico de la contabilización.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+      responses:
+        '200':
+          description: Resultado del diagnóstico de mayorización.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnosticoMayorizacion'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  # --- Exportaciones (ADR-038): misma firma de filtros que su reporte; respuesta binaria (PDF, XLSX o CSV) ---
+  /contabilidad/asientos/exportacion:
+    get:
+      operationId: exportarLibroDiario
+      tags: [exportacionesContables]
+      x-rol-minimo: auditor
+      summary: Exporta el Libro Diario
+      description: >-
+        Exporta el Libro Diario del rango de fechas (desde y hasta obligatorios, sin paginar) en el formato pedido,
+        con los mismos filtros que GET /contabilidad/asientos salvo limite y cursor (ADR-038). La respuesta es el
+        archivo, con Content-Disposition attachment. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Formato'
+        - $ref: '#/components/parameters/DesdeReporte'
+        - $ref: '#/components/parameters/HastaReporte'
+        - $ref: '#/components/parameters/AnioFiltro'
+        - $ref: '#/components/parameters/NumeroAsientoFiltro'
+        - $ref: '#/components/parameters/OrigenAsientoFiltro'
+        - $ref: '#/components/parameters/EstadoAsientoFiltro'
+        - $ref: '#/components/parameters/CuentaIdFiltro'
+      responses:
+        '200':
+          description: Archivo del Libro Diario en el formato pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Content-Disposition:
+              $ref: '#/components/headers/Content-Disposition'
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string, format: binary }
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: desde es posterior a hasta, o formato desconocido (ADR-038 §10)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/mayor/exportacion:
+    get:
+      operationId: exportarLibroMayor
+      tags: [exportacionesContables]
+      x-rol-minimo: auditor
+      summary: Exporta el Libro Mayor
+      description: >-
+        Exporta el Libro Mayor de la cuenta y el rango de GET /contabilidad/mayor en el formato pedido (ADR-038). La
+        respuesta es el archivo, con Content-Disposition attachment. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Formato'
+        - $ref: '#/components/parameters/CuentaIdMayor'
+        - $ref: '#/components/parameters/DesdeReporte'
+        - $ref: '#/components/parameters/HastaReporte'
+      responses:
+        '200':
+          description: Archivo del Libro Mayor en el formato pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Content-Disposition:
+              $ref: '#/components/headers/Content-Disposition'
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string, format: binary }
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: la cuenta no existe o no pertenece a la empresa activa."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: desde es posterior a hasta, o formato desconocido (ADR-038 §10)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/balanza/exportacion:
+    get:
+      operationId: exportarBalanza
+      tags: [exportacionesContables]
+      x-rol-minimo: auditor
+      summary: Exporta la Balanza de Comprobación
+      description: >-
+        Exporta la Balanza de Comprobación del rango y nivel de GET /contabilidad/balanza en el formato pedido
+        (ADR-038). La respuesta es el archivo, con Content-Disposition attachment. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Formato'
+        - $ref: '#/components/parameters/DesdeReporte'
+        - $ref: '#/components/parameters/HastaReporte'
+        - $ref: '#/components/parameters/NivelReporte'
+      responses:
+        '200':
+          description: Archivo de la Balanza de Comprobación en el formato pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Content-Disposition:
+              $ref: '#/components/headers/Content-Disposition'
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string, format: binary }
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: desde es posterior a hasta, nivel fuera de 1 a 5, o formato desconocido (ADR-038 §10)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/estados/situacion-financiera/exportacion:
+    get:
+      operationId: exportarEstadoSituacionFinanciera
+      tags: [exportacionesContables]
+      x-rol-minimo: auditor
+      summary: Exporta el Estado de Situación Financiera
+      description: >-
+        Exporta el Estado de Situación Financiera de GET /contabilidad/estados/situacion-financiera en el formato
+        pedido (ADR-038). La respuesta es el archivo, con Content-Disposition attachment. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Formato'
+        - $ref: '#/components/parameters/FechaCorte'
+        - $ref: '#/components/parameters/NivelReporte'
+        - $ref: '#/components/parameters/IncluirCeros'
+      responses:
+        '200':
+          description: Archivo del Estado de Situación Financiera en el formato pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Content-Disposition:
+              $ref: '#/components/headers/Content-Disposition'
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string, format: binary }
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: nivel fuera de 1 a 5, o formato desconocido (ADR-038 §10)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/estados/resultados/exportacion:
+    get:
+      operationId: exportarEstadoResultados
+      tags: [exportacionesContables]
+      x-rol-minimo: auditor
+      summary: Exporta el Estado de Resultados
+      description: >-
+        Exporta el Estado de Resultados de GET /contabilidad/estados/resultados en el formato pedido (ADR-038). La
+        respuesta es el archivo, con Content-Disposition attachment. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Formato'
+        - $ref: '#/components/parameters/DesdeReporte'
+        - $ref: '#/components/parameters/HastaReporte'
+        - $ref: '#/components/parameters/NivelReporte'
+        - $ref: '#/components/parameters/IncluirCeros'
+      responses:
+        '200':
+          description: Archivo del Estado de Resultados en el formato pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Content-Disposition:
+              $ref: '#/components/headers/Content-Disposition'
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string, format: binary }
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: desde es posterior a hasta, nivel fuera de 1 a 5, o formato desconocido (ADR-038 §10)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /contabilidad/reportes/iva/exportacion:
+    get:
+      operationId: exportarResumenIva
+      tags: [exportacionesContables]
+      x-rol-minimo: auditor
+      summary: Exporta el resumen de IVA
+      description: >-
+        Exporta el resumen de IVA de GET /contabilidad/reportes/iva en el formato pedido (ADR-038). La respuesta es
+        el archivo, con Content-Disposition attachment. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Formato'
+        - $ref: '#/components/parameters/AnioReporte'
+        - $ref: '#/components/parameters/MesReporte'
+      responses:
+        '200':
+          description: Archivo del resumen de IVA en el formato pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Content-Disposition:
+              $ref: '#/components/headers/Content-Disposition'
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string, format: binary }
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: la empresa no tiene configuración contable."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: mes fuera de 1 a 12, o formato desconocido (ADR-038 §10)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  # --- Webhook de n8n (CLAUDE.md §12, ADR-017, ADR-020, ADR-039): solo apiKey, la empresa sale de la clave ---
+  /integraciones/n8n/operaciones:
+    post:
+      operationId: recibirOperacionN8n
+      tags: [operacionesN8n]
+      x-rol-minimo: integracion
+      security:
+        - apiKey: []
+      summary: Recibe y contabiliza una operación de negocio de n8n
+      description: >-
+        Recibe una operación de negocio (en 1.0 solo CIERRE_INGRESOS_DIARIO) enviada por n8n con una API key de
+        alcance integracion:operaciones; la empresa se deriva de la clave, por eso esta ruta no lleva
+        X-Empresa-Id. El cuerpo se valida contra su esquema JSON versionado antes de interpretarlo (regla 1.1.14),
+        se normaliza con el modo de precio de la empresa y la tasa de IVA vigente a la fecha (CLAUDE.md §12.5) y
+        genera un asiento por las reglas de contabilización, en la misma transacción que la operación y el
+        registro de idempotencia (ADR-017, ADR-020). Exige Idempotency-Key: repetir la misma clave con el mismo
+        cuerpo devuelve la respuesta original con su mismo estado HTTP (201 o 409 INT-004) e
+        Idempotency-Replayed true (ADR-039 §1). n8n no crea asientos ni indica cuentas (regla 1.2.4). Rol
+        mínimo: integracion (rol técnico de la API key, CLAUDE.md §14.2).
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        description: Operación de negocio; tipoOperacion y version eligen su esquema JSON versionado (CLAUDE.md §12.3).
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperacionN8n'
+            example:
+              tipoOperacion: CIERRE_INGRESOS_DIARIO
+              version: 1
+              sistemaOrigen: app-ventas-web
+              idExterno: CIERRE-2026-10-15-SUC01
+              fecha: '2026-10-15'
+              sucursal: Sucursal Centro
+              descripcion: Cierre de caja del día
+              ingresos:
+                - concepto: VENTAS_GRAVADAS
+                  monto: '1130.00'
+                - concepto: VENTAS_EXENTAS
+                  monto: '50.00'
+              cobros:
+                - formaPago: EFECTIVO
+                  monto: '780.00'
+                - formaPago: TARJETA
+                  monto: '400.00'
+              totalCobrado: '1180.00'
+      responses:
+        '201':
+          description: >-
+            Operación contabilizada. Si es la repetición de una petición idempotente, es la respuesta original
+            (201 o, si el cierre ya estaba contabilizado, 409 INT-004) con Idempotency-Replayed true.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Idempotency-Replayed:
+              $ref: '#/components/headers/Idempotency-Replayed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperacionContabilizada'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: >-
+            400 — INT-001: el cuerpo no cumple su esquema JSON versionado (incluye errores), o tiene códigos
+            repetidos en ingresos o en cobros, o no tiene al menos un ingreso y un cobro mayores que cero. No
+            reintentar sin corregir el flujo o la app.
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: la API key falta, es inválida, está vencida o fue revocada. No reintentar."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: >-
+            403 — PLT-004: la app Contabilidad no está instalada en la empresa de la API key; PLT-010: la API
+            key no tiene el alcance integracion:operaciones. No reintentar.
+        '409':
+          $ref: '#/components/responses/Conflicto'
+          description: >-
+            409 — INT-004: el cierre ya está contabilizado (incluye operacionId y asientoId); tratar como
+            éxito, no reintentar. INT-009: otra petición del mismo cierre está en proceso; reintentar tras unos
+            segundos.
+        '413':
+          $ref: '#/components/responses/CargaExcesiva'
+          description: "413 — INT-010: el cuerpo supera 1 MB. No reintentar; dividir o corregir el envío."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: >-
+            422 — INT-002: tipoOperacion o version no soportados; INT-005: Idempotency-Key reutilizada con otro
+            cuerpo; INT-006: la suma de cobros no cuadra con la operación normalizada, o totalCobrado no
+            coincide con la suma de cobros (incluye diferencia); CON-007: fecha futura; CON-020: un concepto o
+            forma de pago usado no tiene regla activa ni cuenta, o falta la cuenta de IVA débito. No reintentar
+            sin corregir el cierre o la configuración de Pilot (CON-020 sí puede reintentarse tras configurar).
+        '428':
+          $ref: '#/components/responses/PrecondicionRequerida'
+          description: "428 — INT-008: falta el header Idempotency-Key. No reintentar sin corregir el flujo."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+          description: "429 — Límite de peticiones superado; reintentar respetando Retry-After."
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+          description: "500 — Error interno; reintentar con espera exponencial es seguro gracias a la idempotencia."
+
+  # --- Bitácora de operaciones (CLAUDE.md §10.5, §13, ADR-039 §6): usuarios con OIDC y X-Empresa-Id ---
+  /integraciones/operaciones:
+    get:
+      operationId: listarBitacora
+      tags: [bitacoraOperaciones]
+      x-rol-minimo: auditor
+      summary: Bitácora de operaciones y rechazos
+      description: >-
+        Lista paginada por cursor, de la más reciente a la más antigua, de las operaciones aceptadas
+        (contabilizadas o revertidas) y los rechazos de n8n, para que el contador detecte cierres que no
+        entraron y corrija la configuración (CLAUDE.md §10.5). Los filtros son opcionales y se combinan: desde
+        y hasta (fecha de recepción, ambos inclusive), resultado y sistemaOrigen. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Limite'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/DesdeRecepcion'
+        - $ref: '#/components/parameters/HastaRecepcion'
+        - $ref: '#/components/parameters/ResultadoBitacoraFiltro'
+        - $ref: '#/components/parameters/SistemaOrigenFiltro'
+      responses:
+        '200':
+          description: Página de la bitácora en orden de recepción descendente.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginaBitacora'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: validación de forma de los parámetros, o desde es posterior a hasta (incluye errores)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /integraciones/operaciones/{entradaId}:
+    get:
+      operationId: obtenerEntradaBitacora
+      tags: [bitacoraOperaciones]
+      x-rol-minimo: auditor
+      summary: Detalle de una entrada de la bitácora
+      description: >-
+        Devuelve el detalle de una entrada de la bitácora: el resumen normalizado de una operación aceptada, o
+        el Problem Details del rechazo, sin datos personales. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/EntradaIdRuta'
+      responses:
+        '200':
+          description: Detalle de la entrada de bitácora.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetalleEntradaBitacora'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+          description: "404 — PLT-017: la entrada no existe o no pertenece a la empresa activa."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
+  /integraciones/operaciones/exportacion:
+    get:
+      operationId: exportarBitacora
+      tags: [bitacoraOperaciones]
+      x-rol-minimo: auditor
+      summary: Exporta la bitácora de operaciones
+      description: >-
+        Exporta la bitácora de GET /integraciones/operaciones en el formato pedido, con los mismos filtros salvo
+        limite y cursor; desde y hasta son obligatorios (ADR-038, ADR-039 §6). La respuesta es el archivo, con
+        Content-Disposition attachment. Rol mínimo: auditor.
+      parameters:
+        - $ref: '#/components/parameters/XRequestId'
+        - $ref: '#/components/parameters/XEmpresaId'
+        - $ref: '#/components/parameters/Formato'
+        - $ref: '#/components/parameters/DesdeRecepcionExportacion'
+        - $ref: '#/components/parameters/HastaRecepcionExportacion'
+        - $ref: '#/components/parameters/ResultadoBitacoraFiltro'
+        - $ref: '#/components/parameters/SistemaOrigenFiltro'
+      responses:
+        '200':
+          description: Archivo de la bitácora en el formato pedido.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/X-Request-Id'
+            Content-Disposition:
+              $ref: '#/components/headers/Content-Disposition'
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string, format: binary }
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+          description: "400 — PLT-001: parámetros con tipos incorrectos."
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+          description: "401 — PLT-009: falta el token, es inválido o está vencido."
+        '403':
+          $ref: '#/components/responses/Prohibido'
+          description: "403 — PLT-003: el usuario no tiene membresía activa en X-Empresa-Id; PLT-004: la app Contabilidad no está instalada en la empresa; PLT-010: el rol no alcanza para esta operación."
+        '422':
+          $ref: '#/components/responses/EntidadNoProcesable'
+          description: "422 — PLT-002: desde es posterior a hasta, o formato desconocido (ADR-038 §10)."
+        '429':
+          $ref: '#/components/responses/DemasiadasPeticiones'
+        '500':
+          $ref: '#/components/responses/ErrorInterno'
+
 components:
   # --- Esquemas de seguridad ---
   securitySchemes:
@@ -1165,6 +1980,12 @@ components:
         diferencia:
           $ref: '#/components/schemas/MontoConSigno'
           description: Diferencia Σ Debe − Σ Haber; solo en descuadres y cobros que no cuadran.
+        operacionId:
+          $ref: '#/components/schemas/Uuid'
+          description: Operación externa ya contabilizada; solo en 409 INT-004 (ADR-039 §5).
+        asientoId:
+          $ref: '#/components/schemas/Uuid'
+          description: Asiento generado por la operación ya contabilizada; solo en 409 INT-004 (ADR-039 §5).
     PaginaCursor:
       type: object
       description: Metadatos de paginación por cursor; los listados lo extienden con su arreglo de elementos.
@@ -1820,6 +2641,556 @@ components:
             Fecha contable de la reversión; por defecto hoy en hora de El Salvador. No puede ser futura (CON-007) ni
             anterior a la del asiento original (CON-018).
 
+    # --- Reportes y exportaciones (CLAUDE.md §10.4, §10.5, §11, ADR-038) ---
+    LadoSaldo:
+      type: string
+      enum: [DEUDOR, ACREEDOR, CERO]
+      description: Lado del saldo de una cuenta — DEUDOR, ACREEDOR o CERO cuando Debe y Haber son iguales (CLAUDE.md §10.3).
+    Saldo:
+      type: object
+      description: Saldo de una cuenta presentado como valor absoluto y lado (CLAUDE.md §10.3).
+      required: [monto, lado, contrarioNaturaleza]
+      properties:
+        monto:
+          $ref: '#/components/schemas/Monto'
+          description: Valor absoluto del saldo (Debe − Haber en valor absoluto).
+        lado:
+          $ref: '#/components/schemas/LadoSaldo'
+        contrarioNaturaleza:
+          type: boolean
+          description: >-
+            true si el saldo queda del lado contrario a la naturaleza de la cuenta (alerta de CLAUDE.md §10.3);
+            false en un saldo CERO.
+    FormatoExportacion:
+      type: string
+      enum: [pdf, xlsx, csv]
+      description: Formato del archivo exportado (ADR-038).
+
+    # --- Libro Mayor (ADR-038 §5) ---
+    MovimientoMayor:
+      type: object
+      description: Movimiento del Libro Mayor con el saldo acumulado tras aplicarlo.
+      required: [fecha, asientoId, anio, numero, concepto, descripcion, cuenta, debe, haber, saldo]
+      properties:
+        fecha:
+          $ref: '#/components/schemas/Fecha'
+        asientoId:
+          $ref: '#/components/schemas/Uuid'
+          description: Asiento al que pertenece la línea.
+        anio:
+          type: integer
+          description: Año del asiento; junto con numero forma su correlativo.
+        numero:
+          type: integer
+          format: int64
+          description: Número correlativo del asiento.
+        concepto:
+          type: string
+          description: Concepto o glosa del asiento.
+        descripcion:
+          type: [string, 'null']
+          description: Descripción de la línea; nula si no tiene.
+        cuenta:
+          $ref: '#/components/schemas/ResumenCuenta'
+          description: >-
+            Cuenta de detalle de la línea; en el Mayor de una cuenta padre, cada movimiento identifica su propia
+            cuenta de detalle (ADR-038 §5).
+        debe:
+          $ref: '#/components/schemas/Monto'
+        haber:
+          $ref: '#/components/schemas/Monto'
+        saldo:
+          $ref: '#/components/schemas/Saldo'
+          description: Saldo acumulado de la cuenta consultada inmediatamente después de esta línea.
+    LibroMayor:
+      type: object
+      description: >-
+        Libro Mayor / auxiliar de una cuenta (o de sus cuentas de detalle si es una cuenta padre) en un rango de
+        fechas.
+      required: [cuenta, naturaleza, desde, hasta, saldoInicial, movimientos, totalDebe, totalHaber, saldoFinal]
+      properties:
+        cuenta:
+          $ref: '#/components/schemas/ResumenCuenta'
+          description: Cuenta consultada; puede ser una cuenta padre (ADR-038 §5).
+        naturaleza:
+          $ref: '#/components/schemas/NaturalezaCuenta'
+        desde:
+          $ref: '#/components/schemas/Fecha'
+        hasta:
+          $ref: '#/components/schemas/Fecha'
+        saldoInicial:
+          $ref: '#/components/schemas/Saldo'
+          description: Saldo acumulado antes de desde.
+        movimientos:
+          type: array
+          description: Movimientos en el rango, ordenados por fecha, con saldo acumulado línea a línea.
+          items:
+            $ref: '#/components/schemas/MovimientoMayor'
+        totalDebe:
+          $ref: '#/components/schemas/Monto'
+          description: Suma del Debe de los movimientos del rango.
+        totalHaber:
+          $ref: '#/components/schemas/Monto'
+          description: Suma del Haber de los movimientos del rango.
+        saldoFinal:
+          $ref: '#/components/schemas/Saldo'
+          description: Saldo acumulado al final de hasta.
+
+    # --- Balanza de Comprobación (ADR-038 §6) ---
+    FilaBalanza:
+      type: object
+      description: Fila de la Balanza de Comprobación para una cuenta hasta el nivel pedido.
+      required: [cuenta, nivel, esDetalle, saldoInicial, debe, haber, saldoFinal]
+      properties:
+        cuenta:
+          $ref: '#/components/schemas/ResumenCuenta'
+        nivel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Nivel de la cuenta por longitud de código (CLAUDE.md §10.2).
+        esDetalle:
+          type: boolean
+          description: true si es una cuenta de detalle; los totales de la balanza salen solo de estas filas (ADR-038 §6).
+        saldoInicial:
+          $ref: '#/components/schemas/Saldo'
+          description: Saldo acumulado antes de desde.
+        debe:
+          $ref: '#/components/schemas/Monto'
+          description: Suma del Debe en el rango.
+        haber:
+          $ref: '#/components/schemas/Monto'
+          description: Suma del Haber en el rango.
+        saldoFinal:
+          $ref: '#/components/schemas/Saldo'
+          description: Saldo acumulado al final de hasta.
+    BalanzaComprobacion:
+      type: object
+      description: >-
+        Balanza de Comprobación con una fila por cuenta hasta el nivel pedido. Los totales se calculan solo con las
+        cuentas de detalle, para no contar dos veces los saldos de las cuentas padre (ADR-038 §6).
+      required: [desde, hasta, nivel, filas, totalDebe, totalHaber, totalSaldosDeudores, totalSaldosAcreedores, cuadra]
+      properties:
+        desde:
+          $ref: '#/components/schemas/Fecha'
+        hasta:
+          $ref: '#/components/schemas/Fecha'
+        nivel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Nivel del catálogo hasta el que se agrupan las filas.
+        filas:
+          type: array
+          description: Filas de la balanza ordenadas por código.
+          items:
+            $ref: '#/components/schemas/FilaBalanza'
+        totalDebe:
+          $ref: '#/components/schemas/Monto'
+          description: Σ Debe de las cuentas de detalle.
+        totalHaber:
+          $ref: '#/components/schemas/Monto'
+          description: Σ Haber de las cuentas de detalle.
+        totalSaldosDeudores:
+          $ref: '#/components/schemas/Monto'
+          description: Σ de los saldos finales del lado deudor de las cuentas de detalle.
+        totalSaldosAcreedores:
+          $ref: '#/components/schemas/Monto'
+          description: Σ de los saldos finales del lado acreedor de las cuentas de detalle.
+        cuadra:
+          type: boolean
+          description: true si Σ Debe = Σ Haber y Σ saldos deudores = Σ saldos acreedores (siempre se cumple, por la partida doble).
+
+    # --- Estados financieros (CLAUDE.md §10.4, ADR-016, ADR-037, ADR-038 §7) ---
+    FilaEstado:
+      type: object
+      description: Fila jerárquica de un estado financiero.
+      required: [cuenta, nivel, monto]
+      properties:
+        cuenta:
+          $ref: '#/components/schemas/ResumenCuenta'
+        nivel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Nivel de la cuenta por longitud de código (CLAUDE.md §10.2).
+        monto:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Monto en positivo según la naturaleza de la clase de la cuenta; negativo si es contrario.
+    RubroEstado:
+      type: object
+      description: Rubro de un estado financiero (una clase de cuenta) con sus filas y su total.
+      required: [clase, nombre, filas, total]
+      properties:
+        clase:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Clase de cuenta del rubro (CLAUDE.md §10.2).
+        nombre:
+          type: string
+          description: Nombre del rubro, p. ej. "Activo" o "Ingresos".
+        filas:
+          type: array
+          description: Filas del rubro hasta el nivel pedido, con incluirCeros aplicado.
+          items:
+            $ref: '#/components/schemas/FilaEstado'
+        total:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Suma de las cuentas de detalle del rubro.
+    EstadoSituacionFinanciera:
+      type: object
+      description: >-
+        Estado de Situación Financiera de gestión a una fecha de corte, con la comprobación Activo = Pasivo +
+        Patrimonio + resultados de ejercicios anteriores + utilidad del ejercicio (ADR-016, ADR-037).
+      required:
+        [fechaCorte, nivel, activo, pasivo, patrimonio, resultadosEjerciciosAnteriores, utilidadEjercicio,
+         totalPasivoPatrimonio, comprobacion, leyenda]
+      properties:
+        fechaCorte:
+          $ref: '#/components/schemas/Fecha'
+        nivel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Nivel del catálogo hasta el que se agrupan las filas.
+        activo:
+          $ref: '#/components/schemas/RubroEstado'
+          description: Rubro de la clase 1.
+        pasivo:
+          $ref: '#/components/schemas/RubroEstado'
+          description: Rubro de la clase 2.
+        patrimonio:
+          $ref: '#/components/schemas/RubroEstado'
+          description: Rubro de la clase 3.
+        resultadosEjerciciosAnteriores:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Utilidad (Ingresos − Costos y gastos) acumulada hasta el 31/12 del año anterior al corte.
+        utilidadEjercicio:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Utilidad (Ingresos − Costos y gastos) del 1/1 del año del corte hasta fechaCorte.
+        totalPasivoPatrimonio:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Pasivo + Patrimonio + resultadosEjerciciosAnteriores + utilidadEjercicio.
+        comprobacion:
+          type: object
+          description: Verifica que Activo sea igual a totalPasivoPatrimonio (CLAUDE.md §10.4).
+          required: [cuadra, diferencia]
+          properties:
+            cuadra:
+              type: boolean
+              description: true si Activo = totalPasivoPatrimonio.
+            diferencia:
+              $ref: '#/components/schemas/MontoConSigno'
+              description: Activo − totalPasivoPatrimonio; distinto de cero solo ante un error de datos.
+        leyenda:
+          type: string
+          description: >-
+            "Estado de gestión generado por Pilot; no constituye un juego completo de estados financieros conforme
+            a NIIF para PYMES" (ADR-037 §3).
+    EstadoResultados:
+      type: object
+      description: Estado de Resultados de gestión en un rango de fechas, con el impuesto sobre la renta aparte (ADR-037).
+      required: [desde, hasta, nivel, ingresos, costosGastos, utilidadAntesImpuesto, impuestoSobreRenta, utilidadEjercicio, leyenda]
+      properties:
+        desde:
+          $ref: '#/components/schemas/Fecha'
+        hasta:
+          $ref: '#/components/schemas/Fecha'
+        nivel:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Nivel del catálogo hasta el que se agrupan las filas.
+        ingresos:
+          $ref: '#/components/schemas/RubroEstado'
+          description: Rubro de la clase 5.
+        costosGastos:
+          $ref: '#/components/schemas/RubroEstado'
+          description: Rubro de la clase 4, sin el grupo 44 (impuesto sobre la renta).
+        utilidadAntesImpuesto:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Ingresos − Costos y gastos.
+        impuestoSobreRenta:
+          $ref: '#/components/schemas/RubroEstado'
+          description: Rubro del grupo 44 (impuesto sobre la renta), aparte de costosGastos (ADR-037).
+        utilidadEjercicio:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Utilidad antes de impuesto − Impuesto sobre la renta.
+        leyenda:
+          type: string
+          description: >-
+            "Estado de gestión generado por Pilot; no constituye un juego completo de estados financieros conforme
+            a NIIF para PYMES" (ADR-037 §3).
+
+    # --- Resumen de IVA (CLAUDE.md §10.5, §11, ADR-038 §8) ---
+    DesgloseIva:
+      type: object
+      description: Desglose de un IVA (débito o crédito fiscal) por el origen del asiento.
+      required: [manual, n8n, reversion, total]
+      properties:
+        manual:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Movimiento de asientos de origen MANUAL.
+        n8n:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Movimiento de asientos de origen N8N.
+        reversion:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Movimiento de asientos de origen REVERSION.
+        total:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: Suma de manual, n8n y reversion.
+    ResumenIva:
+      type: object
+      description: Resumen de IVA de un mes; punto de partida para la declaración, no la reemplaza (CLAUDE.md §10.5).
+      required: [anio, mes, cuentaIvaDebito, cuentaIvaCredito, ivaDebito, ivaCredito, diferenciaEstimada, nota]
+      properties:
+        anio:
+          type: integer
+          description: Año del período consultado.
+        mes:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: Mes del período consultado.
+        cuentaIvaDebito:
+          $ref: '#/components/schemas/ResumenCuenta'
+          description: Cuenta de IVA débito fiscal configurada (CLAUDE.md §11.3).
+        cuentaIvaCredito:
+          $ref: '#/components/schemas/ResumenCuenta'
+          description: Cuenta de IVA crédito fiscal configurada (CLAUDE.md §11.3).
+        ivaDebito:
+          $ref: '#/components/schemas/DesgloseIva'
+          description: Haber − Debe de la cuenta de IVA débito fiscal.
+        ivaCredito:
+          $ref: '#/components/schemas/DesgloseIva'
+          description: Debe − Haber de la cuenta de IVA crédito fiscal.
+        diferenciaEstimada:
+          $ref: '#/components/schemas/MontoConSigno'
+          description: ivaDebito.total − ivaCredito.total.
+        nota:
+          type: string
+          description: "Punto de partida para preparar la declaración de IVA; no la reemplaza (CLAUDE.md §10.5)."
+
+    # --- Diagnóstico de mayorización (ADR-018, ADR-038 §9) ---
+    DiferenciaMayorizacion:
+      type: object
+      description: Diferencia entre saldo_cuenta_mensual y la suma de las líneas de una cuenta, año y mes.
+      required: [cuenta, anio, mes, saldoDebe, saldoHaber, lineasDebe, lineasHaber]
+      properties:
+        cuenta:
+          $ref: '#/components/schemas/ResumenCuenta'
+        anio:
+          type: integer
+          description: Año del saldo mensual con diferencia.
+        mes:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: Mes del saldo mensual con diferencia.
+        saldoDebe:
+          $ref: '#/components/schemas/Monto'
+          description: total_debe almacenado en saldo_cuenta_mensual.
+        saldoHaber:
+          $ref: '#/components/schemas/Monto'
+          description: total_haber almacenado en saldo_cuenta_mensual.
+        lineasDebe:
+          $ref: '#/components/schemas/Monto'
+          description: Σ debe de asiento_linea para la cuenta, año y mes.
+        lineasHaber:
+          $ref: '#/components/schemas/Monto'
+          description: Σ haber de asiento_linea para la cuenta, año y mes.
+    DiagnosticoMayorizacion:
+      type: object
+      description: Resultado de verificar que saldo_cuenta_mensual sea igual a la suma de asiento_linea (ADR-018).
+      required: [consistente, cantidadCuentasRevisadas, diferencias]
+      properties:
+        consistente:
+          type: boolean
+          description: true si no se encontró ninguna diferencia.
+        cantidadCuentasRevisadas:
+          type: integer
+          description: Cantidad de combinaciones de cuenta, año y mes revisadas.
+        diferencias:
+          type: array
+          description: Diferencias encontradas; vacío si consistente es true.
+          items:
+            $ref: '#/components/schemas/DiferenciaMayorizacion'
+
+    # --- Webhook de operaciones de n8n (CLAUDE.md §12, ADR-017, ADR-020, ADR-039) ---
+    OperacionN8n:
+      type: object
+      additionalProperties: true
+      description: >-
+        Cuerpo de una operación de negocio enviada por n8n. Es intencionalmente un objeto libre y sin
+        properties en este contrato (el generador lo traduce a un Map<String, Object> en vez de una clase de
+        modelo, ADR-039 §3): sus campos, siempre incluidos tipoOperacion (p. ej. CIERRE_INGRESOS_DIARIO) y
+        version (entero, p. ej. 1), eligen el esquema JSON versionado
+        api-spec/esquemas/operaciones/<tipo>/v<n>.json (en 1.0 solo cierre-ingresos-diario/v1.json), contra el
+        que se valida el cuerpo ANTES de interpretarlo (regla 1.1.14 de CLAUDE.md). Un tipoOperacion o version
+        no soportados responden 422 INT-002; un cuerpo que no cumple su esquema JSON, 400 INT-001 con la lista
+        errores. Ver el ejemplo de esta petición en CLAUDE.md §12.3.
+    ResumenOperacion:
+      type: object
+      description: Montos normalizados de una operación externa ya contabilizada (CLAUDE.md §12.5).
+      required: [modoPrecio, baseGravada, iva, exento, noSujeto, total]
+      properties:
+        modoPrecio:
+          $ref: '#/components/schemas/ModoPrecio'
+          description: Modo de precio de la empresa con el que se separó el IVA.
+        baseGravada:
+          $ref: '#/components/schemas/Monto'
+          description: Base gravada de la operación (ventas gravadas sin IVA).
+        iva:
+          $ref: '#/components/schemas/Monto'
+          description: IVA débito fiscal calculado sobre la base gravada.
+        exento:
+          $ref: '#/components/schemas/Monto'
+          description: Monto de ingresos exentos de la operación.
+        noSujeto:
+          $ref: '#/components/schemas/Monto'
+          description: Monto de ingresos no sujetos de la operación.
+        total:
+          $ref: '#/components/schemas/Monto'
+          description: baseGravada + iva + exento + noSujeto; debe ser igual a la suma de los cobros.
+    ReferenciaAsiento:
+      type: object
+      description: Referencia corta al asiento generado por una operación externa.
+      required: [id, anio, numero, fecha]
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        anio:
+          type: integer
+          description: Año de la fecha contable; junto con numero forma el correlativo (N.º numero/anio).
+        numero:
+          type: integer
+          format: int64
+          description: Número correlativo del asiento dentro de la empresa y el año.
+        fecha:
+          $ref: '#/components/schemas/Fecha'
+    EstadoOperacionExterna:
+      type: string
+      enum: [CONTABILIZADO, REVERTIDO]
+      description: >-
+        Estado de una operación externa; pasa a REVERTIDO cuando se revierte el asiento que generó
+        (CLAUDE.md §12.8).
+    OperacionContabilizada:
+      type: object
+      description: Resultado de contabilizar una operación externa de n8n (CLAUDE.md §12.7, ADR-039 §5).
+      required: [operacionId, estado, asiento, resumen]
+      properties:
+        operacionId:
+          $ref: '#/components/schemas/Uuid'
+        estado:
+          $ref: '#/components/schemas/EstadoOperacionExterna'
+        asiento:
+          $ref: '#/components/schemas/ReferenciaAsiento'
+        resumen:
+          $ref: '#/components/schemas/ResumenOperacion'
+
+    # --- Bitácora de operaciones (CLAUDE.md §10.5, §13, ADR-038, ADR-039 §6) ---
+    ClaseEntradaBitacora:
+      type: string
+      enum: [OPERACION, RECHAZO]
+      description: >-
+        Tabla de origen de la entrada de bitácora: OPERACION (operacion_externa, aceptada) o RECHAZO
+        (intento_operacion_externa, rechazada).
+    ResultadoBitacora:
+      type: string
+      enum: [CONTABILIZADO, REVERTIDO, RECHAZADO]
+      description: Resultado de la entrada de bitácora, para filtrar el listado.
+    EntradaBitacora:
+      type: object
+      description: >-
+        Entrada de la bitácora unificada de operaciones y rechazos, sin datos personales. Los campos que no
+        aplican a la clase de la entrada van nulos.
+      required:
+        - id
+        - clase
+        - resultado
+        - tipoOperacion
+        - sistemaOrigen
+        - idExterno
+        - fechaOperacion
+        - total
+        - codigoError
+        - asientoId
+        - recibidoEn
+      properties:
+        id:
+          $ref: '#/components/schemas/Uuid'
+        clase:
+          $ref: '#/components/schemas/ClaseEntradaBitacora'
+        resultado:
+          $ref: '#/components/schemas/ResultadoBitacora'
+        tipoOperacion:
+          oneOf:
+            - $ref: '#/components/schemas/TipoOperacionContable'
+            - type: 'null'
+          description: Tipo de la operación; nulo si un rechazo no llegó a identificarlo.
+        sistemaOrigen:
+          type: [string, 'null']
+          description: Sistema de origen de la operación; nulo si un rechazo no llegó a identificarlo.
+        idExterno:
+          type: [string, 'null']
+          description: Identificador externo de la operación; nulo en un rechazo sin cuerpo legible.
+        fechaOperacion:
+          oneOf:
+            - $ref: '#/components/schemas/Fecha'
+            - type: 'null'
+          description: Fecha contable de la operación (clase OPERACION); nula en un RECHAZO.
+        total:
+          type: [string, 'null']
+          pattern: '^\d{1,17}(\.\d{1,2})?$'
+          examples: ['1180.00']
+          description: >-
+            Total normalizado de la operación como cadena decimal (ADR-013); nulo en un RECHAZO. El
+            servidor siempre responde con exactamente 2 decimales.
+        codigoError:
+          type: [string, 'null']
+          description: Código INT- o CON- del rechazo (clase RECHAZO); nulo en una OPERACION.
+        asientoId:
+          type: [string, 'null']
+          format: uuid
+          description: Asiento generado (clase OPERACION); nulo en un RECHAZO.
+        recibidoEn:
+          $ref: '#/components/schemas/FechaHora'
+          description: Instante UTC en que Pilot recibió la petición.
+    PaginaBitacora:
+      description: Página de la bitácora, de la más reciente a la más antigua.
+      allOf:
+        - $ref: '#/components/schemas/PaginaCursor'
+        - type: object
+          required: [elementos]
+          properties:
+            elementos:
+              type: array
+              description: Entradas de la bitácora de la página.
+              items:
+                $ref: '#/components/schemas/EntradaBitacora'
+    DetalleEntradaBitacora:
+      description: Detalle de una entrada de la bitácora, con el resumen de la operación o el error del rechazo.
+      allOf:
+        - $ref: '#/components/schemas/EntradaBitacora'
+        - type: object
+          required: [idempotencyKey, resumen, error]
+          properties:
+            idempotencyKey:
+              type: [string, 'null']
+              description: Header Idempotency-Key con el que llegó la petición; nulo si no llegó a leerse.
+            resumen:
+              oneOf:
+                - $ref: '#/components/schemas/ResumenOperacion'
+                - type: 'null'
+              description: Montos normalizados; solo en una entrada de clase OPERACION.
+            error:
+              oneOf:
+                - $ref: '#/components/schemas/ProblemDetails'
+                - type: 'null'
+              description: Problem Details devuelto al rechazar la petición; solo en una entrada de clase RECHAZO.
+
   # --- Parámetros reutilizables ---
   parameters:
     XEmpresaId:
@@ -2003,6 +3374,134 @@ components:
       schema:
         $ref: '#/components/schemas/Uuid'
 
+    # --- Reportes y exportaciones (ADR-038) ---
+    CuentaIdMayor:
+      name: cuentaId
+      in: query
+      required: true
+      description: >-
+        Cuenta del Libro Mayor; acepta cualquier cuenta, incluida una cuenta padre, cuyos movimientos son los de
+        todas sus cuentas de detalle (ADR-038 §5).
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    FechaCorte:
+      name: fechaCorte
+      in: query
+      required: true
+      description: Fecha de corte del Estado de Situación Financiera, en hora de El Salvador.
+      schema:
+        $ref: '#/components/schemas/Fecha'
+    NivelReporte:
+      name: nivel
+      in: query
+      required: false
+      description: >-
+        Nivel del catálogo hasta el que se agrupan las filas del reporte (1 clase … 5 detalle, CLAUDE.md §10.2).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 5
+        default: 5
+    IncluirCeros:
+      name: incluirCeros
+      in: query
+      required: false
+      description: true incluye también las filas con monto en cero.
+      schema:
+        type: boolean
+        default: false
+    AnioReporte:
+      name: anio
+      in: query
+      required: true
+      description: Año del período del reporte.
+      schema:
+        type: integer
+        minimum: 2000
+        maximum: 9999
+    MesReporte:
+      name: mes
+      in: query
+      required: true
+      description: Mes del período del reporte (1 a 12).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+    Formato:
+      name: formato
+      in: query
+      required: true
+      description: Formato del archivo a exportar (ADR-038).
+      schema:
+        $ref: '#/components/schemas/FormatoExportacion'
+    DesdeReporte:
+      name: desde
+      in: query
+      required: true
+      description: Fecha contable inicial del período del reporte, inclusive; no puede ser posterior a hasta.
+      schema:
+        $ref: '#/components/schemas/Fecha'
+    HastaReporte:
+      name: hasta
+      in: query
+      required: true
+      description: Fecha contable final del período del reporte, inclusive.
+      schema:
+        $ref: '#/components/schemas/Fecha'
+
+    # --- Bitácora de operaciones (ADR-039 §6) ---
+    EntradaIdRuta:
+      name: entradaId
+      in: path
+      required: true
+      description: Identificador de la entrada de bitácora (operación aceptada o rechazo).
+      schema:
+        $ref: '#/components/schemas/Uuid'
+    DesdeRecepcion:
+      name: desde
+      in: query
+      required: false
+      description: Fecha de recepción inicial, inclusive; no puede ser posterior a hasta.
+      schema:
+        $ref: '#/components/schemas/Fecha'
+    HastaRecepcion:
+      name: hasta
+      in: query
+      required: false
+      description: Fecha de recepción final, inclusive.
+      schema:
+        $ref: '#/components/schemas/Fecha'
+    DesdeRecepcionExportacion:
+      name: desde
+      in: query
+      required: true
+      description: Fecha de recepción inicial de la exportación, inclusive; no puede ser posterior a hasta.
+      schema:
+        $ref: '#/components/schemas/Fecha'
+    HastaRecepcionExportacion:
+      name: hasta
+      in: query
+      required: true
+      description: Fecha de recepción final de la exportación, inclusive.
+      schema:
+        $ref: '#/components/schemas/Fecha'
+    ResultadoBitacoraFiltro:
+      name: resultado
+      in: query
+      required: false
+      description: Limita la bitácora a un resultado (CONTABILIZADO, REVERTIDO o RECHAZADO).
+      schema:
+        $ref: '#/components/schemas/ResultadoBitacora'
+    SistemaOrigenFiltro:
+      name: sistemaOrigen
+      in: query
+      required: false
+      description: Limita la bitácora al sistema de origen indicado (app de origen del cierre).
+      schema:
+        type: string
+        maxLength: 50
+
   # --- Headers reutilizables ---
   headers:
     X-Request-Id:
@@ -2021,6 +3520,12 @@ components:
       description: Segundos que el cliente debe esperar antes de reintentar.
       schema:
         type: integer
+    Content-Disposition:
+      description: >-
+        Indica que la respuesta es un archivo adjunto, con un nombre de archivo legible según el reporte y el
+        formato exportado (ADR-038).
+      schema:
+        type: string
 
   # --- Respuestas de error reutilizables (RFC 9457) ---
   responses:
@@ -2056,6 +3561,14 @@ components:
             $ref: '#/components/schemas/ProblemDetails'
     PrecondicionFallida:
       description: 412 — El header If-Match no coincide con la versión actual del recurso; volver a leerlo.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    CargaExcesiva:
+      description: >-
+        413 — El cuerpo de la petición supera el tamaño máximo admitido (1 MB en el webhook de n8n,
+        CLAUDE.md §12.1, ADR-039 §2).
       content:
         application/problem+json:
           schema:
