@@ -188,12 +188,79 @@ class MigracionesContabilidadIT {
 
     // ---------------------------------------------------------------- Datos precargados
 
-    /** Fuente: docs/contabilidad/catalogo-base.md — 117 cuentas, de ellas 56 de detalle (8 dígitos). */
+    /**
+     * Fuente: docs/contabilidad/catalogo-base.md — 117 cuentas de V10 + 36 de V15 (ADR-037) = 153, de ellas 56 + 18
+     * = 74 de detalle (8 dígitos).
+     */
     @Test
-    void plantillaCuentaTiene117CuentasY56DeDetalle() throws SQLException {
-        assertThat(escalarDuenio("SELECT count(*) FROM plantilla_cuenta")).isEqualTo("117");
+    void plantillaCuentaTiene153CuentasY74DeDetalle() throws SQLException {
+        assertThat(escalarDuenio("SELECT count(*) FROM plantilla_cuenta")).isEqualTo("153");
         assertThat(escalarDuenio("SELECT count(*) FROM plantilla_cuenta WHERE nivel = 5"))
-                .isEqualTo("56");
+                .isEqualTo("74");
+    }
+
+    /**
+     * Fuente: docs/contabilidad/catalogo-base.md, filas marcadas "ADR-037" — las 36 cuentas que agrega V15, con su
+     * nombre y naturaleza exactos (incluye 44010101 e 11020201, citadas en el criterio de aceptación de F4-01).
+     */
+    @Test
+    void v15AgregaLasTreintaYSeisCuentasDeAdr037ConNombreYNaturaleza() throws SQLException {
+        try (Connection c = PostgresContenedor.dataSourceDuenio().getConnection()) {
+            List<String> filas = columna(
+                    c,
+                    "SELECT codigo || '|' || nombre || '|' || naturaleza FROM plantilla_cuenta WHERE codigo IN ("
+                            + " '110202','11020201','120102','12010201','12010202','120202','12020201','1203',"
+                            + " '120301','12030101','1204','120401','12040101','1205','120501','12050101',"
+                            + " '21030104','21030105','2105','210501','21050101','2202','220201','22020101','2203',"
+                            + " '220301','22030101','42020107','42020108','42020109','42020110','44','4401',"
+                            + " '440101','44010101','44010102')");
+            // Orden libre: solo importa que las 36 filas y sus valores coincidan exactamente, no su posición
+            assertThat(filas)
+                    .containsExactlyInAnyOrder(
+                            "110202|Estimación por deterioro de cuentas por cobrar|ACREEDORA",
+                            "11020201|Estimación para cuentas incobrables|ACREEDORA",
+                            "1203|Activos intangibles|DEUDORA",
+                            "120102|Bienes inmuebles|DEUDORA",
+                            "120202|Depreciación acumulada de bienes inmuebles|ACREEDORA",
+                            "120301|Programas y licencias|DEUDORA",
+                            "120401|Amortización acumulada de intangibles|ACREEDORA",
+                            "120501|Impuesto sobre la renta diferido|DEUDORA",
+                            "1204|Amortización acumulada|ACREEDORA",
+                            "12010201|Terrenos|DEUDORA",
+                            "12010202|Edificios|DEUDORA",
+                            "1205|Activo por impuesto diferido|DEUDORA",
+                            "12020201|Depreciación acumulada — edificios|ACREEDORA",
+                            "12030101|Programas y licencias informáticas|DEUDORA",
+                            "12040101|Amortización acumulada — programas y licencias|ACREEDORA",
+                            "12050101|Activo por impuesto sobre la renta diferido|DEUDORA",
+                            "2105|Provisiones|ACREEDORA",
+                            "21030104|Aguinaldo por pagar|ACREEDORA",
+                            "21030105|Vacaciones por pagar|ACREEDORA",
+                            "2202|Beneficios a empleados a largo plazo|ACREEDORA",
+                            "2203|Pasivo por impuesto diferido|ACREEDORA",
+                            "210501|Provisiones|ACREEDORA",
+                            "21050101|Provisiones por litigios y contingencias|ACREEDORA",
+                            "220201|Indemnizaciones|ACREEDORA",
+                            "22020101|Provisión para indemnizaciones laborales|ACREEDORA",
+                            "220301|Impuesto sobre la renta diferido|ACREEDORA",
+                            "22030101|Pasivo por impuesto sobre la renta diferido|ACREEDORA",
+                            "42020107|Deterioro de cuentas por cobrar|DEUDORA",
+                            "42020108|Amortización de intangibles|DEUDORA",
+                            "42020109|Aguinaldos y vacaciones|DEUDORA",
+                            "42020110|Indemnizaciones laborales|DEUDORA",
+                            "44|IMPUESTO SOBRE LA RENTA|DEUDORA",
+                            "4401|Impuesto sobre la renta|DEUDORA",
+                            "440101|Impuesto sobre la renta|DEUDORA",
+                            "44010101|Gasto por impuesto sobre la renta corriente|DEUDORA",
+                            "44010102|Gasto (ingreso) por impuesto sobre la renta diferido|DEUDORA");
+        }
+    }
+
+    /** Regla (ADR-037, decisión 2): la clase 3 pasa de "CAPITAL CONTABLE" a "PATRIMONIO" (terminología NIIF para PYMES). */
+    @Test
+    void laClase3SeLlamaPatrimonio() throws SQLException {
+        assertThat(escalarDuenio("SELECT nombre FROM plantilla_cuenta WHERE codigo = '3'"))
+                .isEqualTo("PATRIMONIO");
     }
 
     /** Regla (CLAUDE.md 10.2): el código del padre es prefijo del de la hija; todo código que no es clase lo tiene. */
@@ -206,9 +273,12 @@ class MigracionesContabilidadIT {
         assertThat(huerfanas).isEqualTo("0");
     }
 
-    /** Fuente: catálogo base, naturalezas en negrita — las 8 excepciones a la naturaleza por defecto de la clase. */
+    /**
+     * Fuente: catálogo base, naturalezas en negrita — las 8 excepciones de V10 más las 7 que trae V15 (ADR-037:
+     * estimación por deterioro, depreciación y amortización de los rubros nuevos, todas ACREEDORA en la clase 1).
+     */
     @Test
-    void lasOchoNaturalezasDeExcepcionEstanBienCargadas() throws SQLException {
+    void lasQuinceNaturalezasDeExcepcionEstanBienCargadas() throws SQLException {
         try (Connection c = PostgresContenedor.dataSourceDuenio().getConnection()) {
             // Por defecto: deudora en clases 1 y 4, acreedora en 2, 3 y 5; se listan solo las que se apartan
             List<String> excepciones = columna(
@@ -217,11 +287,18 @@ class MigracionesContabilidadIT {
                             + " CASE WHEN clase IN (1, 4) THEN 'DEUDORA' ELSE 'ACREEDORA' END ORDER BY codigo");
             assertThat(excepciones)
                     .containsExactly(
+                            "110202:ACREEDORA",
+                            "11020201:ACREEDORA",
                             "1202:ACREEDORA",
                             "120201:ACREEDORA",
                             "12020101:ACREEDORA",
                             "12020102:ACREEDORA",
                             "12020103:ACREEDORA",
+                            "120202:ACREEDORA",
+                            "12020201:ACREEDORA",
+                            "1204:ACREEDORA",
+                            "120401:ACREEDORA",
+                            "12040101:ACREEDORA",
                             "31030102:DEUDORA",
                             "41020102:ACREEDORA",
                             "51010104:DEUDORA");
@@ -603,7 +680,7 @@ class MigracionesContabilidadIT {
     @Test
     void pilotAppLeeLasPlantillas() throws SQLException {
         try (Connection c = appConEmpresa(E1)) {
-            assertThat(columna(c, "SELECT count(*) FROM plantilla_cuenta")).containsExactly("117");
+            assertThat(columna(c, "SELECT count(*) FROM plantilla_cuenta")).containsExactly("153");
             assertThat(columna(c, "SELECT count(*) FROM tasa_impuesto")).containsExactly("1");
         }
     }

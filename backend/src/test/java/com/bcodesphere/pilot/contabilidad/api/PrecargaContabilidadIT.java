@@ -12,26 +12,26 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 /**
  * Pruebas de integración de la precarga al instalar Contabilidad (F2-03). Fuente: plan de trabajo F2, ADR-030 y
- * ADR-035, y el catálogo base de V10 (117 cuentas, 56 de detalle, 9 reglas). El fallo de la precarga tiene su propia
- * clase porque necesita un contexto con un bean simulado.
+ * ADR-035, y el catálogo base de V10 + V15 (117 + 36 = 153 cuentas, 56 + 18 = 74 de detalle, 9 reglas; ADR-037). El
+ * fallo de la precarga tiene su propia clase porque necesita un contexto con un bean simulado.
  */
 class PrecargaContabilidadIT extends BaseContabilidadIT {
 
     /**
-     * Regla (ADR-035, decisión 1): al instalar, la empresa recibe el catálogo base completo, 117 cuentas de las que 56
-     * aceptan movimientos (solo las hojas), con los padres enlazados por prefijo.
+     * Regla (ADR-035, decisión 1): al instalar, la empresa recibe el catálogo base completo, 153 cuentas de las que
+     * 74 aceptan movimientos (solo las hojas), con los padres enlazados por prefijo.
      */
     @Test
     void alInstalarLaEmpresaRecibeElCatalogoConLosPadresEnlazados() throws Exception {
         Sesion s = sesionConContabilidad();
 
-        // 1. Catálogo: 117 cuentas, 56 aceptan movimientos
+        // 1. Catálogo: 153 cuentas, 74 aceptan movimientos
         assertThat(contar("SELECT count(*) FROM cuenta_contable WHERE empresa_id = ?", s.empresa()))
-                .isEqualTo(117);
+                .isEqualTo(153);
         assertThat(contar(
                         "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ? AND acepta_movimientos",
                         s.empresa()))
-                .isEqualTo(56);
+                .isEqualTo(74);
         // 2. Padres enlazados: toda cuenta que no es clase tiene padre y su código es prefijo del suyo
         assertThat(contar(
                         "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ? AND nivel > 1"
@@ -105,8 +105,8 @@ class PrecargaContabilidadIT extends BaseContabilidadIT {
                 .query(String.class)
                 .single();
         assertThat(valorNuevo)
-                .contains("\"cuentas\": 117")
-                .contains("\"cuentasDetalle\": 56")
+                .contains("\"cuentas\": 153")
+                .contains("\"cuentasDetalle\": 74")
                 .contains("\"reglas\": 9");
     }
 
@@ -119,8 +119,8 @@ class PrecargaContabilidadIT extends BaseContabilidadIT {
         List<String> idsA = leer(get(a, "/contabilidad/cuentas").andExpect(status().isOk()), "$[*].id");
         List<String> idsB = leer(get(b, "/contabilidad/cuentas").andExpect(status().isOk()), "$[*].id");
 
-        assertThat(idsA).hasSize(117);
-        assertThat(idsB).hasSize(117);
+        assertThat(idsA).hasSize(153);
+        assertThat(idsB).hasSize(153);
         Set<String> comunes = new HashSet<>(idsA);
         comunes.retainAll(idsB);
         assertThat(comunes).isEmpty();
@@ -140,7 +140,7 @@ class PrecargaContabilidadIT extends BaseContabilidadIT {
                 .andExpect(status().isOk());
 
         assertThat(contar("SELECT count(*) FROM cuenta_contable WHERE empresa_id = ?", s.empresa()))
-                .isEqualTo(117);
+                .isEqualTo(153);
         assertThat(contar("SELECT count(*) FROM auditoria WHERE empresa_id = ? AND accion = 'PRECARGAR'", s.empresa()))
                 .isEqualTo(1);
     }

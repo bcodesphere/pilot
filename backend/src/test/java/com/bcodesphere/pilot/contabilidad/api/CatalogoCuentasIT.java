@@ -10,9 +10,9 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Pruebas de integración del catálogo de cuentas por la API (F2-03). Fuente: CLAUDE.md 10.2 y 13, ADR-035 y el
- * criterio de F2 del plan de trabajo. Los valores del catálogo base son los de V10 (117 cuentas, 56 de detalle).
- * Las pruebas de {@code CON-011} y {@code CON-012} con movimientos reales están en {@code LibroDiarioIT} (F3-03, ADR-035
- * decisión 5).
+ * criterio de F2 del plan de trabajo. Los valores del catálogo base son los de V10 + V15 (117 + 36 = 153 cuentas,
+ * 56 + 18 = 74 de detalle; ADR-037). Las pruebas de {@code CON-011} y {@code CON-012} con movimientos reales están
+ * en {@code LibroDiarioIT} (F3-03, ADR-035 decisión 5).
  */
 class CatalogoCuentasIT extends BaseContabilidadIT {
 
@@ -29,9 +29,9 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
 
         get(s, "/contabilidad/cuentas")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(117));
+                .andExpect(jsonPath("$.length()").value(153));
         get(s, "/contabilidad/cuentas?soloDetalle=true")
-                .andExpect(jsonPath("$.length()").value(56));
+                .andExpect(jsonPath("$.length()").value(74));
         // La búsqueda por prefijo de código y por nombre, sin distinguir mayúsculas
         get(s, "/contabilidad/cuentas?busqueda=1101010")
                 .andExpect(jsonPath("$[*].codigo").value(org.hamcrest.Matchers.hasItem("11010101")));
@@ -171,7 +171,7 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
 
         // Ninguna de las cuatro dejó filas
         assertThat(contar("SELECT count(*) FROM cuenta_contable WHERE empresa_id = ?", s.empresa()))
-                .isEqualTo(117);
+                .isEqualTo(153);
     }
 
     /** Regla: un padre inactivo no admite hijas (CON-015, «existente y activa»). */
@@ -303,7 +303,7 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.activa").value(false));
         get(s, "/contabilidad/cuentas?soloActivas=true")
-                .andExpect(jsonPath("$.length()").value(116));
+                .andExpect(jsonPath("$.length()").value(152));
         patch(s, "/contabilidad/cuentas/" + id, "\"1\"", "{\"activa\":true}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.activa").value(true));
