@@ -1,6 +1,7 @@
 package com.bcodesphere.pilot.plataforma.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -534,5 +535,49 @@ class AplicacionesYEspacioTrabajoIT extends BasePlataformaIT {
             }
             c.rollback();
         }
+    }
+
+    // ---------------------------------------------------------------- defensa en profundidad del adaptador
+
+    @Autowired
+    private com.bcodesphere.pilot.plataforma.aplicacion.RepositorioEmpresas repositorioEmpresas;
+
+    @Autowired
+    private org.springframework.transaction.PlatformTransactionManager gestorTransacciones;
+
+    /**
+     * Regla (CLAUDE.md 1.1.3): {@code RepositorioEmpresasJdbc.buscar} y {@code .actualizarNombre} no confían en que
+     * el id recibido ya fue validado como la empresa activa (esa validación es de
+     * {@code GestionarEspacioTrabajo.exigirEmpresaActiva}, fuera del adaptador): si se invocan con un id que NO es la
+     * empresa activa del contexto, fallan cerrado en vez de consultar o escribir una empresa distinta. El adaptador
+     * lanza {@link IllegalStateException}, pero al venir de un bean {@code @Repository} sobre un gestor JPA, Spring la
+     * traduce a {@link org.springframework.dao.InvalidDataAccessApiUsageException} con la original como causa (mismo
+     * comportamiento que cualquier {@code IllegalStateException}/{@code IllegalArgumentException} de un repositorio).
+     * Esto nunca ocurre por la API real (el caso de uso siempre lo valida antes), pero es la segunda línea de defensa
+     * si algún día un llamador nuevo lo olvidara.
+     */
+    @Test
+    void elAdaptadorDeEmpresasFallaCerradoSiElIdNoEsLaEmpresaActiva() throws Exception {
+        UUID empresaA = empresaDe(iniciarSesion(nuevoSub()));
+        UUID empresaB = empresaDe(iniciarSesion(nuevoSub()));
+        var escritura = new org.springframework.transaction.support.TransactionTemplate(gestorTransacciones);
+
+        // Contexto de A, pero se pide el espacio de B: el adaptador debe rechazarlo, no devolver ni tocar B
+        assertThatThrownBy(() -> com.bcodesphere.pilot.plataforma.ContextoEmpresa.ejecutarCon(
+                        new com.bcodesphere.pilot.compartido.EmpresaId(empresaA),
+                        "sistema",
+                        () -> escritura.execute(s -> repositorioEmpresas.buscar(empresaB))))
+                .isInstanceOf(org.springframework.dao.InvalidDataAccessApiUsageException.class)
+                .hasCauseInstanceOf(IllegalStateException.class);
+
+        assertThatThrownBy(() -> com.bcodesphere.pilot.plataforma.ContextoEmpresa.ejecutarCon(
+                        new com.bcodesphere.pilot.compartido.EmpresaId(empresaA),
+                        "sistema",
+                        () -> escritura.execute(s -> repositorioEmpresas.actualizarNombre(empresaB, "Robado", 0))))
+                .isInstanceOf(org.springframework.dao.InvalidDataAccessApiUsageException.class)
+                .hasCauseInstanceOf(IllegalStateException.class);
+
+        assertThat(contar("SELECT count(*) FROM empresa WHERE id = ? AND nombre = 'Robado'", empresaB))
+                .isZero();
     }
 }

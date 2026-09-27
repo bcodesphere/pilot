@@ -6,15 +6,22 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.bcodesphere.pilot.compartido.EmpresaId;
+import com.bcodesphere.pilot.plataforma.ContextoEmpresa;
+import com.bcodesphere.pilot.plataforma.aplicacion.RepositorioApiKeys;
 import com.jayway.jsonpath.JsonPath;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Pruebas de integración de la gestión de API keys de F1-06 ({@code GET}, {@code POST} y {@code DELETE /api-keys}):
@@ -24,6 +31,14 @@ import org.springframework.test.web.servlet.ResultActions;
  */
 @Import(ConfiguracionApiKeysDePrueba.class)
 class ApiKeysIT extends BaseApiKeysIT {
+
+    /** Puerto de persistencia, para ejercitar {@link RepositorioApiKeys#registrarUso(UUID)} fuera de la API HTTP. */
+    @Autowired
+    private RepositorioApiKeys claves;
+
+    /** Gestor de transacciones, para llamar al puerto directamente con un contexto de empresa elegido a mano. */
+    @Autowired
+    private PlatformTransactionManager gestor;
 
     private ResultActions listar(String sub, UUID empresa, String consulta) throws Exception {
         return mvc.perform(
@@ -288,5 +303,70 @@ class ApiKeysIT extends BaseApiKeysIT {
 
         assertThat(contar("SELECT count(*) FROM api_key WHERE id = ? AND revocada_en IS NULL", ajena.id()))
                 .isEqualTo(1);
+    }
+
+    /**
+     * Regla (CLAUDE.md 1.1.3, defensa en profundidad de {@code listar}): con las claves de dos empresas creadas
+     * intercaladas en el tiempo, cada página (limite=1, con cursor) de la empresa A solo trae claves de A, nunca de
+     * B, aunque una clave de B se haya creado entre dos de A (así que su posición en el orden global caería en medio
+     * de la paginación de A si el filtro de empresa fallara).
+     */
+    @Test
+    void laSegundaPaginaConCursorNoTraeClavesDeOtraEmpresaIntercaladasEnElTiempo() throws Exception {
+        String sub = nuevoSub();
+        UUID empresa = empresaDe(iniciarSesion(sub));
+        String otroSub = nuevoSub();
+        UUID otraEmpresa = empresaDe(iniciarSesion(otroSub));
+
+        UUID a1 = crearClave(sub, empresa, "A1").id();
+        UUID ajenaIntercalada =
+                crearClave(otroSub, otraEmpresa, "ajena intercalada").id();
+        UUID a2 = crearClave(sub, empresa, "A2").id();
+
+        // Primera página (la más reciente primero): A2
+        String pagina1 = listar(sub, empresa, "?limite=1")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.elementos[0].id").value(a2.toString()))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String cursor = JsonPath.read(pagina1, "$.siguienteCursor");
+        assertThat(cursor).isNotNull();
+
+        // Segunda página con ese cursor: A1, NUNCA la ajena aunque quedó entre A1 y A2 en el orden global
+        listar(sub, empresa, "?limite=1&cursor=" + cursor)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.elementos.length()").value(1))
+                .andExpect(jsonPath("$.elementos[0].id").value(a1.toString()))
+                .andExpect(jsonPath("$.siguienteCursor").doesNotExist());
+
+        assertThat(ajenaIntercalada).isNotNull();
+    }
+
+    /**
+     * Regla (CLAUDE.md 1.1.3): {@link RepositorioApiKeys#registrarUso(UUID)} no actualiza {@code ultimo_uso_en} de una
+     * clave si se invoca con la empresa de OTRA empresa en el contexto, aunque el id de la clave exista. En producción
+     * esto nunca ocurre: {@code FiltroApiKey} siempre fija la empresa de la propia clave (V8,
+     * {@code api_key_por_prefijo}) antes de llamar a este método; esta prueba ejercita el puerto directamente para
+     * demostrar que el adaptador no depende solo de eso ni solo de RLS.
+     */
+    @Test
+    void registrarUsoNoActualizaUnaClaveDeOtraEmpresa() throws Exception {
+        String sub = nuevoSub();
+        UUID empresa = empresaDe(iniciarSesion(sub));
+        String otroSub = nuevoSub();
+        UUID otraEmpresa = empresaDe(iniciarSesion(otroSub));
+        ClaveCreada clave = crearClave(sub, empresa, "n8n");
+
+        TransactionTemplate escritura = new TransactionTemplate(gestor);
+        boolean actualizo = ContextoEmpresa.ejecutarCon(
+                new EmpresaId(otraEmpresa), "sistema", () -> escritura.execute(s -> claves.registrarUso(clave.id())));
+
+        assertThat(actualizo).isFalse();
+        assertThat(duenio.sql("SELECT ultimo_uso_en FROM api_key WHERE id = ?")
+                        .param(clave.id())
+                        .query(OffsetDateTime.class)
+                        .optional())
+                .isEmpty();
     }
 }

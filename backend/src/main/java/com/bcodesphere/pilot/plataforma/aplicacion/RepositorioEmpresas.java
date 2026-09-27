@@ -33,8 +33,10 @@ public interface RepositorioEmpresas {
     /**
      * Lee el espacio de trabajo de la empresa activa (solo id, tipo, nombre, estado y versión).
      *
-     * @param id empresa buscada
-     * @return el espacio, o vacío si RLS no lo deja ver (otra empresa) o no existe
+     * @param id empresa activa (debe coincidir con {@code ContextoEmpresa.empresaRequerida()}; el adaptador lo exige
+     *     como defensa en profundidad además de RLS, CLAUDE.md 1.1.3)
+     * @return el espacio, o vacío si no existe
+     * @throws IllegalStateException si {@code id} no es la empresa activa del contexto
      */
     Optional<EspacioTrabajo> buscar(UUID id);
 
@@ -42,10 +44,11 @@ public interface RepositorioEmpresas {
      * Cambia el nombre con concurrencia optimista: solo actualiza si la versión guardada es la esperada, la
      * incrementa y fija quién y cuándo. No toca ninguna otra columna.
      *
-     * @param id empresa
+     * @param id empresa activa (mismo requisito que {@link #buscar(UUID)})
      * @param nombre nombre nuevo, ya normalizado
      * @param versionEsperada versión que el cliente leyó
      * @return {@code true} si actualizó la fila; {@code false} si la versión ya no coincide (carrera o dato viejo)
+     * @throws IllegalStateException si {@code id} no es la empresa activa del contexto
      */
     boolean actualizarNombre(UUID id, String nombre, long versionEsperada);
 }
