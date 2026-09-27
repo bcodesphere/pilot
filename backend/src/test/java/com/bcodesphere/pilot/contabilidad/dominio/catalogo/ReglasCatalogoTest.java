@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Pruebas de las reglas del catálogo con un doble del puerto de movimientos. Fuente: CLAUDE.md 10.2 y ADR-035
- * (CON-011, CON-012, CON-015 y CON-016). La prueba con movimientos reales queda para F3 (ADR-035, decisión 5).
+ * (CON-011, CON-012, CON-015 y CON-016). La prueba con movimientos reales está en {@code LibroDiarioIT} (F3-03, ADR-035, decisión 5).
  */
 class ReglasCatalogoTest {
 

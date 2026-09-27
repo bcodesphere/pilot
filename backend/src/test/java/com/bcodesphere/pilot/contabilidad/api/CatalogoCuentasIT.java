@@ -11,7 +11,8 @@ import org.junit.jupiter.api.Test;
 /**
  * Pruebas de integración del catálogo de cuentas por la API (F2-03). Fuente: CLAUDE.md 10.2 y 13, ADR-035 y el
  * criterio de F2 del plan de trabajo. Los valores del catálogo base son los de V10 (117 cuentas, 56 de detalle).
- * Las pruebas con movimientos reales de {@code CON-011} y {@code CON-012} quedan para F3 (ADR-035, decisión 5).
+ * Las pruebas de {@code CON-011} y {@code CON-012} con movimientos reales están en {@code LibroDiarioIT} (F3-03, ADR-035
+ * decisión 5).
  */
 class CatalogoCuentasIT extends BaseContabilidadIT {
 

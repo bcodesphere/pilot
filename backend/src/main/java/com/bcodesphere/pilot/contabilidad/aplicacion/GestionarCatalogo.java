@@ -37,7 +37,7 @@ public class GestionarCatalogo {
      * Crea el caso de uso.
      *
      * @param cuentas puerto de persistencia del catálogo
-     * @param movimientos puerto de movimientos y saldos (F3 lo reemplaza, ADR-035)
+     * @param movimientos puerto de movimientos y saldos (ADR-035; desde F3 lee los asientos reales)
      * @param auditoria puerto de auditoría
      */
     public GestionarCatalogo(

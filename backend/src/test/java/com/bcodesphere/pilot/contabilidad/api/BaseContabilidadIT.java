@@ -123,6 +123,15 @@ abstract class BaseContabilidadIT extends BasePlataformaIT {
                 .content(json));
     }
 
+    /** POST con {@code Idempotency-Key} (registro y reversión de asientos); la clave nula omite el header. */
+    protected ResultActions postConClave(Sesion s, String ruta, String clave, String json) throws Exception {
+        MockHttpServletRequestBuilder b = con(MockMvcRequestBuilders.post("/api/v1" + ruta), s);
+        if (clave != null) {
+            b.header("Idempotency-Key", clave);
+        }
+        return mvc.perform(b.contentType(MediaType.APPLICATION_JSON).content(json));
+    }
+
     /** PATCH con {@code If-Match} opcional (nulo = sin el header). */
     protected ResultActions patch(Sesion s, String ruta, String ifMatch, String json) throws Exception {
         MockHttpServletRequestBuilder b = con(MockMvcRequestBuilders.patch("/api/v1" + ruta), s);
