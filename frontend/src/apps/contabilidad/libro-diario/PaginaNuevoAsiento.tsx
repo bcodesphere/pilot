@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { registrarAsiento } from '@/api/asientos/asientos';
 import { useObtenerConfiguracionContable } from '@/api/configuracion-contable/configuracion-contable';
 import type { Asiento, ConfiguracionContable, CuentaContable, NuevoAsiento } from '@/api/modelos';
-import { formatearMoneda, formatearMonedaConSigno } from '@/compartido/dinero';
+import { formatearMoneda, formatearMonedaConSigno, sonIguales } from '@/compartido/dinero';
 import { hoyElSalvador } from '@/compartido/formato/fecha';
 import { Alert } from '@/compartido/ui/alert';
 import { Button } from '@/compartido/ui/button';
@@ -366,7 +366,12 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
           <dt>Diferencia</dt>
           <dd className="tabular-nums">{totales ? formatearMonedaConSigno(totales.diferencia) : '—'}</dd>
         </dl>
-        {totales && !cuadra && !previa.pendiente && (
+        {/* El mensaje de descuadre solo tiene sentido con Debe distinto de Haber: con ambos totales en cero
+            (formulario vacío) la diferencia también es cero, `cuadra` ya es falso por CON-004 ("los totales
+            deben ser mayores que cero", anunciado por su cuenta en "motivos") y anunciar además "la diferencia
+            es $0.00" sería falso. `sonIguales` (no `esCero`) porque `totales.diferencia` puede ser negativo
+            (Debe − Haber) y el patrón de monto de `esCero` no admite signo. */}
+        {totales && !cuadra && !previa.pendiente && !sonIguales(totales.debe, totales.haber) && (
           <p className="text-red-700">
             El asiento no cuadra: la diferencia es {formatearMonedaConSigno(totales.diferencia)}.
           </p>

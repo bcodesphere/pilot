@@ -168,6 +168,56 @@ describe('detalle de un asiento', () => {
     expect(new Headers(post.headers).get('Idempotency-Key')).toBeTruthy();
   });
 
+  // Corrección 2 (hallazgo 1): tras una reversión exitosa no debe quedar ningún diálogo abierto sobre la
+  // reversión (antes se veía "Revertir el asiento N.º 8/2026" y, al confirmarlo otra vez, un 409 CON-009).
+  it('tras revertir con éxito no queda ningún diálogo abierto y no hay un segundo POST', async () => {
+    const original = asiento({ fecha: '2026-09-01' });
+    const reversion = asiento({ id: 'a-2', numero: 8, origenTipo: 'REVERSION', asientoRevertidoId: 'a-1' });
+    const { fetchMock } = montarContabilidad(
+      '/contabilidad/libro-diario/a-1',
+      'contador',
+      sirve(original, (url, init) => {
+        if (url.endsWith('/contabilidad/asientos/a-1/reversion') && init.method === 'POST') {
+          return json(reversion, 201);
+        }
+        return esGet(url, init, '/contabilidad/asientos/a-2') ? json(reversion) : undefined;
+      }),
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Revertir' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Revertir asiento' }));
+
+    expect(await screen.findByRole('heading', { name: 'Asiento N.º 8/2026' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(llamadas(fetchMock, 'POST', '/contabilidad/asientos/a-1/reversion')).toHaveLength(1);
+  });
+
+  // Corrección 2 (hallazgo 1): el estado del detalle (el diálogo de reversión, con su fecha elegida) pertenece
+  // a un solo asiento; React Router reutiliza la misma instancia de PaginaAsiento al cambiar solo :asientoId.
+  it('el diálogo de reversión no sobrevive a un cambio de asiento en la misma ruta', async () => {
+    const a1 = asiento({ fecha: '2026-09-01' });
+    const a2 = asiento({ id: 'a-2', numero: 8, fecha: '2026-09-15' });
+    const { router } = montarContabilidad('/contabilidad/libro-diario/a-1', 'contador', (url, init) => {
+      if (esGet(url, init, '/contabilidad/asientos/a-1')) return json(a1);
+      if (esGet(url, init, '/contabilidad/asientos/a-2')) return json(a2);
+      return undefined;
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Revertir' }));
+    const campo = screen.getByLabelText('Fecha de la reversión');
+    await userEvent.clear(campo);
+    await userEvent.type(campo, '2026-09-10');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    // Llega a otro asiento sin que el diálogo se haya cerrado explícitamente (p. ej. navegación directa):
+    // sin la `key` en PaginaAsiento, el diálogo seguiría abierto, ahora sobre el asiento equivocado.
+    await router.navigate('/contabilidad/libro-diario/a-2');
+    await screen.findByRole('heading', { name: 'Asiento N.º 8/2026' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    // Al abrir el diálogo de nuevo sobre el nuevo asiento, la fecha vuelve al valor por defecto (hoy)
+    await userEvent.click(screen.getByRole('button', { name: 'Revertir' }));
+    expect(screen.getByLabelText('Fecha de la reversión')).toHaveValue(hoyElSalvador());
+  });
+
   // CON-018 se valida en el diálogo antes de llamar y el backend puede devolver CON-008/CON-009/CON-007/CON-018
   it('no permite una fecha anterior al asiento original (CON-018) y muestra los errores del backend', async () => {
     const { fetchMock } = montarContabilidad(

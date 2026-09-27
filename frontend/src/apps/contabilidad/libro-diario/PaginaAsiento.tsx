@@ -16,13 +16,30 @@ import { InsigniaEstado, TablaLineas } from './presentacion';
 const ETIQUETA_MODO = { CON_IVA: 'Precios con IVA incluido', SIN_IVA: 'Precios más IVA' } as const;
 
 /**
- * Pantalla de detalle de un asiento (`/contabilidad/libro-diario/:asientoId`): cabecera, líneas (las de IVA
- * marcadas), totales y enlaces al asiento revertido o a su reversión. El contador ve "Revertir" si el asiento
- * está `CONTABILIZADO` y no es una reversión (una reversión no se revierte: CON-009; un revertido tampoco: CON-008).
- * Muestra el aviso que dejó la pantalla anterior (p. ej. "Asiento N.º 3/2026 registrado").
+ * Pantalla de detalle de un asiento (`/contabilidad/libro-diario/:asientoId`). React Router reutiliza la misma
+ * instancia de esta pantalla cuando solo cambia `:asientoId` (p. ej. al navegar de un asiento a su reversión),
+ * así que aquí solo se lee el parámetro y se delega en {@link DetalleAsiento} con `key={asientoId}`: la `key`
+ * fuerza a React a desmontar y volver a montar el detalle, para que su estado local (el diálogo de reversión,
+ * incluida la fecha elegida) pertenezca siempre a un solo asiento y nunca sobreviva al cambio de asiento.
  */
 export function PaginaAsiento() {
   const { asientoId = '' } = useParams();
+  return <DetalleAsiento key={asientoId} asientoId={asientoId} />;
+}
+
+/** Propiedades de {@link DetalleAsiento}. */
+interface PropsDetalleAsiento {
+  /** Id del asiento a mostrar; una instancia de este componente pertenece a un solo asiento. */
+  asientoId: string;
+}
+
+/**
+ * Detalle de un asiento: cabecera, líneas (las de IVA marcadas), totales y enlaces al asiento revertido o a su
+ * reversión. El contador ve "Revertir" si el asiento está `CONTABILIZADO` y no es una reversión (una reversión
+ * no se revierte: CON-009; un revertido tampoco: CON-008). Muestra el aviso que dejó la pantalla anterior
+ * (p. ej. "Asiento N.º 3/2026 registrado").
+ */
+function DetalleAsiento({ asientoId }: PropsDetalleAsiento) {
   const { puedeEscribir } = usePermisosContabilidad();
   const [revirtiendo, setRevirtiendo] = useState(false);
   // El aviso de éxito viaja en el estado de la navegación

@@ -56,6 +56,11 @@ export function DialogoReversion({ asiento, onCerrar }: Props) {
     },
     onSuccess: async (respuesta) => {
       const reversion = respuesta.data as Asiento;
+      // Cierra el diálogo antes de navegar: aunque la `key` de PaginaAsiento también lo desmonta al cambiar
+      // de asiento (defensa estructural), esta es la segunda defensa por si el asiento de destino cambiara de
+      // ruta (o de layout) sin remontar el detalle. Si la reversión falla, el diálogo permanece abierto con
+      // el error (regla 1.1.5: nunca se abandona el flujo sin que el usuario vea por qué).
+      onCerrar();
       await invalidarLibroDiario(clienteConsultas);
       navegar(`/contabilidad/libro-diario/${reversion.id}`, {
         state: {

@@ -94,6 +94,25 @@ describe('formulario del Libro Diario: totales y partida doble', () => {
     expect(await screen.findByText('Use solo Debe o solo Haber')).toBeInTheDocument();
     expect(guardar()).toBeDisabled();
   });
+
+  // Corrección 2 (hallazgo 2): con el formulario vacío la diferencia es $0.00 y no es un descuadre real; solo
+  // debe verse el motivo de CON-004 (totales en cero), nunca "El asiento no cuadra: la diferencia es $0.00."
+  it('con el formulario vacío no anuncia un descuadre de $0.00, solo que los totales deben ser mayores que cero', async () => {
+    montarContabilidad('/contabilidad/libro-diario/nuevo', 'contador', base());
+    await screen.findByLabelText('Cuenta de la línea 1');
+    expect(screen.getByText('Los totales deben ser mayores que cero')).toBeInTheDocument();
+    expect(screen.queryByText(/El asiento no cuadra/)).not.toBeInTheDocument();
+  });
+
+  // Un descuadre real (diferencia distinta de cero) sí debe anunciarse, con el formato real de la moneda
+  it('un descuadre real (Debe 10.00 / Haber 9.00) sí anuncia la diferencia', async () => {
+    montarContabilidad('/contabilidad/libro-diario/nuevo', 'contador', base());
+    await elegirCuenta(1, '11010101');
+    await elegirCuenta(2, '51010101');
+    await escribir('Debe', 1, '10.00');
+    await escribir('Haber', 2, '9.00');
+    expect(await screen.findByText('El asiento no cuadra: la diferencia es $1.00.')).toBeInTheDocument();
+  });
 });
 
 describe('formulario del Libro Diario: líneas con IVA y vista previa del backend', () => {
