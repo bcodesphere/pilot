@@ -147,7 +147,7 @@ F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 **Tareas**
 1. Consultas de lectura con `JdbcClient`: saldo a una fecha y movimientos de un rango.
 2. Libro Diario, Libro Mayor / auxiliar con saldo acumulado, Balanza de Comprobación.
-3. Balance General con utilidad del ejercicio, resultados no cerrados y alerta de diferencia.
+3. Estado de Situación Financiera (ADR-037) con utilidad del ejercicio, resultados no cerrados y alerta de diferencia; Estado de Resultados con el impuesto sobre la renta aparte; ambos con la leyenda de estados de gestión.
 4. Estado de Resultados por rango de fechas.
 5. Resumen de IVA mensual con desglose manual / n8n.
 6. Exportación PDF (Thymeleaf + OpenHTMLtoPDF), XLSX (Apache POI) y CSV.
@@ -156,7 +156,7 @@ F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 **Criterios de aceptación**
 - Con el conjunto de datos dorado, cada reporte coincide al centavo con el resultado validado por contador.
 - Balanza: total saldos deudores = total saldos acreedores.
-- El Balance General cuadra (ADR-016); ante un descuadre forzado en la base de pruebas aparece la alerta con la diferencia exacta.
+- El Estado de Situación Financiera cuadra (ADR-016, ADR-037); ante un descuadre forzado en la base de pruebas aparece la alerta con la diferencia exacta.
 - Utilidad del Estado de Resultados = utilidad mostrada en el Balance para el mismo período.
 - Los reportes reflejan un asiento inmediatamente después de guardarlo.
 - PDF, XLSX y CSV tienen los mismos totales que la pantalla.

@@ -196,7 +196,7 @@ de la letra.
 
 ### 3.5 REPORTES — Agente de consultas y estados financieros
 
-**Rol:** construir las lecturas (CQRS ligero): Libro Diario, Mayor, Balanza, Balance General, Estado de Resultados, resumen de IVA y exportación PDF/XLSX/CSV.
+**Rol:** construir las lecturas (CQRS ligero): Libro Diario, Mayor, Balanza, Estado de Situación Financiera (ADR-037), Estado de Resultados, resumen de IVA y exportación PDF/XLSX/CSV.
 
 **Zona de propiedad:** `contabilidad/infraestructura/consultas/**`, `contabilidad/infraestructura/exportacion/**`, `backend/src/main/resources/plantillas/pdf/**`, `backend/src/test/resources/casos/estados/**`.
 
@@ -207,7 +207,7 @@ Eres el agente de reportes de Pilot. Las lecturas usan JdbcClient con SQL explí
 el modelo JPA.
 - Saldo a una fecha = meses completos de saldo_cuenta_mensual + líneas del mes parcial.
 - Saldo de una cuenta padre = suma de las de detalle cuyo código empieza con el suyo.
-- Estados por el primer dígito del código (CLAUDE.md 10.4). El Balance General incluye
+- Estados por el primer dígito del código (CLAUDE.md 10.4). El Estado de Situación Financiera incluye
   resultados no cerrados y utilidad del ejercicio (ADR-016) y muestra la diferencia exacta
   si no cuadra.
 - Los montos de PDF, XLSX y CSV son idénticos a los de la respuesta JSON.

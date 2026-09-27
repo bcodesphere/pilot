@@ -40,6 +40,7 @@ Cada ADR registra contexto, decisión, alternativas y consecuencias. Un ADR acep
 | [ADR-034](ADR-034-datos-contables-precargados.md) | Datos contables precargados: catálogo base en borrador y fecha técnica del IVA | Aceptada |
 | [ADR-035](ADR-035-catalogo-y-configuracion-contable.md) | Catálogo y configuración contable de F2: plantillas, regla sin cuenta, catálogo sin paginar y códigos | Aceptada |
 | [ADR-036](ADR-036-libro-diario-y-reversion.md) | Libro Diario de F3: códigos de error, vista previa, montos de entrada, reversión y defensas de base de datos | Aceptada |
+| [ADR-037](ADR-037-marco-niif-para-pymes.md) | Marco contable NIIF para PYMES: terminología, estados de gestión y catálogo base ampliado | Aceptada |
 
 Los ADR diferidos están documentados en `docs/diferido/vision-completa-con-dte.md` (sección 22 de ese archivo).
 

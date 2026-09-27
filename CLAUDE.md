@@ -134,7 +134,7 @@ La solución integral se estructura obligatoriamente en **cuatro capas**; toda f
 | 1 | Catálogo de cuentas (clases 1 a 5), precargado y editable | 10.2 |
 | 2 | **Libro Diario:** registro de asientos con validación de partida doble en frontend y backend | 10.1 |
 | 3 | **Mayorización automática en tiempo real** con saldo Deudor/Acreedor por cuenta | 10.3 |
-| 4 | **Estados financieros automáticos:** Balance General y Estado de Resultados por primer dígito del código | 10.4 |
+| 4 | **Estados financieros automáticos (de gestión, NIIF para PYMES):** Estado de Situación Financiera y Estado de Resultados por primer dígito del código (ADR-037) | 10.4 |
 | 5 | **Reportes complementarios:** Libro Diario, Mayor/auxiliar, Balanza de Comprobación, resumen de IVA, exportación PDF/XLSX/CSV, bitácora de n8n | 10.5 |
 | 6 | **IVA 13 %:** manual (línea "lleva IVA") y automático en operaciones de n8n; configuración del modo de precio por defecto | 11 |
 | 7 | **Webhook de n8n** para operaciones de otras apps; primer tipo: **cierre de ingresos diarios** | 12 |
@@ -955,7 +955,8 @@ export const asientoSchema = z
 ### 10.2 Catálogo de cuentas
 
 - Al instalar la app Contabilidad en una empresa (evento `AplicacionInstalada`, ADR-030) se copia `plantilla_cuenta`, cargada desde el catálogo base de `docs/contabilidad/catalogo-base.md`. Se carga como borrador (ADR-034); la validación del contador sigue `[VERIFICAR]` y un cambio va en una migración nueva.
-- **Clases:** 1 Activo, 2 Pasivo, 3 Capital Contable, 4 Costos y Gastos, 5 Ingresos. Otros primeros dígitos se rechazan (`CON-010`).
+- **Marco contable:** NIIF para PYMES (ADR-037; edición y resolución del CVPCPA `[VERIFICAR]`). El catálogo es un plan de cuentas interno.
+- **Clases:** 1 Activo, 2 Pasivo, 3 Patrimonio, 4 Costos y Gastos (grupo 44: Impuesto sobre la renta), 5 Ingresos. Otros primeros dígitos se rechazan (`CON-010`).
 - **Niveles por longitud del código:** clase (1 dígito), grupo (2), cuenta (4), subcuenta (6), detalle (8). El código de la cuenta padre debe ser prefijo del código hija.
 - **Naturaleza por defecto:** deudora en clases 1 y 4; acreedora en 2, 3 y 5. Se puede cambiar para cuentas complementarias (p. ej. depreciación acumulada en la clase 1, acreedora).
 - Solo las cuentas sin hijas aceptan movimientos. Crear una hija en una cuenta con movimientos se rechaza (`CON-011`).
@@ -1002,23 +1003,26 @@ Clasificación por el **primer dígito del código** (`cuenta_contable.clase`). 
 | Rubro | Cálculo |
 |---|---|
 | Ingresos (5) | Σ (haber − debe) de las cuentas de la clase 5 en el rango |
-| Costos y gastos (4) | Σ (debe − haber) de las cuentas de la clase 4 en el rango |
-| **Utilidad (pérdida)** | Ingresos − Costos y gastos |
+| Costos y gastos (4, sin el grupo 44) | Σ (debe − haber) de las cuentas de la clase 4 que no empiezan por 44, en el rango |
+| **Utilidad antes de impuesto** | Ingresos − Costos y gastos |
+| Impuesto sobre la renta (44) | Σ (debe − haber) de las cuentas del grupo 44 en el rango |
+| **Utilidad (pérdida) del ejercicio** | Utilidad antes de impuesto − Impuesto sobre la renta (ADR-037) |
 
-**Balance General (fecha de corte), ADR-016:**
+**Estado de Situación Financiera (fecha de corte), ADR-016 y ADR-037:**
 
 | Rubro | Cálculo |
 |---|---|
 | Activo (1) | Σ (debe − haber) clase 1 hasta la fecha de corte |
 | Pasivo (2) | Σ (haber − debe) clase 2 hasta la fecha de corte |
-| Capital Contable (3) | Σ (haber − debe) clase 3 hasta la fecha de corte |
+| Patrimonio (3) | Σ (haber − debe) clase 3 hasta la fecha de corte |
 | + Resultados de ejercicios anteriores no cerrados | Utilidad (5 − 4) desde el primer movimiento hasta el 31/12 del año anterior al corte |
 | + Utilidad del ejercicio | Utilidad (5 − 4) desde el 1/1 del año del corte hasta la fecha de corte |
-| **Comprobación** | Activo = Pasivo + Capital + Resultados anteriores + Utilidad del ejercicio |
+| **Comprobación** | Activo = Pasivo + Patrimonio + Resultados anteriores + Utilidad del ejercicio |
 
 - El ejercicio es el año calendario `[VERIFICAR]`.
 - Si la comprobación no cuadra se muestra una **alerta con la diferencia exacta**. Con la partida doble garantizada solo puede ocurrir por un error de datos; la alerta enlaza al diagnóstico de mayorización.
 - Ambos estados muestran la jerarquía de cuentas con subtotales por nivel y se generan al consultar.
+- Son **estados de gestión** (ADR-037): pantallas y exportaciones llevan la leyenda "Estado de gestión generado por Pilot; no constituye un juego completo de estados financieros conforme a NIIF para PYMES". Cambios en el patrimonio, flujo de efectivo, notas y comparativos están en §20.3.
 
 ### 10.5 Reportes complementarios
 
@@ -1254,7 +1258,7 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 | `POST /contabilidad/asientos/{id}/reversion` | Revierte un asiento (`Idempotency-Key`) | `contador` |
 | `GET /contabilidad/mayor?cuentaId&desde&hasta` | Libro Mayor / auxiliar con saldo acumulado | `auditor` |
 | `GET /contabilidad/balanza?desde&hasta` | Balanza de Comprobación | `auditor` |
-| `GET /contabilidad/estados/balance-general?fechaCorte` | Balance General con comprobación y alerta | `auditor` |
+| `GET /contabilidad/estados/situacion-financiera?fechaCorte` | Estado de Situación Financiera con comprobación y alerta (ADR-037) | `auditor` |
 | `GET /contabilidad/estados/resultados?desde&hasta` | Estado de Resultados | `auditor` |
 | `GET /contabilidad/reportes/iva?anio&mes` | Resumen de IVA mensual | `auditor` |
 | `GET /contabilidad/diagnostico/mayorizacion` | Verifica saldos contra líneas | `contador` |
@@ -1307,7 +1311,7 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 1. Asientos válidos e inválidos para cada código `CON-001` a `CON-013`.
 2. IVA: los cuatro casos de 11.1 y los dos ejemplos de 11.2.
 3. Cierres de ingresos: el ejemplo de 12.5 en `CON_IVA` (acepta) y `SIN_IVA` (rechaza con `INT-006`), un cierre solo con exentas, uno con varias formas de pago y uno con un código sin regla (`CON-020`).
-4. Estados financieros: un mes completo con balanza, Balance General (incluida la utilidad) y Estado de Resultados validados por contador.
+4. Estados financieros: un mes completo con balanza, Estado de Situación Financiera (incluida la utilidad) y Estado de Resultados (con el impuesto sobre la renta aparte) validados por contador.
 
 **Pruebas obligatorias adicionales:**
 
@@ -1447,6 +1451,7 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 | ADR-034 | Catálogo base cargado como borrador y IVA 13 % con fecha técnica `vigente_desde` 2000-01-01 | Aceptada |
 | ADR-035 | Catálogo y configuración contable de F2: plantillas globales, regla `OTRO` sin cuenta, catálogo sin paginar, códigos `CON-014` a `CON-016` | Aceptada |
 | ADR-036 | Libro Diario de F3: estados HTTP y códigos `CON-017`/`CON-018`, vista previa que no rechaza descuadres, `MontoEntrada`, reversión con fecha ≥ original y evento `AsientoRevertido`, defensas adicionales de BD | Aceptada |
+| ADR-037 | Marco contable NIIF para PYMES: terminología (Estado de Situación Financiera, Patrimonio), estados de gestión en 1.0, impuesto aparte en resultados y catálogo base ampliado | Aceptada |
 
 ---
 
@@ -1468,6 +1473,8 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 - [x] Vencimiento de una API key elegido por fecha: vence al final de ese día en hora de El Salvador (ADR-033, 2026-09-26).
 - [x] Catálogo base y tasa de IVA: se cargan el borrador y el 13 % con fecha técnica 2000-01-01 mientras valida el contador (ADR-034, 2026-09-26).
 - [x] Orden de MFA: Keycloak configura el TOTP antes de verificar el correo; se acepta (ADR-027, 2026-09-26).
+- [x] Marco contable: NIIF para PYMES, terminología NIIF en F4, estados de gestión en 1.0 y catálogo base ampliado como borrador (ADR-037, 2026-09-27).
+- [ ] Edición de las NIIF para PYMES y resolución del CVPCPA aplicables (ADR-037) `[VERIFICAR]` con el contador.
 
 ---
 

@@ -4,11 +4,12 @@
 
 **Convenciones**
 
-- Clases: 1 Activo, 2 Pasivo, 3 Capital Contable, 4 Costos y Gastos, 5 Ingresos.
+- Marco contable de referencia: NIIF para PYMES (ADR-037; edición y resolución del CVPCPA `[VERIFICAR]`). El catálogo es un plan de cuentas interno; NIIF no prescribe uno.
+- Clases: 1 Activo, 2 Pasivo, 3 Patrimonio, 4 Costos y Gastos (el grupo 44, Impuesto sobre la renta, se presenta aparte en el Estado de Resultados), 5 Ingresos.
 - Niveles por longitud del código: clase (1), grupo (2), cuenta (4), subcuenta (6), detalle (8).
 - Solo las cuentas de detalle (8 dígitos, sin hijas) aceptan movimientos.
 - Naturaleza: D = deudora, A = acreedora. Por defecto D en clases 1 y 4, y A en 2, 3 y 5; las excepciones se marcan en **negrita**.
-- La columna "Uso" indica qué configuración la referencia por defecto.
+- La columna "Uso" indica qué configuración la referencia por defecto; "ADR-037" marca las cuentas agregadas al adoptar NIIF para PYMES (migración posterior a V10).
 
 | Código | Nombre | Nat. | Uso por defecto |
 |---|---|---|---|
@@ -23,6 +24,8 @@
 | 110201 | Cuentas por cobrar comerciales | D | |
 | 11020101 | Clientes | D | Regla `CREDITO` |
 | 11020102 | Cuentas por cobrar — emisores de tarjetas | D | Regla `TARJETA` |
+| 110202 | Estimación por deterioro de cuentas por cobrar | **A** | ADR-037 |
+| 11020201 | Estimación para cuentas incobrables | **A** | ADR-037 |
 | 1103 | Inventarios | D | |
 | 110301 | Mercadería | D | |
 | 11030101 | Inventario de mercadería | D | |
@@ -44,11 +47,25 @@
 | 12010101 | Mobiliario y equipo | D | |
 | 12010102 | Equipo de cómputo | D | |
 | 12010103 | Vehículos | D | |
+| 120102 | Bienes inmuebles | D | ADR-037 |
+| 12010201 | Terrenos | D | ADR-037 |
+| 12010202 | Edificios | D | ADR-037 |
 | 1202 | Depreciación acumulada | **A** | |
 | 120201 | Depreciación acumulada de bienes muebles | **A** | |
 | 12020101 | Depreciación acumulada — mobiliario y equipo | **A** | |
 | 12020102 | Depreciación acumulada — equipo de cómputo | **A** | |
 | 12020103 | Depreciación acumulada — vehículos | **A** | |
+| 120202 | Depreciación acumulada de bienes inmuebles | **A** | ADR-037 |
+| 12020201 | Depreciación acumulada — edificios | **A** | ADR-037 |
+| 1203 | Activos intangibles | D | ADR-037 |
+| 120301 | Programas y licencias | D | ADR-037 |
+| 12030101 | Programas y licencias informáticas | D | ADR-037 |
+| 1204 | Amortización acumulada | **A** | ADR-037 |
+| 120401 | Amortización acumulada de intangibles | **A** | ADR-037 |
+| 12040101 | Amortización acumulada — programas y licencias | **A** | ADR-037 |
+| 1205 | Activo por impuesto diferido | D | ADR-037 |
+| 120501 | Impuesto sobre la renta diferido | D | ADR-037 |
+| 12050101 | Activo por impuesto sobre la renta diferido | D | ADR-037 |
 | 2 | PASIVO | A | |
 | 21 | PASIVO CORRIENTE | A | |
 | 2101 | Cuentas por pagar | A | |
@@ -69,14 +86,25 @@
 | 21030101 | Sueldos por pagar | A | |
 | 21030102 | ISSS por pagar | A | |
 | 21030103 | AFP por pagar | A | |
+| 21030104 | Aguinaldo por pagar | A | ADR-037 |
+| 21030105 | Vacaciones por pagar | A | ADR-037 |
 | 2104 | Préstamos a corto plazo | A | |
 | 210401 | Préstamos bancarios | A | |
 | 21040101 | Préstamos bancarios a corto plazo | A | |
+| 2105 | Provisiones | A | ADR-037 |
+| 210501 | Provisiones | A | ADR-037 |
+| 21050101 | Provisiones por litigios y contingencias | A | ADR-037 |
 | 22 | PASIVO NO CORRIENTE | A | |
 | 2201 | Préstamos a largo plazo | A | |
 | 220101 | Préstamos bancarios | A | |
 | 22010101 | Préstamos bancarios a largo plazo | A | |
-| 3 | CAPITAL CONTABLE | A | |
+| 2202 | Beneficios a empleados a largo plazo | A | ADR-037 |
+| 220201 | Indemnizaciones | A | ADR-037 |
+| 22020101 | Provisión para indemnizaciones laborales | A | ADR-037 |
+| 2203 | Pasivo por impuesto diferido | A | ADR-037 |
+| 220301 | Impuesto sobre la renta diferido | A | ADR-037 |
+| 22030101 | Pasivo por impuesto sobre la renta diferido | A | ADR-037 |
+| 3 | PATRIMONIO | A | ADR-037 (antes CAPITAL CONTABLE) |
 | 31 | CAPITAL | A | |
 | 3101 | Capital social | A | |
 | 310101 | Capital social | A | |
@@ -111,11 +139,20 @@
 | 42020104 | Papelería y útiles | D | |
 | 42020105 | Depreciación | D | |
 | 42020106 | Honorarios profesionales | D | |
+| 42020107 | Deterioro de cuentas por cobrar | D | ADR-037 |
+| 42020108 | Amortización de intangibles | D | ADR-037 |
+| 42020109 | Aguinaldos y vacaciones | D | ADR-037 |
+| 42020110 | Indemnizaciones laborales | D | ADR-037 |
 | 43 | GASTOS FINANCIEROS | D | |
 | 4301 | Gastos financieros | D | |
 | 430101 | Gastos financieros | D | |
 | 43010101 | Intereses bancarios | D | |
 | 43010102 | Comisiones bancarias | D | |
+| 44 | IMPUESTO SOBRE LA RENTA | D | ADR-037 |
+| 4401 | Impuesto sobre la renta | D | ADR-037 |
+| 440101 | Impuesto sobre la renta | D | ADR-037 |
+| 44010101 | Gasto por impuesto sobre la renta corriente | D | ADR-037 |
+| 44010102 | Gasto (ingreso) por impuesto sobre la renta diferido | D | ADR-037 |
 | 5 | INGRESOS | A | |
 | 51 | INGRESOS DE OPERACIÓN | A | |
 | 5101 | Ventas | A | |
@@ -136,3 +173,5 @@
 2. ¿Las cuentas por cobrar a emisores de tarjetas deben separarse por banco?
 3. ¿Qué cuentas adicionales considera imprescindibles para una PYME comercial en su primer mes?
 4. ¿La numeración de 8 dígitos para cuentas de detalle es adecuada o prefiere otra estructura?
+5. (ADR-037) ¿Son correctas y suficientes las cuentas agregadas para NIIF para PYMES: deterioro de cuentas por cobrar, inmuebles, intangibles, impuesto diferido, aguinaldo, vacaciones, provisiones, indemnizaciones y el grupo 44 de impuesto sobre la renta? ¿La indemnización debe tratarse como beneficio a largo plazo o por terminación?
+6. (ADR-037) ¿Qué edición de las NIIF para PYMES y qué resolución del CVPCPA aplican a los estados de 2026?
