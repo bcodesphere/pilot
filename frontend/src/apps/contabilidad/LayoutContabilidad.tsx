@@ -5,6 +5,7 @@ import { usePermisosContabilidad } from './usePermisosContabilidad';
 
 /** Secciones de la subnavegación de Contabilidad. Rutas absolutas: las relativas se resuelven mal dentro de `/contabilidad/*`. */
 const SECCIONES = [
+  { ruta: '/contabilidad/libro-diario', texto: 'Libro Diario' },
   { ruta: '/contabilidad/catalogo', texto: 'Catálogo' },
   { ruta: '/contabilidad/configuracion', texto: 'Configuración' },
   { ruta: '/contabilidad/reglas', texto: 'Reglas' },

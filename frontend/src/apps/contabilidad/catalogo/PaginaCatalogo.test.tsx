@@ -360,4 +360,13 @@ describe('pantalla Catálogo: estado vacío', () => {
     expect(await screen.findByText('El catálogo de cuentas está vacío.')).toBeInTheDocument();
     expect(screen.queryByText(/Crea las cuentas de clase/)).not.toBeInTheDocument();
   });
+
+  // Caso (menor de F2-06): con el catálogo vacío, escribir en la búsqueda no debe dejar la pantalla sin mensaje
+  it('con catálogo vacío y texto en la búsqueda dice que ninguna cuenta coincide', async () => {
+    montarContabilidad('/contabilidad/catalogo', 'contador', vacio);
+    await screen.findByText('El catálogo de cuentas está vacío.');
+    await userEvent.type(screen.getByLabelText('Buscar por código o nombre'), 'caja');
+    expect(await screen.findByText('Ninguna cuenta coincide con la búsqueda.')).toBeInTheDocument();
+    expect(screen.queryByText('El catálogo de cuentas está vacío.')).not.toBeInTheDocument();
+  });
 });

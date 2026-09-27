@@ -177,6 +177,13 @@ export function PaginaCatalogo() {
         </div>
       )}
 
+      {/* Catálogo sin cuentas y con texto en la búsqueda: no hay nada que pueda coincidir */}
+      {cuentas && cuentas.length === 0 && texto.trim() && (
+        <p role="status" className="text-sm text-neutral-600">
+          Ninguna cuenta coincide con la búsqueda.
+        </p>
+      )}
+
       {cuentas && cuentas.length > 0 && (
         <div aria-label="Árbol de cuentas">
           {busqueda && busqueda.visibles.size === 0 ? (

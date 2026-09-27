@@ -34,9 +34,9 @@ export function PaginaReglas() {
   const recargar = () =>
     clienteConsultas.invalidateQueries({ queryKey: getListarReglasContabilizacionQueryKey(PARAMETROS) });
 
-  // La regla OTRO inactiva rechaza los cierres que la usen hasta que se le asigne cuenta (ADR-035)
   // Consulta exitosa sin ninguna regla: la empresa no tiene precarga
   const sinReglas = reglas?.length === 0;
+  // La regla OTRO inactiva rechaza los cierres que la usen hasta que se le asigne cuenta (ADR-035)
   const otroInactiva = reglas?.some((r) => r.codigo === 'OTRO' && !r.activa) ?? false;
 
   return (

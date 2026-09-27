@@ -3,11 +3,15 @@ import type { ModuloApp } from '@/nucleo/apps/registro';
 import { PaginaCatalogo } from './catalogo/PaginaCatalogo';
 import { PaginaConfiguracion } from './configuracion/PaginaConfiguracion';
 import { LayoutContabilidad } from './LayoutContabilidad';
+import { PaginaAsiento } from './libro-diario/PaginaAsiento';
+import { PaginaLibroDiario } from './libro-diario/PaginaLibroDiario';
+import { PaginaNuevoAsiento } from './libro-diario/PaginaNuevoAsiento';
 import { PaginaReglas } from './reglas/PaginaReglas';
 
 /**
  * Módulo de la app Contabilidad: el shell registra sus rutas bajo `/contabilidad/*` si está instalada (ADR-021).
- * En F2 tiene tres pantallas (catálogo, configuración y reglas); el índice redirige al catálogo.
+ * Pantallas: Libro Diario (listado, nuevo asiento y detalle, F3), catálogo, configuración y reglas (F2); el índice
+ * sigue redirigiendo al catálogo (el e2e de F2 depende de ello).
  */
 export const modulo: ModuloApp = {
   rutas: [
@@ -15,6 +19,10 @@ export const modulo: ModuloApp = {
       element: <LayoutContabilidad />,
       children: [
         { index: true, element: <Navigate to="/contabilidad/catalogo" replace /> },
+        { path: 'libro-diario', element: <PaginaLibroDiario /> },
+        // `nuevo` va antes que `:asientoId` para que no se lea como un id (React Router ya prioriza las estáticas)
+        { path: 'libro-diario/nuevo', element: <PaginaNuevoAsiento /> },
+        { path: 'libro-diario/:asientoId', element: <PaginaAsiento /> },
         { path: 'catalogo', element: <PaginaCatalogo /> },
         { path: 'configuracion', element: <PaginaConfiguracion /> },
         { path: 'reglas', element: <PaginaReglas /> },

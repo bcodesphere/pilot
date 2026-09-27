@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { json } from '@/nucleo/pruebas-arnes';
@@ -24,6 +24,15 @@ describe('layout de Contabilidad', () => {
       '/contabilidad/configuracion',
     );
     expect(screen.getByRole('link', { name: 'Reglas' })).toHaveAttribute('href', '/contabilidad/reglas');
+    // F3: la sección "Libro Diario" va antes que "Catálogo" en la subnavegación
+    const enlaces = within(nav)
+      .getAllByRole('link')
+      .map((a) => a.textContent);
+    expect(enlaces).toEqual(['Libro Diario', 'Catálogo', 'Configuración', 'Reglas']);
+    expect(screen.getByRole('link', { name: 'Libro Diario' })).toHaveAttribute(
+      'href',
+      '/contabilidad/libro-diario',
+    );
   });
 
   // Regla: la subnavegación lleva a cada pantalla

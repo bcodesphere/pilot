@@ -1,4 +1,11 @@
-import type { CuentaContable, ReglaContabilizacion } from '@/api/modelos';
+import type {
+  Asiento,
+  CuentaContable,
+  LineaAsiento,
+  ReglaContabilizacion,
+  ResumenAsiento,
+  VistaPreviaAsiento,
+} from '@/api/modelos';
 
 /** Datos de ejemplo para las pruebas de las pantallas de Contabilidad (subconjunto del catálogo base). */
 
@@ -58,6 +65,124 @@ export function regla(
     cuenta: c ? { id: c.id, codigo: c.codigo, nombre: c.nombre } : null,
     activa: c !== undefined,
     version: 2,
+    ...extra,
+  };
+}
+
+/** Configuración contable de ejemplo: modo `CON_IVA`, IVA débito 21010101 e IVA crédito 11030101 (ETag "3"). */
+export const CONFIGURACION = {
+  modoPrecioDefecto: 'CON_IVA',
+  cuentaIvaDebito: { id: 'c-21010101', codigo: '21010101', nombre: 'IVA débito fiscal' },
+  cuentaIvaCredito: { id: 'c-11030101', codigo: '11030101', nombre: 'IVA crédito fiscal' },
+  version: 3,
+} as const;
+
+/** Fabrica una línea de asiento guardado de ejemplo para la cuenta con ese código del catálogo. */
+export function lineaAsiento(
+  numeroLinea: number,
+  cuentaCodigo: string,
+  debe: string,
+  haber: string,
+  extra: Partial<LineaAsiento> = {},
+): LineaAsiento {
+  const c = [...CATALOGO, cuenta('41010101', 'Compras')].find((x) => x.codigo === cuentaCodigo)!;
+  return {
+    id: `l-${numeroLinea}`,
+    numeroLinea,
+    cuenta: { id: c.id, codigo: c.codigo, nombre: c.nombre },
+    descripcion: null,
+    debe,
+    haber,
+    origenLinea: 'USUARIO',
+    lineaBaseId: null,
+    ...extra,
+  };
+}
+
+/** Asiento guardado de ejemplo: N.º 7/2026, manual y contabilizado, Caja 113.00 / Ventas 100.00 + IVA débito 13.00. */
+export function asiento(extra: Partial<Asiento> = {}): Asiento {
+  return {
+    id: 'a-1',
+    anio: 2026,
+    numero: 7,
+    fecha: '2026-09-20',
+    concepto: 'Venta al contado',
+    estado: 'CONTABILIZADO',
+    origenTipo: 'MANUAL',
+    origenId: null,
+    modoPrecio: 'CON_IVA',
+    asientoRevertidoId: null,
+    asientoReversionId: null,
+    totalDebe: '113.00',
+    totalHaber: '113.00',
+    creadoEn: '2026-09-20T16:00:00Z',
+    lineas: [
+      lineaAsiento(1, '11010101', '113.00', '0.00'),
+      lineaAsiento(2, '51010101', '0.00', '100.00'),
+      lineaAsiento(3, '21010101', '0.00', '13.00', { origenLinea: 'IVA_CALCULADO', lineaBaseId: 'l-2' }),
+    ],
+    ...extra,
+  };
+}
+
+/** Resumen de asiento (fila del listado) de ejemplo. */
+export function resumenAsiento(numero: number, extra: Partial<ResumenAsiento> = {}): ResumenAsiento {
+  return {
+    id: `a-${numero}`,
+    anio: 2026,
+    numero,
+    fecha: '2026-09-20',
+    concepto: `Asiento de prueba ${numero}`,
+    estado: 'CONTABILIZADO',
+    origenTipo: 'MANUAL',
+    totalDebe: '100.00',
+    totalHaber: '100.00',
+    ...extra,
+  };
+}
+
+/** Vista previa de ejemplo: Caja 113.00 / Ventas 100.00 + IVA débito 13.00 (modo `CON_IVA`), que cuadra. */
+export function vistaPrevia(extra: Partial<VistaPreviaAsiento> = {}): VistaPreviaAsiento {
+  const c = (codigo: string) => {
+    const x = CATALOGO.find((k) => k.codigo === codigo)!;
+    return { id: x.id, codigo: x.codigo, nombre: x.nombre };
+  };
+  return {
+    modoPrecio: 'CON_IVA',
+    tasaIva: '0.1300',
+    lineas: [
+      {
+        numeroLinea: 1,
+        cuenta: c('11010101'),
+        descripcion: null,
+        debe: '113.00',
+        haber: '0.00',
+        origenLinea: 'USUARIO',
+        numeroLineaOrigen: null,
+      },
+      {
+        numeroLinea: 2,
+        cuenta: c('51010101'),
+        descripcion: null,
+        debe: '0.00',
+        haber: '100.00',
+        origenLinea: 'USUARIO',
+        numeroLineaOrigen: null,
+      },
+      {
+        numeroLinea: 3,
+        cuenta: c('21010101'),
+        descripcion: null,
+        debe: '0.00',
+        haber: '13.00',
+        origenLinea: 'IVA_CALCULADO',
+        numeroLineaOrigen: 2,
+      },
+    ],
+    totalDebe: '113.00',
+    totalHaber: '113.00',
+    diferencia: '0.00',
+    cuadra: true,
     ...extra,
   };
 }
