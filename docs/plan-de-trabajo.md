@@ -178,7 +178,7 @@ F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 **Criterios de aceptación**
 - Con modo `CON_IVA`, el cierre de ejemplo (gravadas 1,130.00, exentas 50.00, efectivo 780.00, tarjeta 400.00) genera: Caja 780.00 + CxC tarjetas 400.00 / Ventas gravadas 1,000.00 + IVA débito 130.00 + Ventas exentas 50.00.
 - El mismo cierre con modo `SIN_IVA` se rechaza con 422 `INT-006` y `diferencia` 146.90.
-- Mismo `Idempotency-Key` y mismo cuerpo → 200 con la respuesta original y `Idempotency-Replayed: true`; misma clave con otro cuerpo → 422 `INT-005`; otra clave con el mismo `idExterno` vigente → 409 `INT-004`. Nunca hay dos asientos.
+- Mismo `Idempotency-Key` y mismo cuerpo → la respuesta original con su estado (201) y `Idempotency-Replayed: true` (ADR-039); misma clave con otro cuerpo → 422 `INT-005`; otra clave con el mismo `idExterno` vigente → 409 `INT-004`. Nunca hay dos asientos.
 - Una forma de pago sin regla → 422 `CON-020`, nada se guarda y el intento aparece en la bitácora.
 - Tras revertir el asiento de un cierre, el reenvío corregido con el mismo `idExterno` se acepta.
 - Desde la app web de prueba → n8n → Pilot, el asiento aparece en el Libro Diario y en los reportes.

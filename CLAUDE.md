@@ -1137,7 +1137,7 @@ Casos dorados obligatorios (t = 13 %): `CON_IVA` 113.00 → 100.00 + 13.00 · `S
 
 | Código | Validación |
 |---|---|
-| `INT-001` | Cuerpo que no cumple el esquema (incluye lista `errores`) |
+| `INT-001` | Cuerpo que no cumple el esquema, o con códigos repetidos en `ingresos`/`cobros`, o sin un ingreso y un cobro mayores que cero (incluye lista `errores`; ADR-039) |
 | `INT-002` | `tipoOperacion` o `version` no soportados |
 | `CON-007` | Fecha futura |
 | `INT-006` | Σ `cobros` ≠ total de la operación normalizada (12.5), o `totalCobrado` ≠ Σ `cobros`; se informa la `diferencia` |
@@ -1190,7 +1190,7 @@ Casos dorados obligatorios (t = 13 %): `CON_IVA` 113.00 → 100.00 + 13.00 · `S
 ### 12.6 Idempotencia y concurrencia
 
 1. **Nivel HTTP:** se busca `(empresa_id, Idempotency-Key)` en `idempotencia`.
-   - Misma clave y mismo hash de cuerpo → se devuelve la respuesta guardada con `Idempotency-Replayed: true`.
+   - Misma clave y mismo hash de cuerpo → se devuelve la respuesta guardada **con su estado original** (201 o 409 `INT-004`) y `Idempotency-Replayed: true` (ADR-039).
    - Misma clave y otro cuerpo → 422 `INT-005`.
 2. **Nivel operación:** si ya existe una operación `CONTABILIZADO` con el mismo `sistemaOrigen` + `idExterno` → 409 `INT-004` con `operacionId` y `asientoId`; **nunca** se crea un segundo asiento.
 3. **Nivel contable:** índices únicos `uq_operacion_vigente` y `uq_asiento_operacion_vigente` como última defensa.
@@ -1217,6 +1217,7 @@ Casos dorados obligatorios (t = 13 %): `CON_IVA` 113.00 → 100.00 + 13.00 · `S
 | 403 | `PLT-004` | La app Contabilidad no está activa en la empresa | No |
 | 409 | `INT-004` | El cierre ya está contabilizado (devuelve `operacionId` y `asientoId`) | No; tratar como éxito |
 | 409 | `INT-009` | Petición del mismo cierre en proceso | Sí, tras unos segundos |
+| 413 | `INT-010` | El cuerpo supera 1 MB (ADR-039) | No; dividir o corregir el envío |
 | 422 | `INT-002` | Tipo u versión de operación no soportados | No |
 | 422 | `INT-005` | `Idempotency-Key` reutilizada con otro cuerpo | No |
 | 422 | `INT-006` | Cobros que no cuadran con los ingresos (incluye `diferencia`) | No; corregir el cierre |
@@ -1256,16 +1257,16 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 | `POST /contabilidad/asientos/vista-previa` | Expande IVA y valida sin guardar | `contador` |
 | `GET /contabilidad/asientos` · `GET /{id}` | Libro Diario con filtros (fecha, número, origen, cuenta) | `auditor` |
 | `POST /contabilidad/asientos/{id}/reversion` | Revierte un asiento (`Idempotency-Key`) | `contador` |
-| `GET /contabilidad/mayor?cuentaId&desde&hasta` | Libro Mayor / auxiliar con saldo acumulado | `auditor` |
-| `GET /contabilidad/balanza?desde&hasta` | Balanza de Comprobación | `auditor` |
+| `GET /contabilidad/mayor?cuentaId&desde&hasta` | Libro Mayor / auxiliar con saldo acumulado (cuenta padre: movimientos de sus cuentas de detalle) | `auditor` |
+| `GET /contabilidad/balanza?desde&hasta&nivel` | Balanza de Comprobación | `auditor` |
 | `GET /contabilidad/estados/situacion-financiera?fechaCorte` | Estado de Situación Financiera con comprobación y alerta (ADR-037) | `auditor` |
 | `GET /contabilidad/estados/resultados?desde&hasta` | Estado de Resultados | `auditor` |
 | `GET /contabilidad/reportes/iva?anio&mes` | Resumen de IVA mensual | `auditor` |
 | `GET /contabilidad/diagnostico/mayorizacion` | Verifica saldos contra líneas | `contador` |
 | `POST /integraciones/n8n/operaciones` | Webhook de n8n (sección 12) | API key `integracion:operaciones` |
-| `GET /integraciones/operaciones` · `GET /{id}` | Bitácora de operaciones y rechazos | `auditor` |
+| `GET /integraciones/operaciones` · `GET /{id}` · `GET /exportacion` | Bitácora de operaciones y rechazos, y su exportación (ADR-039) | `auditor` |
 
-- **Exportación:** los endpoints de reportes aceptan `?formato=pdf|xlsx|csv` o el header `Accept` correspondiente; por defecto JSON.
+- **Exportación (ADR-038):** cada reporte tiene una ruta aparte `…/exportacion?formato=pdf|xlsx|csv` con los mismos filtros, que responde el archivo: `/contabilidad/asientos/exportacion`, `/contabilidad/mayor/exportacion`, `/contabilidad/balanza/exportacion`, `/contabilidad/estados/situacion-financiera/exportacion`, `/contabilidad/estados/resultados/exportacion` y `/contabilidad/reportes/iva/exportacion` (rol `auditor`). Las rutas de reportes responden solo JSON.
 - Errores: Problem Details (8.4). Todas las respuestas llevan `X-Request-Id`.
 
 ---
@@ -1452,6 +1453,8 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 | ADR-035 | Catálogo y configuración contable de F2: plantillas globales, regla `OTRO` sin cuenta, catálogo sin paginar, códigos `CON-014` a `CON-016` | Aceptada |
 | ADR-036 | Libro Diario de F3: estados HTTP y códigos `CON-017`/`CON-018`, vista previa que no rechaza descuadres, `MontoEntrada`, reversión con fecha ≥ original y evento `AsientoRevertido`, defensas adicionales de BD | Aceptada |
 | ADR-037 | Marco contable NIIF para PYMES: terminología (Estado de Situación Financiera, Patrimonio), estados de gestión en 1.0, impuesto aparte en resultados y catálogo base ampliado | Aceptada |
+| ADR-038 | Contrato de F4: reportes en JSON sin paginar, exportaciones como operaciones binarias `…/exportacion?formato=`, esquema `Saldo`, Mayor de cuentas padre, totales de la balanza desde el detalle | Aceptada |
+| ADR-039 | Contrato de F5: repetición idempotente con el estado original, 413 `INT-010`, cuerpo libre validado por esquema JSON versionado, reglas de `INT-001` fuera del esquema, bitácora unificada y su exportación | Aceptada |
 
 ---
 

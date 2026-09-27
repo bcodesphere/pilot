@@ -41,6 +41,8 @@ Cada ADR registra contexto, decisión, alternativas y consecuencias. Un ADR acep
 | [ADR-035](ADR-035-catalogo-y-configuracion-contable.md) | Catálogo y configuración contable de F2: plantillas, regla sin cuenta, catálogo sin paginar y códigos | Aceptada |
 | [ADR-036](ADR-036-libro-diario-y-reversion.md) | Libro Diario de F3: códigos de error, vista previa, montos de entrada, reversión y defensas de base de datos | Aceptada |
 | [ADR-037](ADR-037-marco-niif-para-pymes.md) | Marco contable NIIF para PYMES: terminología, estados de gestión y catálogo base ampliado | Aceptada |
+| [ADR-038](ADR-038-contrato-de-reportes-y-exportaciones.md) | Contrato de F4: reportes en JSON y exportaciones como recursos binarios | Aceptada |
+| [ADR-039](ADR-039-contrato-del-webhook-n8n.md) | Contrato de F5: webhook de operaciones de n8n, esquema JSON v1 y bitácora | Aceptada |
 
 Los ADR diferidos están documentados en `docs/diferido/vision-completa-con-dte.md` (sección 22 de ese archivo).
 
