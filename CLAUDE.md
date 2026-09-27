@@ -18,10 +18,10 @@
 | Moneda | USD (única moneda contable) |
 | Zona horaria de negocio | `America/El_Salvador` (UTC−6, sin horario de verano) |
 | Idioma de producto | Español (`es-SV`) |
-| Estado actual | Fase F3 — Libro Diario (F1 y F2 cerradas; ver `docs/plan-de-trabajo.md`) |
+| Estado actual | Fases F4 (reportes) y F5 (webhook n8n) — F1, F2 y F3 cerradas; ver `docs/plan-de-trabajo.md` |
 | Plazo de Contabilidad 1.0 | **Timebox de 24 horas desde el 2026-09-25** (ver nota de urgencia) |
 | Modelo de negocio | Open-Core / Freemium: plan Gratuito y plan Enterprise con DTE (ADR-031) |
-| Última actualización de este archivo | 2026-09-26 |
+| Última actualización de este archivo | 2026-09-27 |
 
 ---
 
