@@ -37,3 +37,10 @@ Además quedaban sin definir la forma de los saldos, los filtros de período, el
 - La guía técnica §13 lista las rutas de exportación y deja de mencionar el header `Accept`.
 - El frontend descarga los archivos como `Blob` con el cliente generado por Orval.
 - F5 agrega la exportación de la bitácora con el mismo patrón.
+
+## Implementación de las exportaciones (2026-09-27)
+- **Bibliotecas** (versiones comprobadas en Maven Central el 2026-09-27): `io.github.openhtmltopdf:openhtmltopdf-pdfbox` 1.1.87 (la línea mantenida; `com.openhtmltopdf` quedó en 1.0.10, de 2021), `org.apache.poi:poi-ooxml` 5.5.1 (escritura en streaming con SXSSF) y `org.thymeleaf:thymeleaf` con la versión que gestiona Spring Boot, con un motor de plantillas propio para el PDF (sin resolver vistas de Spring MVC). El CSV se escribe sin dependencias (RFC 4180).
+- **Mismos datos que la pantalla:** cada exportación usa el mismo caso de uso que su reporte JSON y no calcula nada; los totales se escriben tal como los entrega el backend. En XLSX no hay fórmulas.
+- **Montos en XLSX:** celdas numéricas con formato `#,##0.00`; el `BigDecimal` se convierte a `double` solo al escribir la celda, nunca para sumar ni comparar (regla 1.2.2). Montos de hasta 15 dígitos significativos se representan exactos al mostrarse con 2 decimales.
+- **CSV:** UTF-8 con BOM, separador coma, punto decimal, montos sin separador de miles; cabecera en español.
+- **PDF:** tamaño carta, título, período, fecha y hora de generación en hora de El Salvador, número de página y, en los estados, la leyenda de ADR-037.
