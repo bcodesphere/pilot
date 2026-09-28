@@ -16,7 +16,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +41,20 @@ class ConsultaAsientosJdbc implements ConsultaAsientos {
     static final String SELECT_CABECERA = "SELECT a.id, a.anio, a.numero, a.fecha, a.concepto, a.estado, a.origen_tipo,"
             + " a.origen_id, a.modo_precio, a.asiento_revertido_id, a.asiento_reversion_id, a.total_debe, a.total_haber, a.creado_en"
             + " FROM asiento a";
+
+    /**
+     * Cabecera y línea en una sola fila (JOIN), para {@link #listarCompleto(FiltroAsientos)}: evita N+1 sobre el
+     * catálogo al exportar el Libro Diario completo (ADR-038, F4-04). Los alias {@code l_} y {@code c_} evitan
+     * colisiones con las columnas de la cabecera (p. ej. {@code debe}/{@code haber} existen en ambas tablas).
+     */
+    private static final String SELECT_CABECERA_CON_LINEA = "SELECT a.id, a.anio, a.numero, a.fecha, a.concepto,"
+            + " a.estado, a.origen_tipo, a.origen_id, a.modo_precio, a.asiento_revertido_id, a.asiento_reversion_id,"
+            + " a.total_debe, a.total_haber, a.creado_en, l.id AS l_id, l.numero_linea,"
+            + " l.descripcion AS l_descripcion, l.debe AS l_debe, l.haber AS l_haber, l.origen_linea, l.linea_base_id,"
+            + " c.id AS c_id, c.codigo AS c_codigo, c.nombre AS c_nombre"
+            + " FROM asiento a"
+            + " JOIN asiento_linea l ON l.asiento_id = a.id AND l.empresa_id = a.empresa_id"
+            + " JOIN cuenta_contable c ON c.empresa_id = l.empresa_id AND c.id = l.cuenta_id";
 
     private final JdbcClient jdbc;
 
@@ -201,5 +217,74 @@ class ConsultaAsientosJdbc implements ConsultaAsientos {
             sql.append(condicion);
             parametros.put(nombre, valor);
         }
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
+    public List<Asiento> listarCompleto(FiltroAsientos f) {
+        // 1. Mismos filtros que listar(), pero con JOIN a la línea y a la cuenta, sin paginar (ADR-038, F4-04)
+        StringBuilder sql = new StringBuilder(SELECT_CABECERA_CON_LINEA + " WHERE a.empresa_id = :empresa");
+        Map<String, Object> parametros = new HashMap<>();
+        parametros.put("empresa", ContextoEmpresa.empresaRequerida().valor());
+        filtrar(sql, parametros, " AND a.fecha >= :desde", "desde", f.desde());
+        filtrar(sql, parametros, " AND a.fecha <= :hasta", "hasta", f.hasta());
+        filtrar(sql, parametros, " AND a.anio = :anio", "anio", f.anio());
+        filtrar(sql, parametros, " AND a.numero = :numero", "numero", f.numero());
+        filtrar(
+                sql,
+                parametros,
+                " AND a.origen_tipo = :origen",
+                "origen",
+                f.origen() == null ? null : f.origen().name());
+        filtrar(
+                sql,
+                parametros,
+                " AND a.estado = :estado",
+                "estado",
+                f.estado() == null ? null : f.estado().name());
+        filtrar(
+                sql,
+                parametros,
+                " AND EXISTS (SELECT 1 FROM asiento_linea x WHERE x.empresa_id = a.empresa_id"
+                        + " AND x.asiento_id = a.id AND x.cuenta_id = :cuenta)",
+                "cuenta",
+                f.cuentaId());
+        sql.append(" ORDER BY a.anio, a.numero, l.numero_linea");
+
+        // 2. Una sola consulta con JOIN; se agrupa en memoria por asiento, conservando el orden de llegada
+        List<FilaCompleta> filas = jdbc.sql(sql.toString())
+                .params(parametros)
+                .query(ConsultaAsientosJdbc::leerFilaCompleta)
+                .list();
+        Map<UUID, Asiento> cabeceras = new LinkedHashMap<>();
+        Map<UUID, List<LineaAsiento>> lineasPorAsiento = new LinkedHashMap<>();
+        for (FilaCompleta fila : filas) {
+            UUID asientoId = fila.cabeceraSinLineas().id();
+            cabeceras.putIfAbsent(asientoId, fila.cabeceraSinLineas());
+            lineasPorAsiento.computeIfAbsent(asientoId, id -> new ArrayList<>()).add(fila.linea());
+        }
+        List<Asiento> resultado = new ArrayList<>(cabeceras.size());
+        for (Map.Entry<UUID, Asiento> e : cabeceras.entrySet()) {
+            resultado.add(new Cabecera(e.getValue()).conLineas(lineasPorAsiento.get(e.getKey())));
+        }
+        return resultado;
+    }
+
+    /** Cabecera (sin líneas) y una línea, tal como llega cada fila del JOIN de {@link #listarCompleto}. */
+    private record FilaCompleta(Asiento cabeceraSinLineas, LineaAsiento linea) {}
+
+    /** Mapea una fila de {@link #SELECT_CABECERA_CON_LINEA} a su cabecera (sin líneas) y su línea. */
+    private static FilaCompleta leerFilaCompleta(ResultSet rs, int n) throws SQLException {
+        Asiento cabecera = aCabecera(rs).sinLineas();
+        LineaAsiento linea = new LineaAsiento(
+                rs.getObject("l_id", UUID.class),
+                rs.getInt("numero_linea"),
+                new ResumenCuenta(rs.getObject("c_id", UUID.class), rs.getString("c_codigo"), rs.getString("c_nombre")),
+                rs.getString("l_descripcion"),
+                new Dinero(rs.getBigDecimal("l_debe")),
+                new Dinero(rs.getBigDecimal("l_haber")),
+                OrigenLinea.valueOf(rs.getString("origen_linea")),
+                rs.getObject("linea_base_id", UUID.class));
+        return new FilaCompleta(cabecera, linea);
     }
 }

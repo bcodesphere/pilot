@@ -1,0 +1,61 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- Plantilla PDF del Libro Diario (CLAUDE.md 10.5, ADR-038). Reutiliza los mismos asientos que el reporte JSON;
+     no calcula nada aparte de los totales de la propia página, ya sumados en Java (GeneradorExportacionPdf). -->
+<head>
+  <meta charset="UTF-8" />
+  <!-- @page fija tamaño carta y el número de página en el margen inferior (ADR-038: "número de página") -->
+  <style>
+    @page { size: letter; margin: 2cm 1.4cm;
+      @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 8px; color: #666; } }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #222; }
+    h1 { font-size: 15px; margin: 0 0 2px 0; }
+    .meta { font-size: 8px; color: #555; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 2px 4px; text-align: left; }
+    th { background: #eee; }
+    .num { text-align: right; white-space: nowrap; }
+    .total-row td { font-weight: bold; background: #f5f5f5; }
+  </style>
+</head>
+<body>
+  <!-- 1. Encabezado: título, período y fecha/hora de generación en hora de El Salvador -->
+  <h1 th:text="${titulo}">Libro Diario</h1>
+  <p class="meta">
+    <span th:text="${periodo}">Período</span> — Generado el <span th:text="${generadoEn}">fecha</span>
+  </p>
+  <!-- 2. Una fila por línea de asiento; los datos de la cabecera se repiten en cada línea (igual que en CSV/XLSX) -->
+  <table>
+    <thead>
+      <tr>
+        <th>Año</th><th>Número</th><th>Fecha</th><th>Concepto</th><th>Estado</th><th>Origen</th>
+        <th>Línea</th><th>Código</th><th>Cuenta</th><th>Descripción</th><th class="num">Debe</th><th class="num">Haber</th>
+      </tr>
+    </thead>
+    <tbody>
+      <th:block th:each="a : ${asientos}">
+        <tr th:each="l : ${a.lineas()}">
+          <td th:text="${a.anio()}"></td>
+          <td th:text="${a.numero()}"></td>
+          <td th:text="${a.fecha()}"></td>
+          <td th:text="${a.concepto()}"></td>
+          <td th:text="${a.estado()}"></td>
+          <td th:text="${a.origenTipo()}"></td>
+          <td th:text="${l.numeroLinea()}"></td>
+          <td th:text="${l.cuenta().codigo()}"></td>
+          <td th:text="${l.cuenta().nombre()}"></td>
+          <td th:text="${l.descripcion()}"></td>
+          <td class="num" th:text="${l.debe()}"></td>
+          <td class="num" th:text="${l.haber()}"></td>
+        </tr>
+      </th:block>
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="10">TOTALES</td>
+        <td class="num" th:text="${totalDebe}"></td>
+        <td class="num" th:text="${totalHaber}"></td>
+      </tr>
+    </tfoot>
+  </table>
+</body>
+</html>

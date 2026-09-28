@@ -79,4 +79,23 @@ public class ConsultarAsientos {
         ResumenAsiento ultimo = pagina.get(tamano - 1);
         return new PaginaAsientos(List.copyOf(pagina), new CursorAsiento(ultimo.anio(), ultimo.numero()).codificar());
     }
+
+    /**
+     * Lista el Libro Diario completo (con líneas) de un rango, sin paginar, para su exportación (ADR-038, F4-04).
+     *
+     * @param filtro filtros opcionales; {@code desde} y {@code hasta} siempre vienen informados
+     * @return los asientos del rango, cada uno con sus líneas, en orden ascendente de (año, número)
+     * @throws ExcepcionValidacion 422 {@code PLT-002} si {@code desde} es posterior a {@code hasta}
+     */
+    @PreAuthorize("hasRole('AUDITOR')")
+    @Transactional(readOnly = true)
+    public List<Asiento> listarCompleto(FiltroAsientos filtro) {
+        if (filtro.desde() != null && filtro.hasta() != null && filtro.desde().isAfter(filtro.hasta())) {
+            throw new ExcepcionValidacion(
+                    "PLT-002",
+                    "La solicitud contiene datos inválidos",
+                    List.of(new ErrorCampo("desde", "La fecha inicial no puede ser posterior a la final")));
+        }
+        return consulta.listarCompleto(filtro);
+    }
 }

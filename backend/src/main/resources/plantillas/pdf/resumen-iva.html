@@ -1,0 +1,62 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- Plantilla PDF del resumen de IVA mensual (CLAUDE.md 10.5, ADR-038 §8). El desglose por origen de asiento ya
+     viene calculado por dominio.estados.ResumenIva; la plantilla solo lo presenta con su nota informativa. -->
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @page { size: letter; margin: 2cm 1.4cm;
+      @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 8px; color: #666; } }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #222; }
+    h1 { font-size: 15px; margin: 0 0 2px 0; }
+    h2 { font-size: 11px; margin: 10px 0 3px 0; }
+    .meta { font-size: 8px; color: #555; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 2px 4px; text-align: left; }
+    th { background: #eee; }
+    .num { text-align: right; white-space: nowrap; }
+    .total-row td { font-weight: bold; background: #f5f5f5; }
+    .resultado td { font-weight: bold; background: #e8f0e8; }
+    .nota { font-size: 8px; color: #666; margin-top: 10px; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1 th:text="${titulo}">Resumen de IVA</h1>
+  <p class="meta">
+    <span th:text="${periodo}">Período</span> — Generado el <span th:text="${generadoEn}">fecha</span>
+  </p>
+
+  <h2>IVA débito fiscal — <span th:text="${resumen.cuentaIvaDebito().codigo()}"></span> <span th:text="${resumen.cuentaIvaDebito().nombre()}"></span></h2>
+  <table>
+    <thead><tr><th class="num">Manual</th><th class="num">N8N</th><th class="num">Reversión</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="num" th:text="${resumen.ivaDebito().manual()}"></td>
+        <td class="num" th:text="${resumen.ivaDebito().n8n()}"></td>
+        <td class="num" th:text="${resumen.ivaDebito().reversion()}"></td>
+        <td class="num" th:text="${resumen.ivaDebito().total()}"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>IVA crédito fiscal — <span th:text="${resumen.cuentaIvaCredito().codigo()}"></span> <span th:text="${resumen.cuentaIvaCredito().nombre()}"></span></h2>
+  <table>
+    <thead><tr><th class="num">Manual</th><th class="num">N8N</th><th class="num">Reversión</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="num" th:text="${resumen.ivaCredito().manual()}"></td>
+        <td class="num" th:text="${resumen.ivaCredito().n8n()}"></td>
+        <td class="num" th:text="${resumen.ivaCredito().reversion()}"></td>
+        <td class="num" th:text="${resumen.ivaCredito().total()}"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table>
+    <tbody>
+      <tr class="resultado"><td>Diferencia estimada (débito − crédito)</td><td class="num" th:text="${resumen.diferenciaEstimada()}"></td></tr>
+    </tbody>
+  </table>
+
+  <p class="nota" th:text="${resumen.nota()}">Nota</p>
+</body>
+</html>

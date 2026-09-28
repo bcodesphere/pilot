@@ -1,0 +1,66 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- Plantilla PDF de la Balanza de Comprobación (CLAUDE.md 10.5, ADR-038 §6). Los totales ya salen solo del
+     detalle desde dominio.estados.BalanzaComprobacion; la plantilla no reordena ni recalcula nada. -->
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @page { size: letter; margin: 2cm 1.4cm;
+      @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 8px; color: #666; } }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #222; }
+    h1 { font-size: 15px; margin: 0 0 2px 0; }
+    .meta { font-size: 8px; color: #555; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 2px 4px; text-align: left; }
+    th { background: #eee; }
+    .num { text-align: right; white-space: nowrap; }
+    .total-row td { font-weight: bold; background: #f5f5f5; }
+    .resumen { margin-top: 8px; font-size: 9px; }
+  </style>
+</head>
+<body>
+  <h1 th:text="${titulo}">Balanza de Comprobación</h1>
+  <p class="meta">
+    <span th:text="${periodo}">Período</span> — Generado el <span th:text="${generadoEn}">fecha</span> — Nivel
+    <span th:text="${balanza.nivel()}">5</span>
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th><th>Nombre</th><th>Nivel</th>
+        <th class="num">Saldo inicial</th><th>Lado</th>
+        <th class="num">Debe</th><th class="num">Haber</th>
+        <th class="num">Saldo final</th><th>Lado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="f : ${balanza.filas()}">
+        <td th:text="${f.cuenta().codigo().valor()}"></td>
+        <td th:text="${f.cuenta().nombre()}"></td>
+        <td th:text="${f.nivel()}"></td>
+        <td class="num" th:text="${f.saldoInicial().monto()}"></td>
+        <td th:text="${f.saldoInicial().lado()}"></td>
+        <td class="num" th:text="${f.debe()}"></td>
+        <td class="num" th:text="${f.haber()}"></td>
+        <td class="num" th:text="${f.saldoFinal().monto()}"></td>
+        <td th:text="${f.saldoFinal().lado()}"></td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="5">TOTALES</td>
+        <td class="num" th:text="${balanza.totalDebe()}"></td>
+        <td class="num" th:text="${balanza.totalHaber()}"></td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+  <!-- Un solo th:text con toda la frase: varios <span> hermanos en el mismo párrafo se pintan fuera de orden en el
+       flujo de texto del PDF (OpenHTMLtoPDF pinta primero el texto literal y después los span, aunque el layout
+       visual sea correcto), lo que rompe la extracción de texto (copiar/buscar, accesibilidad). -->
+  <p class="resumen"
+     th:text="'Total saldos deudores: ' + ${balanza.totalSaldosDeudores()} + ' · Total saldos acreedores: '
+               + ${balanza.totalSaldosAcreedores()} + ' · Cuadra: ' + ${balanza.cuadra()}">
+    Total saldos deudores: 0.00 · Total saldos acreedores: 0.00 · Cuadra: true
+  </p>
+</body>
+</html>

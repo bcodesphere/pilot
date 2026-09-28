@@ -29,4 +29,14 @@ public interface ConsultaAsientos {
      * @return hasta {@code cantidad} cabeceras posteriores a la llave
      */
     List<ResumenAsiento> listar(FiltroAsientos filtro, Integer despuesDeAnio, Long despuesDeNumero, int cantidad);
+
+    /**
+     * Lista el Libro Diario completo (con sus líneas) para un rango, sin paginar, en orden ascendente de
+     * (año, número, número de línea) — para su exportación (ADR-038, F4-04). Una sola consulta con JOIN evita
+     * N+1 sobre catálogos grandes (objetivo del plan: menos de 2 s con 10 000 asientos).
+     *
+     * @param filtro filtros opcionales; {@code desde} y {@code hasta} siempre vienen informados en la exportación
+     * @return los asientos del rango, cada uno con sus líneas
+     */
+    List<Asiento> listarCompleto(FiltroAsientos filtro);
 }

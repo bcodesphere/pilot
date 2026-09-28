@@ -1,0 +1,91 @@
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- Plantilla PDF del Estado de Situación Financiera (CLAUDE.md 10.4, ADR-016, ADR-037). La comprobación
+     (Activo = Pasivo + Patrimonio + resultados anteriores + utilidad del ejercicio) ya viene calculada por
+     dominio.estados.EstadoSituacionFinanciera; la plantilla solo la presenta con su leyenda de estado de gestión. -->
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @page { size: letter; margin: 2cm 1.4cm;
+      @bottom-center { content: "Página " counter(page) " de " counter(pages); font-size: 8px; color: #666; } }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #222; }
+    h1 { font-size: 15px; margin: 0 0 2px 0; }
+    h2 { font-size: 11px; margin: 10px 0 3px 0; }
+    .meta { font-size: 8px; color: #555; margin-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 2px 4px; text-align: left; }
+    th { background: #eee; }
+    .num { text-align: right; white-space: nowrap; }
+    .total-row td { font-weight: bold; background: #f5f5f5; }
+    .resultado td { font-weight: bold; background: #e8f0e8; }
+    .leyenda { font-size: 8px; color: #666; margin-top: 10px; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1 th:text="${titulo}">Estado de Situación Financiera</h1>
+  <p class="meta">
+    <span th:text="${periodo}">Fecha de corte</span> — Generado el <span th:text="${generadoEn}">fecha</span> — Nivel
+    <span th:text="${estado.nivel()}">5</span>
+  </p>
+
+  <h2 th:text="${estado.activo().nombre()}">ACTIVO</h2>
+  <table>
+    <thead><tr><th>Código</th><th>Nombre</th><th>Nivel</th><th class="num">Monto</th></tr></thead>
+    <tbody>
+      <tr th:each="f : ${estado.activo().filas()}">
+        <td th:text="${f.cuenta().codigo().valor()}"></td>
+        <td th:text="${f.cuenta().nombre()}"></td>
+        <td th:text="${f.nivel()}"></td>
+        <td class="num" th:text="${f.monto()}"></td>
+      </tr>
+    </tbody>
+    <tfoot><tr class="total-row"><td colspan="3">Total activo</td><td class="num" th:text="${estado.activo().total()}"></td></tr></tfoot>
+  </table>
+
+  <h2 th:text="${estado.pasivo().nombre()}">PASIVO</h2>
+  <table>
+    <thead><tr><th>Código</th><th>Nombre</th><th>Nivel</th><th class="num">Monto</th></tr></thead>
+    <tbody>
+      <tr th:each="f : ${estado.pasivo().filas()}">
+        <td th:text="${f.cuenta().codigo().valor()}"></td>
+        <td th:text="${f.cuenta().nombre()}"></td>
+        <td th:text="${f.nivel()}"></td>
+        <td class="num" th:text="${f.monto()}"></td>
+      </tr>
+    </tbody>
+    <tfoot><tr class="total-row"><td colspan="3">Total pasivo</td><td class="num" th:text="${estado.pasivo().total()}"></td></tr></tfoot>
+  </table>
+
+  <h2 th:text="${estado.patrimonio().nombre()}">PATRIMONIO</h2>
+  <table>
+    <thead><tr><th>Código</th><th>Nombre</th><th>Nivel</th><th class="num">Monto</th></tr></thead>
+    <tbody>
+      <tr th:each="f : ${estado.patrimonio().filas()}">
+        <td th:text="${f.cuenta().codigo().valor()}"></td>
+        <td th:text="${f.cuenta().nombre()}"></td>
+        <td th:text="${f.nivel()}"></td>
+        <td class="num" th:text="${f.monto()}"></td>
+      </tr>
+    </tbody>
+    <tfoot><tr class="total-row"><td colspan="3">Total patrimonio</td><td class="num" th:text="${estado.patrimonio().total()}"></td></tr></tfoot>
+  </table>
+
+  <table>
+    <tbody>
+      <tr><td>Resultados de ejercicios anteriores</td><td class="num" th:text="${estado.resultadosEjerciciosAnteriores()}"></td></tr>
+      <tr><td>Utilidad del ejercicio</td><td class="num" th:text="${estado.utilidadEjercicio()}"></td></tr>
+      <tr class="resultado"><td>Total Pasivo + Patrimonio</td><td class="num" th:text="${estado.totalPasivoPatrimonio()}"></td></tr>
+    </tbody>
+  </table>
+
+  <!-- Un solo th:text con toda la frase: varios <span>/<strong> hermanos en el mismo párrafo se pintan fuera de
+       orden en el flujo de texto del PDF (OpenHTMLtoPDF pinta primero el texto literal y después los span/strong,
+       aunque el layout visual sea correcto). -->
+  <p class="meta"
+     th:text="'Comprobación (Activo = Pasivo + Patrimonio + resultados anteriores + utilidad del ejercicio): '
+               + ${estado.comprobacion().cuadra()} + ' — Diferencia: ' + ${estado.comprobacion().diferencia()}">
+    Comprobación: true — Diferencia: 0.00
+  </p>
+
+  <p class="leyenda" th:text="${estado.leyenda()}">Leyenda de estado de gestión</p>
+</body>
+</html>
