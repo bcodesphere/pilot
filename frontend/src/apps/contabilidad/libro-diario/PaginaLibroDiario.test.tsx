@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { hoyElSalvador } from '@/compartido/formato/fecha';
 import { json } from '@/nucleo/pruebas-arnes';
 import { asiento, resumenAsiento } from '../compartido/datosPrueba';
-import { llamadas, montarContabilidad, problema } from '../compartido/montarContabilidad';
+import { llamadas, montarContabilidad, problema, respuestaArchivo } from '../compartido/montarContabilidad';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -93,6 +93,37 @@ describe('listado del Libro Diario', () => {
     montarContabilidad('/contabilidad/libro-diario', 'auditor', manejador);
     await screen.findByRole('link', { name: 'Asiento 1/2026' });
     expect(screen.queryByRole('link', { name: 'Nuevo asiento' })).not.toBeInTheDocument();
+  });
+
+  // F4-05 / ADR-038: exportar exige desde y hasta aunque el listado no los requiera
+  it('el botón de exportación exige desde y hasta, y pide el archivo con los filtros vigentes', async () => {
+    const { fetchMock } = montarContabilidad('/contabilidad/libro-diario', 'contador', (url, init) => {
+      if (esGet(url, init, '/contabilidad/asientos')) return json({ elementos: [resumenAsiento(1)] });
+      if (url.includes('/contabilidad/asientos/exportacion'))
+        return respuestaArchivo('libro-diario.csv', 'text/csv');
+      return undefined;
+    });
+    await screen.findByRole('link', { name: 'Asiento 1/2026' });
+    expect(screen.getByRole('button', { name: 'CSV' })).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText('Desde'), '2026-09-01');
+    await userEvent.type(screen.getByLabelText('Hasta'), '2026-09-30');
+    await userEvent.selectOptions(screen.getByLabelText('Origen'), 'N8N');
+    await userEvent.selectOptions(screen.getByLabelText('Estado'), 'REVERTIDO');
+    expect(screen.getByRole('button', { name: 'CSV' })).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', { name: 'CSV' }));
+
+    // Corrección 1 (F4-05): la exportación debe llevar TODOS los filtros vigentes en pantalla, no solo
+    // desde/hasta; una mutación que solo probara formato/desde/hasta no detectaría un origen/estado mal
+    // propagados a exportarLibroDiario.
+    const exportaciones = llamadas(fetchMock, 'GET', '/contabilidad/asientos/exportacion');
+    expect(exportaciones).toHaveLength(1);
+    const url = String(exportaciones[0]![0]);
+    expect(url).toContain('formato=csv');
+    expect(url).toContain('desde=2026-09-01');
+    expect(url).toContain('hasta=2026-09-30');
+    expect(url).toContain('origen=N8N');
+    expect(url).toContain('estado=REVERTIDO');
   });
 });
 

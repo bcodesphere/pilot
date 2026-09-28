@@ -82,6 +82,25 @@ export function campoDeError(error: unknown): string | null {
 export const MENSAJE_CONFLICTO = 'Alguien cambió este dato mientras lo editabas';
 
 /**
+ * Texto que usa el backend (F4-03) para el campo `desde` de `PLT-002` cuando es posterior a `hasta` en
+ * los filtros de un reporte (Mayor, Balanza, Estado de Resultados). Se valida igual en el frontend
+ * (CLAUDE.md §1.1.5) con el mismo texto, para no mostrar dos redacciones distintas del mismo error.
+ */
+export const MENSAJE_RANGO_INVALIDO = 'La fecha inicial no puede ser posterior a la final';
+
+/**
+ * Valida localmente el rango de un reporte con el mismo texto que da el backend en `PLT-002` para el
+ * campo `desde` (F4-03); centraliza la redacción para no repetirla en cada pantalla que filtra por
+ * `desde`/`hasta` (Mayor, Balanza, Estado de Resultados).
+ * @param desde fecha `Desde`, vacía si no se ha elegido
+ * @param hasta fecha `Hasta`, vacía si no se ha elegido
+ * @returns el mensaje si `desde` es posterior a `hasta`; `null` si el rango es válido o está incompleto
+ */
+export function validarRangoPeriodo(desde: string, hasta: string): string | null {
+  return desde && hasta && desde > hasta ? MENSAJE_RANGO_INVALIDO : null;
+}
+
+/**
  * Mensaje de un error del Libro Diario. `CON-005` agrega la `diferencia` del Problem Details con formato de
  * moneda (p. ej. "Diferencia: $13.00"); el resto usa {@link mensajeContabilidad}.
  * @param error error capturado de una mutación o de la vista previa

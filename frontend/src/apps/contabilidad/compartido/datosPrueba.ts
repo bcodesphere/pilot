@@ -1,9 +1,24 @@
 import type {
   Asiento,
+  BalanzaComprobacion,
   CuentaContable,
+  DesgloseIva,
+  DiagnosticoMayorizacion,
+  DiferenciaMayorizacion,
+  EstadoResultados,
+  EstadoSituacionFinanciera,
+  FilaBalanza,
+  FilaEstado,
+  LadoSaldo,
+  LibroMayor,
   LineaAsiento,
+  MovimientoMayor,
   ReglaContabilizacion,
   ResumenAsiento,
+  ResumenCuenta,
+  RubroEstado,
+  Saldo,
+  ResumenIva,
   VistaPreviaAsiento,
 } from '@/api/modelos';
 
@@ -185,4 +200,196 @@ export function vistaPrevia(extra: Partial<VistaPreviaAsiento> = {}): VistaPrevi
     cuadra: true,
     ...extra,
   };
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Datos de ejemplo de los reportes de F4 (Mayor, Balanza, estados financieros, IVA y diagnóstico,
+ * CLAUDE.md §10.3 a §10.5 y ADR-038). Las cuentas se toman del CATALOGO de arriba por su código.
+ * ------------------------------------------------------------------------------------------- */
+
+/** Referencia corta a una cuenta del CATALOGO por su código, para usarla en los reportes. */
+export function resumenDeCatalogo(codigo: string): ResumenCuenta {
+  const c = CATALOGO.find((x) => x.codigo === codigo)!;
+  return { id: c.id, codigo: c.codigo, nombre: c.nombre };
+}
+
+/** Fabrica un `Saldo` de ejemplo (CLAUDE.md §10.3); `contrarioNaturaleza` en false salvo que se indique. */
+export function saldo(monto: string, lado: LadoSaldo, contrarioNaturaleza = false): Saldo {
+  return { monto, lado, contrarioNaturaleza };
+}
+
+/** Fabrica un movimiento del Mayor de ejemplo para la cuenta con ese código del catálogo. */
+export function movimientoMayor(
+  cuentaCodigo: string,
+  debe: string,
+  haber: string,
+  saldoAcumulado: Saldo,
+  extra: Partial<MovimientoMayor> = {},
+): MovimientoMayor {
+  return {
+    fecha: '2026-09-20',
+    asientoId: 'a-1',
+    anio: 2026,
+    numero: 7,
+    concepto: 'Venta al contado',
+    descripcion: null,
+    cuenta: resumenDeCatalogo(cuentaCodigo),
+    debe,
+    haber,
+    saldo: saldoAcumulado,
+    ...extra,
+  };
+}
+
+/** Libro Mayor de ejemplo: la cuenta 11010101 (Caja general) con un único movimiento de 113.00. */
+export function libroMayor(extra: Partial<LibroMayor> = {}): LibroMayor {
+  return {
+    cuenta: resumenDeCatalogo('11010101'),
+    naturaleza: 'DEUDORA',
+    desde: '2026-09-01',
+    hasta: '2026-09-30',
+    saldoInicial: saldo('0.00', 'CERO'),
+    movimientos: [movimientoMayor('11010101', '113.00', '0.00', saldo('113.00', 'DEUDOR'))],
+    totalDebe: '113.00',
+    totalHaber: '0.00',
+    saldoFinal: saldo('113.00', 'DEUDOR'),
+    ...extra,
+  };
+}
+
+/** Fabrica una fila de la Balanza para la cuenta con ese código del catálogo. */
+export function filaBalanza(
+  cuentaCodigo: string,
+  nivel: number,
+  debe: string,
+  haber: string,
+  saldoFinal: Saldo,
+  extra: Partial<FilaBalanza> = {},
+): FilaBalanza {
+  const c = CATALOGO.find((x) => x.codigo === cuentaCodigo)!;
+  return {
+    cuenta: resumenDeCatalogo(cuentaCodigo),
+    nivel,
+    esDetalle: c.aceptaMovimientos,
+    saldoInicial: saldo('0.00', 'CERO'),
+    debe,
+    haber,
+    saldoFinal,
+    ...extra,
+  };
+}
+
+/** Balanza de Comprobación de ejemplo: clase 1 con su cuenta de detalle, que cuadra. */
+export function balanza(extra: Partial<BalanzaComprobacion> = {}): BalanzaComprobacion {
+  return {
+    desde: '2026-09-01',
+    hasta: '2026-09-30',
+    nivel: 5,
+    filas: [
+      filaBalanza('1', 1, '0.00', '0.00', saldo('113.00', 'DEUDOR')),
+      filaBalanza('11', 2, '0.00', '0.00', saldo('113.00', 'DEUDOR')),
+      filaBalanza('1101', 3, '0.00', '0.00', saldo('113.00', 'DEUDOR')),
+      filaBalanza('110101', 4, '0.00', '0.00', saldo('113.00', 'DEUDOR')),
+      filaBalanza('11010101', 5, '113.00', '0.00', saldo('113.00', 'DEUDOR')),
+    ],
+    totalDebe: '113.00',
+    totalHaber: '113.00',
+    totalSaldosDeudores: '113.00',
+    totalSaldosAcreedores: '0.00',
+    cuadra: true,
+    ...extra,
+  };
+}
+
+/** Fabrica una fila de un estado financiero para la cuenta con ese código del catálogo. */
+export function filaEstado(cuentaCodigo: string, nivel: number, monto: string): FilaEstado {
+  return { cuenta: resumenDeCatalogo(cuentaCodigo), nivel, monto };
+}
+
+/** Fabrica un rubro de un estado financiero (una clase de cuenta). */
+export function rubroEstado(clase: number, nombre: string, filas: FilaEstado[], total: string): RubroEstado {
+  return { clase, nombre, filas, total };
+}
+
+/** Leyenda de estado de gestión que exige ADR-037 §3 en ambos estados financieros. */
+export const LEYENDA_ESTADO_GESTION =
+  'Estado de gestión generado por Pilot; no constituye un juego completo de estados financieros conforme a NIIF para PYMES';
+
+/** Estado de Situación Financiera de ejemplo, con la comprobación cuadrando (ADR-016, ADR-037). */
+export function estadoSituacionFinanciera(
+  extra: Partial<EstadoSituacionFinanciera> = {},
+): EstadoSituacionFinanciera {
+  return {
+    fechaCorte: '2026-09-30',
+    nivel: 5,
+    activo: rubroEstado(1, 'Activo', [filaEstado('11010101', 5, '113.00')], '113.00'),
+    pasivo: rubroEstado(2, 'Pasivo', [filaEstado('21010101', 5, '13.00')], '13.00'),
+    patrimonio: rubroEstado(3, 'Patrimonio', [], '0.00'),
+    resultadosEjerciciosAnteriores: '0.00',
+    utilidadEjercicio: '100.00',
+    totalPasivoPatrimonio: '113.00',
+    comprobacion: { cuadra: true, diferencia: '0.00' },
+    leyenda: LEYENDA_ESTADO_GESTION,
+    ...extra,
+  };
+}
+
+/** Estado de Resultados de ejemplo: una venta gravada de 100.00 sin costos ni impuesto sobre la renta. */
+export function estadoResultados(extra: Partial<EstadoResultados> = {}): EstadoResultados {
+  return {
+    desde: '2026-09-01',
+    hasta: '2026-09-30',
+    nivel: 5,
+    ingresos: rubroEstado(5, 'Ingresos', [filaEstado('51010101', 5, '100.00')], '100.00'),
+    costosGastos: rubroEstado(4, 'Costos y gastos', [], '0.00'),
+    utilidadAntesImpuesto: '100.00',
+    impuestoSobreRenta: rubroEstado(4, 'Impuesto sobre la renta', [], '0.00'),
+    utilidadEjercicio: '100.00',
+    leyenda: LEYENDA_ESTADO_GESTION,
+    ...extra,
+  };
+}
+
+/** Fabrica un desglose de IVA (débito o crédito fiscal) de ejemplo. */
+export function desgloseIva(manual: string, n8n: string, reversion: string, total: string): DesgloseIva {
+  return { manual, n8n, reversion, total };
+}
+
+/** Resumen de IVA de ejemplo: septiembre de 2026, solo movimiento manual. */
+export function resumenIva(extra: Partial<ResumenIva> = {}): ResumenIva {
+  return {
+    anio: 2026,
+    mes: 9,
+    cuentaIvaDebito: resumenDeCatalogo('21010101'),
+    cuentaIvaCredito: resumenDeCatalogo('11030101'),
+    ivaDebito: desgloseIva('13.00', '0.00', '0.00', '13.00'),
+    ivaCredito: desgloseIva('0.00', '0.00', '0.00', '0.00'),
+    diferenciaEstimada: '13.00',
+    nota: 'Punto de partida para preparar la declaración de IVA; no la reemplaza.',
+    ...extra,
+  };
+}
+
+/** Fabrica una diferencia de mayorización de ejemplo (ADR-018). */
+export function diferenciaMayorizacion(
+  cuentaCodigo: string,
+  extra: Partial<DiferenciaMayorizacion> = {},
+): DiferenciaMayorizacion {
+  return {
+    cuenta: resumenDeCatalogo(cuentaCodigo),
+    anio: 2026,
+    mes: 9,
+    saldoDebe: '113.00',
+    saldoHaber: '0.00',
+    lineasDebe: '100.00',
+    lineasHaber: '0.00',
+    ...extra,
+  };
+}
+
+/** Diagnóstico de mayorización de ejemplo: consistente, sin diferencias. */
+export function diagnosticoMayorizacion(
+  extra: Partial<DiagnosticoMayorizacion> = {},
+): DiagnosticoMayorizacion {
+  return { consistente: true, cantidadCuentasRevisadas: 12, diferencias: [], ...extra };
 }

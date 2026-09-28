@@ -37,3 +37,11 @@ export function llamadas(fetchMock: { mock: { calls: unknown[][] } }, metodo: st
     return String(c[0]).split('?')[0]!.endsWith(sufijo) && (init.method ?? 'GET') === metodo;
   });
 }
+
+/** Respuesta binaria simulada de una exportación (F4-05, ADR-038): PDF, XLSX o CSV con `Content-Disposition`. */
+export function respuestaArchivo(nombreArchivo: string, tipo: string, contenido = 'contenido'): Response {
+  return new Response(contenido, {
+    status: 200,
+    headers: { 'content-type': tipo, 'content-disposition': `attachment; filename="${nombreArchivo}"` },
+  });
+}

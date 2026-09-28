@@ -24,15 +24,17 @@ describe('layout de Contabilidad', () => {
       '/contabilidad/configuracion',
     );
     expect(screen.getByRole('link', { name: 'Reglas' })).toHaveAttribute('href', '/contabilidad/reglas');
-    // F3: la sección "Libro Diario" va antes que "Catálogo" en la subnavegación
+    // F3/F4: "Libro Diario", "Mayor" y "Reportes" van antes que "Catálogo" en la subnavegación
     const enlaces = within(nav)
       .getAllByRole('link')
       .map((a) => a.textContent);
-    expect(enlaces).toEqual(['Libro Diario', 'Catálogo', 'Configuración', 'Reglas']);
+    expect(enlaces).toEqual(['Libro Diario', 'Mayor', 'Reportes', 'Catálogo', 'Configuración', 'Reglas']);
     expect(screen.getByRole('link', { name: 'Libro Diario' })).toHaveAttribute(
       'href',
       '/contabilidad/libro-diario',
     );
+    expect(screen.getByRole('link', { name: 'Mayor' })).toHaveAttribute('href', '/contabilidad/mayor');
+    expect(screen.getByRole('link', { name: 'Reportes' })).toHaveAttribute('href', '/contabilidad/reportes');
   });
 
   // Regla: la subnavegación lleva a cada pantalla

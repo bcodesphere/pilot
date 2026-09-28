@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useListarAsientos } from '@/api/asientos/asientos';
+import { exportarLibroDiario } from '@/api/exportaciones-contables/exportaciones-contables';
 import type {
   EstadoAsiento,
   ListarAsientosParams,
@@ -14,6 +15,7 @@ import { Button } from '@/compartido/ui/button';
 import { Input } from '@/compartido/ui/input';
 import { Label } from '@/compartido/ui/label';
 import { Select } from '@/compartido/ui/select';
+import { BotonesExportacion } from '../compartido/BotonesExportacion';
 import { usePermisosContabilidad } from '../usePermisosContabilidad';
 import { ETIQUETA_ESTADO, ETIQUETA_ORIGEN, numeroAsiento } from './etiquetas';
 import { InsigniaEstado } from './presentacion';
@@ -118,6 +120,21 @@ export function PaginaLibroDiario() {
           </Select>
         </div>
       </div>
+
+      {/* La exportación exige desde/hasta aunque el listado en pantalla no los requiera (ADR-038) */}
+      <BotonesExportacion
+        nombreArchivo="libro-diario"
+        filtrosCompletos={!!filtros.desde && !!filtros.hasta}
+        exportar={(formato) =>
+          exportarLibroDiario({
+            formato,
+            desde: filtros.desde,
+            hasta: filtros.hasta,
+            ...(filtros.origen ? { origen: filtros.origen } : {}),
+            ...(filtros.estado ? { estado: filtros.estado } : {}),
+          })
+        }
+      />
 
       <div className="overflow-x-auto">
         <table aria-label="Asientos del Libro Diario" className="w-full text-sm">
