@@ -73,16 +73,6 @@ public final class ExcepcionPlataforma extends ExcepcionDominio {
     }
 
     /**
-     * {@code If-Match} está mal formado o no coincide con la versión actual del recurso (concurrencia optimista).
-     *
-     * @return error 412 {@code PLT-016}
-     */
-    public static ExcepcionPlataforma versionNoCoincide() {
-        return new ExcepcionPlataforma(
-                "PLT-016", 412, "El recurso cambió o el header If-Match no coincide con su versión");
-    }
-
-    /**
      * El recurso no existe o no pertenece a la empresa activa; no distingue ambos casos para no revelar otras empresas.
      *
      * @return error 404 {@code PLT-017}

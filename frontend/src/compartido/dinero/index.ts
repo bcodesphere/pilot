@@ -1,1 +1,10 @@
-export { formatearMoneda, sonIguales, sumarMontos } from './dinero';
+export {
+  esCero,
+  esMontoValido,
+  formatearMoneda,
+  formatearMonedaConSigno,
+  normalizarMonto,
+  restarMontos,
+  sonIguales,
+  sumarMontos,
+} from './dinero';

@@ -1,0 +1,10 @@
+{
+  "fuente": "CLAUDE.md §10.1 CON-001: un asiento necesita al menos dos líneas",
+  "resultado": "INVALIDO",
+  "fecha": "2026-01-15",
+  "lineas": [
+    { "cuentaCodigo": "11010101", "debe": "10.00", "haber": "0", "llevaIva": false }
+  ],
+  "httpEsperado": 422,
+  "codigoEsperado": "CON-001"
+}

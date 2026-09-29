@@ -21,7 +21,7 @@ describe('selector de empresa (ADR-032)', () => {
       apps: [app('contabilidad', 'INSTALADA')],
     });
     const selector = await screen.findByLabelText('Empresa');
-    await screen.findByText('Contabilidad'); // catálogo de emp-1 ya en caché
+    await screen.findAllByText('Contabilidad'); // catálogo de emp-1 ya en caché (título de grupo + enlace de configuración)
     expect(cliente.getQueryCache().getAll().length).toBeGreaterThan(0);
     const limpiar = vi.spyOn(cliente, 'clear');
     const antes = fetchMock.mock.calls.length;
@@ -35,15 +35,21 @@ describe('selector de empresa (ADR-032)', () => {
     expect(new Headers((ultima as unknown as [string, RequestInit])[1].headers).get('X-Empresa-Id')).toBe(
       'emp-2',
     );
+    // El espacio de trabajo activo se muestra en la barra lateral (ADR-043), no en la cabecera
     expect(
-      within(screen.getByRole('banner')).getByText('Otro espacio', { selector: 'span' }),
+      within(screen.getByRole('navigation', { name: 'Principal' })).getByText('Otro espacio', {
+        selector: 'span',
+      }),
     ).toBeInTheDocument();
   });
 });
 
-describe('lanzador de apps (ADR-021, ADR-030)', () => {
-  // Regla: solo las apps INSTALADA aparecen como mosaicos
-  it('muestra solo las apps instaladas', async () => {
+// Desde ADR-043 (F4.5) el lanzador de apps individuales pasó a Configuración → Apps (PaginaApps);
+// Inicio (PaginaInicio) ya no lista apps una por una, solo invita a instalar Contabilidad o muestra
+// el estado vacío provisional del tablero. La navegación por app vive en BarraLateral.
+describe('Inicio y la barra lateral según las apps instaladas (ADR-021, ADR-030, ADR-043)', () => {
+  // Regla: solo con Contabilidad instalada aparece su grupo en la barra lateral, y Reportes con él
+  it('la barra lateral solo ofrece Contabilidad y Reportes con la app instalada', async () => {
     montarShell({
       apps: [
         app('contabilidad', 'INSTALADA'),
@@ -51,23 +57,27 @@ describe('lanzador de apps (ADR-021, ADR-030)', () => {
         app('inventario', 'DISPONIBLE'),
       ],
     });
-    expect(await screen.findByRole('link', { name: /Contabilidad/ })).toHaveAttribute(
-      'href',
-      '/contabilidad',
-    );
-    expect(screen.queryByText('Ventas')).not.toBeInTheDocument();
-    expect(screen.queryByText('Inventario')).not.toBeInTheDocument();
+    const barraLateral = await screen.findByRole('navigation', { name: 'Principal' });
+    // El grupo se renderiza tras cargar el catálogo (GET /aplicaciones); "Contabilidad" aparece dos veces:
+    // el título del grupo de pantallas y el enlace de configuración de la app
+    expect((await within(barraLateral).findAllByText('Contabilidad')).length).toBeGreaterThanOrEqual(2);
+    expect(within(barraLateral).getByText('Reportes')).toBeInTheDocument();
+    // Ventas e Inventario no tienen módulo ni grupo propio en 1.0
+    expect(within(barraLateral).queryByText('Ventas')).not.toBeInTheDocument();
+    expect(within(barraLateral).queryByText('Inventario')).not.toBeInTheDocument();
   });
 
-  // Regla: sin apps instaladas, un estado vacío invita a ir a "Apps"
-  it('sin apps instaladas muestra un estado vacío que invita a ir a Apps', async () => {
+  // Regla: sin Contabilidad instalada, Inicio invita a instalarla y la barra lateral no ofrece su grupo
+  it('sin apps instaladas, Inicio invita a instalar Contabilidad', async () => {
     montarShell({ apps: [app('contabilidad', 'DISPONIBLE')] });
-    expect(await screen.findByText(/Aún no tienes aplicaciones instaladas/)).toBeInTheDocument();
+    expect(await screen.findByText('Instala Contabilidad para empezar')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir a Apps' })).toHaveAttribute('href', '/configuracion/apps');
+    expect(screen.queryByText('Contabilidad', { selector: 'div' })).not.toBeInTheDocument();
   });
 
-  // Regla ADR-021: agregar una fila en `aplicacion` no requiere cambios en el shell
-  it('una app nueva instalada sin módulo aparece como "Disponible pronto" sin cambios de código', async () => {
-    montarShell({ apps: [app('nomina', 'INSTALADA')] });
+  // Regla ADR-021: agregar una fila en `aplicacion` no requiere cambios en el shell; Apps la muestra como "Disponible pronto"
+  it('una app nueva instalada sin módulo aparece como "Disponible pronto" en Apps, sin cambios de código', async () => {
+    montarShell({ ruta: '/configuracion/apps', apps: [app('nomina', 'INSTALADA')] });
     expect(await screen.findByText('Nomina')).toBeInTheDocument();
     expect(screen.getByText('Disponible pronto')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Nomina/ })).not.toBeInTheDocument();
@@ -78,7 +88,7 @@ describe('rutas de apps (ADR-021)', () => {
   // Regla: /<codigo> de una app instalada con módulo muestra su página
   it('/contabilidad con la app instalada muestra su página', async () => {
     montarShell({ ruta: '/contabilidad', apps: [app('contabilidad', 'INSTALADA')] });
-    expect(await screen.findByRole('heading', { name: 'Contabilidad' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Catálogo de cuentas' })).toBeInTheDocument();
   });
 
   // Regla: una app no instalada avisa y vuelve al lanzador
@@ -94,7 +104,7 @@ describe('rutas de apps (ADR-021)', () => {
       ruta: '/contabilidad',
       apps: [app('contabilidad', 'INSTALADA')],
     });
-    await screen.findByRole('heading', { name: 'Contabilidad' });
+    await screen.findByRole('heading', { name: 'Catálogo de cuentas' });
     // Una consulta de la app falla con PLT-004 (p. ej. la app se desinstaló en otra sesión)
     await cliente
       .fetchQuery({
@@ -102,7 +112,9 @@ describe('rutas de apps (ADR-021)', () => {
         queryFn: () => Promise.reject(new ErrorApi({ status: 403, codigo: 'PLT-004' })),
       })
       .catch(() => undefined);
-    expect(await screen.findByRole('alert')).toHaveTextContent('no está instalada');
+    // Se busca por texto (no por rol) porque el catálogo de la ruta anterior puede mostrar su propio
+    // aviso de error (rol "alert" también) mientras la navegación al lanzador todavía no se completa
+    expect(await screen.findByText(/no está instalada/)).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
   });
 });

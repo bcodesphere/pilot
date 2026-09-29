@@ -21,8 +21,8 @@ export function Switch({ checked, onCheckedChange, className, ...props }: PropsS
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 disabled:opacity-50',
-        checked ? 'bg-neutral-900' : 'bg-neutral-300',
+        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primario)] disabled:opacity-50',
+        checked ? 'bg-[var(--color-primario)]' : 'bg-[var(--color-borde)]',
         className,
       )}
       {...props}
@@ -31,7 +31,7 @@ export function Switch({ checked, onCheckedChange, className, ...props }: PropsS
       <span
         aria-hidden="true"
         className={cn(
-          'inline-block h-5 w-5 rounded-full bg-white transition-transform',
+          'inline-block h-5 w-5 rounded-full bg-[var(--color-superficie)] transition-transform',
           checked ? 'translate-x-5' : 'translate-x-0.5',
         )}
       />

@@ -1,5 +1,6 @@
 package com.bcodesphere.pilot.plataforma.infraestructura;
 
+import com.bcodesphere.pilot.plataforma.ContextoEmpresa;
 import com.bcodesphere.pilot.plataforma.aplicacion.RepositorioApiKeys;
 import com.bcodesphere.pilot.plataforma.dominio.AlcanceClave;
 import com.bcodesphere.pilot.plataforma.dominio.ApiKeyAutenticable;
@@ -26,6 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
  * (V8). La tabla tiene RLS forzado: salvo la búsqueda por prefijo, todo corre con la empresa en el contexto. Todo el
  * SQL es parametrizado. {@code pilot_app} solo puede insertar, leer y actualizar {@code revocada_en} y
  * {@code ultimo_uso_en} (V7); nunca se lee ni se devuelve el hash fuera de la búsqueda de autenticación.
+ *
+ * <p>Defensa en profundidad (CLAUDE.md 1.1.3, ADR-002): además de RLS, toda sentencia sobre {@code api_key} (salvo la
+ * búsqueda por prefijo, que corre en modo «sin empresa», ADR-026) filtra explícitamente por {@code empresa_id} de la
+ * empresa activa del contexto, igual que {@code RepositorioCuentasJdbc} en {@code contabilidad}. Es redundante con la
+ * política {@code aislamiento_empresa} de V7 mientras RLS esté bien configurado; deja de serlo si algún día no lo
+ * está.
  */
 @Repository
 class RepositorioApiKeysJdbc implements RepositorioApiKeys {
@@ -77,16 +84,19 @@ class RepositorioApiKeysJdbc implements RepositorioApiKeys {
     @Override
     @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
     public List<ApiKeyRegistrada> listar(int maximo, CursorApiKey despuesDe) {
-        // Una sola consulta por página; RLS ya limita a la empresa activa. Comparación de fila (creado_en, id) para el
-        // orden estable DESC/DESC; sin cursor se omite el filtro.
+        // Defensa en profundidad (1.1.3): empresa_id = :empresa además de RLS. Comparación de fila (creado_en, id)
+        // para el orden estable DESC/DESC; sin cursor se omite ese filtro.
         if (despuesDe == null) {
-            return jdbc.sql("SELECT " + COLUMNAS + " FROM api_key ORDER BY creado_en DESC, id DESC LIMIT :maximo")
+            return jdbc.sql("SELECT " + COLUMNAS + " FROM api_key WHERE empresa_id = :empresa"
+                            + " ORDER BY creado_en DESC, id DESC LIMIT :maximo")
+                    .param("empresa", empresa())
                     .param("maximo", maximo)
                     .query((rs, n) -> mapear(rs))
                     .list();
         }
-        return jdbc.sql("SELECT " + COLUMNAS + " FROM api_key WHERE (creado_en, id) < (:creado, :id)"
-                        + " ORDER BY creado_en DESC, id DESC LIMIT :maximo")
+        return jdbc.sql("SELECT " + COLUMNAS + " FROM api_key WHERE empresa_id = :empresa"
+                        + " AND (creado_en, id) < (:creado, :id) ORDER BY creado_en DESC, id DESC LIMIT :maximo")
+                .param("empresa", empresa())
                 .param("creado", aOffset(despuesDe.creadoEn()), java.sql.Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("id", despuesDe.id())
                 .param("maximo", maximo)
@@ -97,10 +107,12 @@ class RepositorioApiKeysJdbc implements RepositorioApiKeys {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<ApiKeyRegistrada> revocarSiVigente(UUID id) {
-        // WHERE revocada_en IS NULL: una clave ya revocada no se toca (no cambia la fecha de revocación original)
-        return jdbc.sql("UPDATE api_key SET revocada_en = now() WHERE id = :id AND revocada_en IS NULL RETURNING "
-                        + COLUMNAS)
+        // WHERE revocada_en IS NULL: una clave ya revocada no se toca (no cambia la fecha de revocación original).
+        // empresa_id = :empresa: defensa en profundidad (1.1.3), además de RLS
+        return jdbc.sql("UPDATE api_key SET revocada_en = now() WHERE id = :id AND empresa_id = :empresa"
+                        + " AND revocada_en IS NULL RETURNING " + COLUMNAS)
                 .param("id", id)
+                .param("empresa", empresa())
                 .query((rs, n) -> mapear(rs))
                 .optional();
     }
@@ -108,8 +120,10 @@ class RepositorioApiKeysJdbc implements RepositorioApiKeys {
     @Override
     @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
     public boolean existe(UUID id) {
-        return jdbc.sql("SELECT count(*) FROM api_key WHERE id = :id")
+        // empresa_id = :empresa: defensa en profundidad (1.1.3), además de RLS
+        return jdbc.sql("SELECT count(*) FROM api_key WHERE id = :id AND empresa_id = :empresa")
                         .param("id", id)
+                        .param("empresa", empresa())
                         .query(Long.class)
                         .single()
                 > 0;
@@ -136,12 +150,20 @@ class RepositorioApiKeysJdbc implements RepositorioApiKeys {
     @Transactional(propagation = Propagation.MANDATORY)
     public boolean registrarUso(UUID id) {
         // Como mucho una escritura por minuto por clave: la condición del WHERE la aplica la base, así que también
-        // vale entre varias instancias. Solo se toca ultimo_uso_en, la única columna de uso concedida (V7)
-        return jdbc.sql("UPDATE api_key SET ultimo_uso_en = now() WHERE id = :id"
+        // vale entre varias instancias. Solo se toca ultimo_uso_en, la única columna de uso concedida (V7).
+        // empresa_id = :empresa: defensa en profundidad (1.1.3); FiltroApiKey ya llama con la empresa de la propia
+        // clave en el contexto (ContextoEmpresa.ejecutarCon), así que este filtro nunca reduce el resultado esperado
+        return jdbc.sql("UPDATE api_key SET ultimo_uso_en = now() WHERE id = :id AND empresa_id = :empresa"
                                 + " AND (ultimo_uso_en IS NULL OR ultimo_uso_en < now() - interval '1 minute')")
                         .param("id", id)
+                        .param("empresa", empresa())
                         .update()
                 > 0;
+    }
+
+    /** Empresa activa del contexto: filtra cada sentencia como defensa en profundidad sobre RLS (1.1.3). */
+    private static UUID empresa() {
+        return ContextoEmpresa.empresaRequerida().valor();
     }
 
     /** Convierte una fila de columnas públicas en {@link ApiKeyRegistrada}. */

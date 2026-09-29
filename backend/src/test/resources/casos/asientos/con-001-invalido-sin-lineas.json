@@ -1,0 +1,8 @@
+{
+  "fuente": "CLAUDE.md §10.1 CON-001: un asiento sin líneas tampoco es válido",
+  "resultado": "INVALIDO",
+  "fecha": "2026-01-15",
+  "lineas": [],
+  "httpEsperado": 422,
+  "codigoEsperado": "CON-001"
+}

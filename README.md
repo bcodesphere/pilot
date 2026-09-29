@@ -2,20 +2,17 @@
 
 **Pilot** es un ERP multiempresa, modular y con API primero, pensado para PYMES de El Salvador. La versión 1.0 incluye el **núcleo** (usuarios, espacio de trabajo, apps) y una sola app instalable: **Contabilidad**, que además recibe operaciones de otras apps a través de n8n. La facturación electrónica (DTE) queda para una versión posterior (`docs/diferido/`).
 
-Contenido de esta carpeta:
+Contenido de la carpeta [`entregables/`](entregables/):
 
 | Archivo | Para qué sirve |
 |---|---|
-| `README.md` | Este documento: instalación, accesos, roles, base de datos, catálogo, historial Git |
-| `schema.sql` | Esquema completo de la base de datos (tablas, índices, RLS, triggers, permisos) |
-| `data.sql` | Catálogo de cuentas y demás datos globales (IVA, reglas, apps) |
-| `generar-sql.sh` | Regenera `schema.sql` y `data.sql` desde la base migrada |
-| `historial-git.txt` | Historial Git de todas las ramas |
-| `generar-historial-git.sh` | Regenera `historial-git.txt` |
-| `guion-demo.md` | Guion de presentación de 10–12 minutos con datos de ejemplo |
-| `MANUAL-DE-APLICACION-DE-CUENTAS-COMERCIAL .pdf` | Manual de la Universidad Católica en que se basa el catálogo |
+| [`entregables/README.md`](entregables/README.md) | Manual completo: instalación, accesos, roles, base de datos, catálogo, historial Git |
+| [`entregables/schema.sql`](entregables/schema.sql) | Esquema completo de la base de datos (tablas, índices, RLS, triggers, permisos) |
+| [`entregables/data.sql`](entregables/data.sql) | Catálogo de cuentas y demás datos globales (IVA, reglas, apps) |
+| [`entregables/historial-git.txt`](entregables/historial-git.txt) | Historial Git de todas las ramas |
+| [`entregables/guion-demo.md`](entregables/guion-demo.md) | Guion de presentación de 10–12 minutos con datos de ejemplo |
+| `entregables/MANUAL-DE-APLICACION-DE-CUENTAS-COMERCIAL .pdf` | Manual de la Universidad Católica en que se basa el catálogo |
 
-> `schema.sql`, `data.sql` e `historial-git.txt` se generan al final de la entrega; si no aparecen, ejecute los scripts como se indica en las secciones 6 y 8.
 
 ---
 
@@ -167,7 +164,9 @@ Toda petición valida además la membresía a la empresa (`X-Empresa-Id`), y la 
 - **Regenerar** (con compose arriba y la base ya migrada):
 
 ```bash
-bash entregables/generar-sql.sh       # escribe entregables/schema.sql y entregables/data.sql
+# Con la base ya migrada (backend levantado al menos una vez):
+docker compose --env-file .env -f infra/docker/compose.dev.yml exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --schema-only --no-owner -T flyway_schema_history' > entregables/schema.sql
+docker compose --env-file .env -f infra/docker/compose.dev.yml exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --data-only --inserts -t plantilla_cuenta -t plantilla_regla_contabilizacion -t plantilla_configuracion_contable -t tasa_impuesto -t aplicacion -t plantilla_vida_util' > entregables/data.sql
 ```
 
 ## 7. Catálogo de cuentas
@@ -188,7 +187,7 @@ El catálogo base se apoya en el **manual de aplicación de cuentas comercial de
 - **Regenerar:**
 
 ```bash
-bash entregables/generar-historial-git.sh   # escribe entregables/historial-git.txt
+{ git shortlog -sn --all; echo; git log --all --graph --decorate --date=iso --stat; } > entregables/historial-git.txt
 ```
 
 ## 9. Pruebas, calidad y limitaciones

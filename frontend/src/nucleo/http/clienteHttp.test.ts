@@ -122,4 +122,62 @@ describe('cliente HTTP (mutator de Orval)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(iniciarLogin).toHaveBeenCalledTimes(1);
   });
+
+  // Regla F4 (exportación de reportes, ADR-038): un archivo exportado se lee como Blob, no como texto,
+  // porque `leerCuerpo` lo trataría como JSON/texto y el PDF llegaría corrupto al descargarlo
+  it('lee un PDF exportado como Blob con los bytes intactos', async () => {
+    const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31]); // "%PDF-1"
+    fetchMock.mockResolvedValue(
+      new Response(bytes, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-disposition': 'attachment; filename="balanza.pdf"',
+        },
+      }),
+    );
+    const r = await clienteHttp<{ data: Blob; status: number }>('/contabilidad/balanza/exportacion', {
+      method: 'GET',
+    });
+    // `instanceof Blob` es frágil aquí: Response.blob() de Node/undici y el Blob global de jsdom son
+    // clases distintas aunque ambas se llamen "Blob"; se comprueba la forma en vez de la clase exacta.
+    expect(typeof r.data.arrayBuffer).toBe('function');
+    expect(r.data.type).toBe('application/pdf');
+    expect(new Uint8Array(await r.data.arrayBuffer())).toEqual(bytes);
+  });
+
+  // Regla: un XLSX o CSV exportado también se leen como Blob, aunque el tipo no incluya "attachment" explícito
+  it('lee un XLSX y un CSV exportados como Blob', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response('xlsx', {
+          status: 200,
+          headers: {
+            'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'content-disposition': 'attachment; filename="mayor.xlsx"',
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('a,b\n1,2', { status: 200, headers: { 'content-type': 'text/csv' } }),
+      );
+    const xlsx = await clienteHttp<{ data: Blob }>('/contabilidad/mayor/exportacion');
+    const csv = await clienteHttp<{ data: Blob }>('/contabilidad/reportes/iva/exportacion');
+    expect(typeof xlsx.data.arrayBuffer).toBe('function');
+    expect(typeof csv.data.arrayBuffer).toBe('function');
+  });
+
+  // Regla: una respuesta JSON normal (Problem Details incluido) sigue leyéndose como JSON, no como Blob
+  it('una respuesta JSON sigue siendo JSON y un 4xx Problem Details sigue lanzando ErrorApi', async () => {
+    fetchMock.mockResolvedValueOnce(json({ elementos: [] }));
+    const r = await clienteHttp<{ data: unknown }>('/contabilidad/asientos');
+    expect(r.data).toEqual({ elementos: [] });
+
+    fetchMock.mockResolvedValueOnce(
+      json({ status: 422, codigo: 'CON-005', title: 'Descuadre', diferencia: '1.00' }, 422),
+    );
+    const error = await clienteHttp('/contabilidad/balanza/exportacion').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ErrorApi);
+    expect(error).toMatchObject({ status: 422, codigo: 'CON-005', diferencia: '1.00' });
+  });
 });

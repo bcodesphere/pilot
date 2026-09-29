@@ -67,7 +67,7 @@ export function Dialogo({ titulo, onCerrar, cerrable = true, children }: PropsDi
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-velo)] p-4"
       onMouseDown={(e) => {
         // El clic en el fondo (no en el contenido) cierra
         if (e.target === e.currentTarget && cerrable) onCerrar();
@@ -79,7 +79,7 @@ export function Dialogo({ titulo, onCerrar, cerrable = true, children }: PropsDi
         aria-modal="true"
         aria-labelledby={idTitulo}
         tabIndex={-1}
-        className="w-full max-w-md space-y-4 rounded-lg bg-white p-6 shadow-lg"
+        className="w-full max-w-md space-y-4 rounded-[var(--radius-panel)] bg-[var(--color-superficie)] p-6 shadow-lg"
       >
         <h2 id={idTitulo} className="text-lg font-semibold">
           {titulo}

@@ -8,6 +8,7 @@ import { Badge } from '@/compartido/ui/badge';
 import { Button } from '@/compartido/ui/button';
 import { Card } from '@/compartido/ui/card';
 import { useCatalogoApps } from './apps/useCatalogoApps';
+import { tieneModuloApp } from './apps/registro';
 import { mensajeDeError } from './mensajesError';
 import { useEsAdmin } from './sesion/useEsAdmin';
 
@@ -49,7 +50,10 @@ export function PaginaApps() {
 
   return (
     <section aria-labelledby="titulo-apps" className="space-y-4">
-      <h1 id="titulo-apps" className="text-2xl font-bold">
+      <h1
+        id="titulo-apps"
+        className="font-[family-name:var(--font-titulo)] text-2xl font-bold text-[var(--color-texto)]"
+      >
         Apps
       </h1>
 
@@ -61,7 +65,7 @@ export function PaginaApps() {
 
       {/* 2. Estados de carga y error del catálogo */}
       {cargando && (
-        <p role="status" className="text-sm text-neutral-600">
+        <p role="status" className="text-sm text-[var(--color-texto-suave)]">
           Cargando aplicaciones…
         </p>
       )}
@@ -71,24 +75,31 @@ export function PaginaApps() {
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {apps.map((app) => {
           const instalando = instalacion.isPending && instalacion.variables?.codigo === app.codigo;
+          // Instalada pero sin módulo en este frontend (ADR-021): no se rompe, se muestra como próxima
+          const disponiblePronto = app.estado === 'INSTALADA' && !tieneModuloApp(app.codigo);
           return (
             <li key={app.codigo}>
               <Card className="flex h-full flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-semibold">{app.nombre}</h2>
+                  <h2 className="font-semibold text-[var(--color-texto)]">{app.nombre}</h2>
                   {app.estado === 'INSTALADA' && <Badge variant="success">Instalada</Badge>}
                   {app.estado === 'BLOQUEADA_ENTERPRISE' && <Badge variant="warning">Enterprise</Badge>}
                 </div>
-                {app.descripcion && <p className="text-sm text-neutral-600">{app.descripcion}</p>}
+                {app.descripcion && (
+                  <p className="text-sm text-[var(--color-texto-suave)]">{app.descripcion}</p>
+                )}
                 <div className="mt-auto">
-                  {app.estado === 'INSTALADA' && (
+                  {app.estado === 'INSTALADA' && !disponiblePronto && (
                     <Link
                       to={`/${app.codigo}`}
                       aria-label={`Abrir ${app.nombre}`}
-                      className="text-sm underline underline-offset-4"
+                      className="text-sm text-[var(--color-primario)] underline underline-offset-4"
                     >
                       Abrir
                     </Link>
+                  )}
+                  {disponiblePronto && (
+                    <span className="text-sm text-[var(--color-texto-suave)]">Disponible pronto</span>
                   )}
                   {app.estado === 'DISPONIBLE' &&
                     (esAdmin ? (
@@ -101,7 +112,7 @@ export function PaginaApps() {
                         {instalando ? 'Instalando…' : 'Instalar'}
                       </Button>
                     ) : (
-                      <span className="text-sm text-neutral-500">
+                      <span className="text-sm text-[var(--color-texto-suave)]">
                         Solo un administrador puede instalarla.
                       </span>
                     ))}

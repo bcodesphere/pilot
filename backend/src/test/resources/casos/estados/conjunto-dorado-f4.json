@@ -1,0 +1,263 @@
+{
+  "fuente": "Cálculo manual según CLAUDE.md §10.3, §10.4, §11 y ADR-016/037/038 — [VERIFICAR] pendiente de validación por contador (plan F4, criterio 1). Cada total fue verificado por tres caminos independientes (suma por cuenta, suma por período y la ecuación contable Activo = Pasivo + Patrimonio + resultados anteriores + utilidad del ejercicio) antes de fijarse aquí.",
+  "cuentas": {
+    "CAJA": "11010101",
+    "VENTAS_GRAVADAS": "51010102",
+    "CAPITAL_SOCIAL": "31010101",
+    "PRESTAMOS_CORTO_PLAZO": "210102",
+    "GASTOS_ADMIN": "41020101",
+    "COMPRAS": "41010101",
+    "PROVEEDORES": "21020101",
+    "IMPUESTO_RENTA": "44010101",
+    "DEPRECIACION": "41020505",
+    "DEPRECIACION_ACUMULADA": "12010802",
+    "BANCOS": "11010201",
+    "IVA_DEBITO": "21080101",
+    "IVA_CREDITO": "110901"
+  },
+  "asientos": [
+    {
+      "ref": "T1",
+      "fecha": "2025-05-10",
+      "modoPrecio": null,
+      "concepto": "Venta 2025 (ejercicio anterior)",
+      "lineas": [
+        {"cuentaCodigo": "11010101", "debe": "300.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "51010102", "debe": "0", "haber": "300.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T2",
+      "fecha": "2026-01-10",
+      "modoPrecio": null,
+      "concepto": "Aporte de capital",
+      "lineas": [
+        {"cuentaCodigo": "11010101", "debe": "500.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "31010101", "debe": "0", "haber": "500.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T3",
+      "fecha": "2026-01-20",
+      "modoPrecio": null,
+      "concepto": "Préstamo bancario recibido",
+      "lineas": [
+        {"cuentaCodigo": "11010101", "debe": "1000.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "210102", "debe": "0", "haber": "1000.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T4",
+      "fecha": "2026-02-05",
+      "modoPrecio": null,
+      "concepto": "Sueldos de administración de febrero",
+      "lineas": [
+        {"cuentaCodigo": "41020101", "debe": "150.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "11010101", "debe": "0", "haber": "150.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T5",
+      "fecha": "2026-02-18",
+      "modoPrecio": null,
+      "concepto": "Compra de mercadería a crédito",
+      "lineas": [
+        {"cuentaCodigo": "41010101", "debe": "80.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "21020101", "debe": "0", "haber": "80.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T6",
+      "fecha": "2026-03-01",
+      "modoPrecio": "CON_IVA",
+      "concepto": "Venta pequeña con redondeo de IVA (límite desde de la balanza)",
+      "lineas": [
+        {"cuentaCodigo": "11010101", "debe": "5.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "51010102", "debe": "0", "haber": "5.00", "llevaIva": true}
+      ]
+    },
+    {
+      "ref": "T7",
+      "fecha": "2026-03-10",
+      "modoPrecio": "CON_IVA",
+      "concepto": "Venta grande con IVA (monto exacto)",
+      "lineas": [
+        {"cuentaCodigo": "11010101", "debe": "2034.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "51010102", "debe": "0", "haber": "2034.00", "llevaIva": true}
+      ]
+    },
+    {
+      "ref": "T8",
+      "fecha": "2026-03-12",
+      "modoPrecio": "SIN_IVA",
+      "concepto": "Compra de mercadería con IVA (monto exacto)",
+      "lineas": [
+        {"cuentaCodigo": "41010101", "debe": "300.00", "haber": "0", "llevaIva": true},
+        {"cuentaCodigo": "11010101", "debe": "0", "haber": "339.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T9",
+      "fecha": "2026-03-15",
+      "modoPrecio": "SIN_IVA",
+      "concepto": "Compra pequeña con redondeo de IVA (se revierte con T14)",
+      "lineas": [
+        {"cuentaCodigo": "41010101", "debe": "4.42", "haber": "0", "llevaIva": true},
+        {"cuentaCodigo": "11010101", "debe": "0", "haber": "4.99", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T10",
+      "fecha": "2026-03-18",
+      "modoPrecio": null,
+      "concepto": "Sueldos de administración de marzo",
+      "lineas": [
+        {"cuentaCodigo": "41020101", "debe": "220.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "11010101", "debe": "0", "haber": "220.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T11",
+      "fecha": "2026-03-20",
+      "modoPrecio": null,
+      "concepto": "Pago a cuenta del impuesto sobre la renta",
+      "lineas": [
+        {"cuentaCodigo": "44010101", "debe": "95.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "11010101", "debe": "0", "haber": "95.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T12",
+      "fecha": "2026-03-22",
+      "modoPrecio": null,
+      "concepto": "Depreciación del mes",
+      "lineas": [
+        {"cuentaCodigo": "41020505", "debe": "60.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "12010802", "debe": "0", "haber": "60.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T13",
+      "fecha": "2026-03-24",
+      "modoPrecio": null,
+      "concepto": "Pago parcial a proveedor por banco",
+      "lineas": [
+        {"cuentaCodigo": "21020101", "debe": "50.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "11010201", "debe": "0", "haber": "50.00", "llevaIva": false}
+      ]
+    },
+    {
+      "ref": "T15",
+      "fecha": "2026-03-31",
+      "modoPrecio": null,
+      "concepto": "Aporte de capital adicional (límite hasta/fechaCorte de la balanza y del estado)",
+      "lineas": [
+        {"cuentaCodigo": "11010101", "debe": "66.00", "haber": "0", "llevaIva": false},
+        {"cuentaCodigo": "31010101", "debe": "0", "haber": "66.00", "llevaIva": false}
+      ]
+    }
+  ],
+  "reversiones": [
+    {"ref": "T14", "deAsientoRef": "T9", "fecha": "2026-03-30"}
+  ],
+  "esperado": {
+    "balanza": {
+      "desde": "2026-03-01",
+      "hasta": "2026-03-31",
+      "calculo": "Saldo inicial = acumulado hasta 2026-02-28 (incluye 2025). Debe/Haber = movimientos de marzo (T6 a T15, incluida la reversión T14). Saldo final = inicial + Debe - Haber. Verificado también con nivel=2 (mismos cuatro totales, ADR-038 §6) y con la suma de los totalDebe de cada asiento de marzo (coincide con totalDebe de la balanza).",
+      "filas": [
+        {"cuentaCodigo": "11010101", "saldoInicialMonto": "1650.00", "saldoInicialLado": "DEUDOR", "debe": "2109.99", "haber": "658.99", "saldoFinalMonto": "3101.00", "saldoFinalLado": "DEUDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "51010102", "saldoInicialMonto": "300.00", "saldoInicialLado": "ACREEDOR", "debe": "0.00", "haber": "1804.42", "saldoFinalMonto": "2104.42", "saldoFinalLado": "ACREEDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "21080101", "saldoInicialMonto": "0.00", "saldoInicialLado": "CERO", "debe": "0.00", "haber": "234.58", "saldoFinalMonto": "234.58", "saldoFinalLado": "ACREEDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "41010101", "saldoInicialMonto": "80.00", "saldoInicialLado": "DEUDOR", "debe": "304.42", "haber": "4.42", "saldoFinalMonto": "380.00", "saldoFinalLado": "DEUDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "110901", "saldoInicialMonto": "0.00", "saldoInicialLado": "CERO", "debe": "39.57", "haber": "0.57", "saldoFinalMonto": "39.00", "saldoFinalLado": "DEUDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "41020101", "saldoInicialMonto": "150.00", "saldoInicialLado": "DEUDOR", "debe": "220.00", "haber": "0.00", "saldoFinalMonto": "370.00", "saldoFinalLado": "DEUDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "44010101", "saldoInicialMonto": "0.00", "saldoInicialLado": "CERO", "debe": "95.00", "haber": "0.00", "saldoFinalMonto": "95.00", "saldoFinalLado": "DEUDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "41020505", "saldoInicialMonto": "0.00", "saldoInicialLado": "CERO", "debe": "60.00", "haber": "0.00", "saldoFinalMonto": "60.00", "saldoFinalLado": "DEUDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "12010802", "saldoInicialMonto": "0.00", "saldoInicialLado": "CERO", "debe": "0.00", "haber": "60.00", "saldoFinalMonto": "60.00", "saldoFinalLado": "ACREEDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "21020101", "saldoInicialMonto": "80.00", "saldoInicialLado": "ACREEDOR", "debe": "50.00", "haber": "0.00", "saldoFinalMonto": "30.00", "saldoFinalLado": "ACREEDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "11010201", "saldoInicialMonto": "0.00", "saldoInicialLado": "CERO", "debe": "0.00", "haber": "50.00", "saldoFinalMonto": "50.00", "saldoFinalLado": "ACREEDOR", "contrarioNaturaleza": true},
+        {"cuentaCodigo": "31010101", "saldoInicialMonto": "500.00", "saldoInicialLado": "ACREEDOR", "debe": "0.00", "haber": "66.00", "saldoFinalMonto": "566.00", "saldoFinalLado": "ACREEDOR", "contrarioNaturaleza": false},
+        {"cuentaCodigo": "210102", "saldoInicialMonto": "1000.00", "saldoInicialLado": "ACREEDOR", "debe": "0.00", "haber": "0.00", "saldoFinalMonto": "1000.00", "saldoFinalLado": "ACREEDOR", "contrarioNaturaleza": false}
+      ],
+      "totalDebe": "2878.98",
+      "totalHaber": "2878.98",
+      "totalSaldosDeudores": "4045.00",
+      "totalSaldosAcreedores": "4045.00",
+      "cuadra": true
+    },
+    "mayor": {
+      "desde": "2026-03-01",
+      "hasta": "2026-03-31",
+      "calculo": "Detalle = 41020101 (Salarios, catálogo ADR-044): solo movimiento T4 en febrero (saldo inicial) y T10 en marzo. Padre = 4102 (Gastos administrativos) agrega además 41020505 (Depreciación, T12): mismo saldo inicial (único hijo con saldo a fin de febrero), dos movimientos en marzo en vez de uno.",
+      "detalle": {
+        "cuentaCodigo": "41020101",
+        "saldoInicialMonto": "150.00",
+        "saldoInicialLado": "DEUDOR",
+        "cantidadMovimientos": 1,
+        "totalDebe": "220.00",
+        "totalHaber": "0.00",
+        "saldoFinalMonto": "370.00",
+        "saldoFinalLado": "DEUDOR"
+      },
+      "padre": {
+        "cuentaCodigo": "4102",
+        "saldoInicialMonto": "150.00",
+        "saldoInicialLado": "DEUDOR",
+        "cantidadMovimientos": 2,
+        "totalDebe": "280.00",
+        "totalHaber": "0.00",
+        "saldoFinalMonto": "430.00",
+        "saldoFinalLado": "DEUDOR"
+      }
+    },
+    "estadoResultados": {
+      "desde": "2026-01-01",
+      "hasta": "2026-03-31",
+      "calculo": "Ingresos = Ventas gravadas de marzo (T6 base 4.42 + T7 base 1800.00) = 1804.42 (sin movimiento en enero/febrero). Costos y gastos (clase 4 sin 44) = Gastos admin (T4 150.00 + T10 220.00 = 370.00) + Compras (T5 80.00 + T8 300.00 + T9 4.42 - T14 4.42 = 380.00) + Depreciación (T12 60.00) = 810.00. Utilidad antes de impuesto = 1804.42 - 810.00 = 994.42. Impuesto sobre la renta = T11 95.00. Utilidad del ejercicio = 994.42 - 95.00 = 899.42.",
+      "ingresos": "1804.42",
+      "costosGastos": "810.00",
+      "utilidadAntesImpuesto": "994.42",
+      "impuestoSobreRenta": "95.00",
+      "utilidadEjercicio": "899.42"
+    },
+    "estadoSituacionFinanciera": {
+      "fechaCorte": "2026-03-31",
+      "calculo": "Activo (clase 1, Debe-Haber) = Caja 3101.00 + IVA crédito fiscal 39.00 - Bancos 50.00 - Depreciación acumulada 60.00 = 3030.00. Pasivo (clase 2, Haber-Debe) = Proveedores 30.00 + Préstamos 1000.00 + IVA débito fiscal 234.58 = 1264.58. Patrimonio (clase 3) = Capital social 500.00 (enero) + 66.00 (T15) = 566.00. Resultados de ejercicios anteriores = utilidad 2025 = Ventas 300.00 - Costos 0 = 300.00. Utilidad del ejercicio = 899.42 (igual al Estado de Resultados del mismo período, 1/1 al corte). Comprobación: Pasivo 1264.58 + Patrimonio 566.00 + resultados anteriores 300.00 + utilidad 899.42 = 3030.00 = Activo (verificado también por la identidad contable Σ(Debe-Haber) de todas las cuentas = 0).",
+      "activo": "3030.00",
+      "pasivo": "1264.58",
+      "patrimonio": "566.00",
+      "resultadosEjerciciosAnteriores": "300.00",
+      "utilidadEjercicio": "899.42",
+      "totalPasivoPatrimonio": "3030.00",
+      "cuadra": true,
+      "diferencia": "0.00"
+    },
+    "resumenIva": {
+      "anio": 2026,
+      "mes": 3,
+      "calculo": "IVA débito fiscal (21080101), Haber-Debe por origen: manual = T6 0.58 + T7 234.00 = 234.58; sin reversión ni n8n; total 234.58. IVA crédito fiscal (110901), Debe-Haber por origen: manual = T8 39.00 + T9 0.57 = 39.57; reversión = -0.57 (T14 revierte T9); sin n8n; total 39.00. Diferencia estimada = 234.58 - 39.00 = 195.58.",
+      "ivaDebitoManual": "234.58",
+      "ivaDebitoReversion": "0.00",
+      "ivaDebitoN8n": "0.00",
+      "ivaDebitoTotal": "234.58",
+      "ivaCreditoManual": "39.57",
+      "ivaCreditoReversion": "-0.57",
+      "ivaCreditoN8n": "0.00",
+      "ivaCreditoTotal": "39.00",
+      "diferenciaEstimada": "195.58"
+    },
+    "libroDiario": {
+      "desde": "2026-03-01",
+      "hasta": "2026-03-31",
+      "calculo": "10 asientos en marzo: T6(5.00) T7(2034.00) T8(339.00) T9(4.99) T10(220.00) T11(95.00) T12(60.00) T13(50.00) T14 reversión de T9(4.99) T15(66.00). Suma de totalDebe de cada asiento = 5+2034+339+4.99+220+95+60+50+4.99+66 = 2878.98, igual a Σ Debe de la balanza de marzo (coincide con totalDebe de la balanza porque cada asiento cuadra, CON-005).",
+      "cantidadAsientos": 10,
+      "totalDebe": "2878.98",
+      "totalHaber": "2878.98"
+    },
+    "diagnostico": {
+      "calculo": "21 combinaciones cuenta/año/mes distintas, contadas a mano recorriendo las líneas de los 15 asientos y la reversión: (Caja,2025,05) (Ventas gravadas,2025,05) (Caja,2026,01) (Capital social,2026,01) (Préstamos,2026,01) (Gastos admin,2026,02) (Caja,2026,02) (Compras,2026,02) (Proveedores,2026,02) (Caja,2026,03) (Ventas gravadas,2026,03) (IVA débito,2026,03) (Compras,2026,03) (IVA crédito,2026,03) (Gastos admin,2026,03) (Impuesto renta,2026,03) (Depreciación,2026,03) (Depreciación acumulada,2026,03) (Proveedores,2026,03) (Bancos,2026,03) (Capital social,2026,03). Proveedores y Capital social aparecen dos veces cada una (febrero y marzo; enero y marzo) por eso no son 19 combinaciones (una por cuenta distinta) sino 21.",
+      "cantidadCombinacionesCuentaAnioMes": 21
+    }
+  }
+}

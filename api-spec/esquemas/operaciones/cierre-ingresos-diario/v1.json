@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:bcodesphere:pilot:esquemas:operaciones:cierre-ingresos-diario:v1",
+  "title": "Cierre de ingresos diarios v1",
+  "description": "Esquema JSON versionado de la operación externa CIERRE_INGRESOS_DIARIO que una app web (ventas, caja, etc.) envía a Pilot a través de n8n (CLAUDE.md §12.3, ADR-017, ADR-020, ADR-039). Pilot valida el cuerpo contra este esquema ANTES de interpretarlo (regla 1.1.14); un cuerpo que no cumple este esquema responde 400 INT-001 con la lista de errores. Este esquema NO puede expresar dos reglas de negocio que el núcleo valida después, también como 400 INT-001: que no haya códigos de concepto repetidos dentro de ingresos ni de forma de pago repetidos dentro de cobros, y que haya al menos un ingreso y un cobro con monto mayor que cero (ADR-039 §4). La app de origen nunca envía IVA: Pilot lo calcula con la tasa vigente y el modo de precio de la empresa (CLAUDE.md §12.5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tipoOperacion", "version", "sistemaOrigen", "idExterno", "fecha", "ingresos", "cobros"],
+  "properties": {
+    "tipoOperacion": {
+      "const": "CIERRE_INGRESOS_DIARIO",
+      "description": "Tipo de operación externa; junto con version elige este esquema. Un valor distinto responde 422 INT-002."
+    },
+    "version": {
+      "const": 1,
+      "description": "Versión del esquema de esta operación; junto con tipoOperacion elige este esquema. Un valor distinto responde 422 INT-002."
+    },
+    "sistemaOrigen": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "description": "Identificador estable de la app que genera el cierre (p. ej. app-ventas-web); junto con idExterno forma la clave natural de idempotencia contable."
+    },
+    "idExterno": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Identificador único del cierre en la app de origen; junto con sistemaOrigen forma la clave natural de idempotencia contable (CLAUDE.md §12.6)."
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date",
+      "description": "Día que se cierra (AAAA-MM-DD); es la fecha contable del asiento generado. No puede ser futura en hora de El Salvador (CON-007)."
+    },
+    "sucursal": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "Nombre de la sucursal que reporta el cierre; opcional y solo informativo, va al concepto del asiento."
+    },
+    "descripcion": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "Texto libre opcional sobre el cierre; no se usa para contabilizar."
+    },
+    "ingresos": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Qué se vendió, por tratamiento fiscal. Se interpreta con el modo de precio por defecto de la empresa (CLAUDE.md §11.3). Sin códigos de concepto repetidos y con al menos un monto mayor que cero (regla del núcleo, no de este esquema; ver 400 INT-001).",
+      "items": { "$ref": "#/$defs/ingreso" }
+    },
+    "cobros": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Cómo se cobró el cierre. Sin formas de pago repetidas y con al menos un monto mayor que cero (regla del núcleo, no de este esquema; ver 400 INT-001).",
+      "items": { "$ref": "#/$defs/cobro" }
+    },
+    "totalCobrado": {
+      "$ref": "#/$defs/monto",
+      "description": "Total cobrado del cierre según la app de origen; opcional. Si viene, debe ser igual a la suma de cobros (422 INT-006 si no coincide)."
+    }
+  },
+  "$defs": {
+    "monto": {
+      "type": "string",
+      "pattern": "^\\d{1,17}\\.\\d{2}$",
+      "description": "Monto en USD no negativo como cadena decimal con exactamente 2 decimales (ADR-013); nunca número JSON."
+    },
+    "ingreso": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["concepto", "monto"],
+      "description": "Ingreso del cierre por un concepto (tratamiento fiscal) y su monto.",
+      "properties": {
+        "concepto": {
+          "type": "string",
+          "enum": ["VENTAS_GRAVADAS", "VENTAS_EXENTAS", "VENTAS_NO_SUJETAS"],
+          "description": "Concepto de ingreso: ventas gravadas (llevan IVA), exentas o no sujetas (CLAUDE.md §12.3)."
+        },
+        "monto": {
+          "$ref": "#/$defs/monto",
+          "description": "Monto de este concepto. En VENTAS_GRAVADAS incluye o no el IVA según el modo de precio de la empresa."
+        }
+      }
+    },
+    "cobro": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["formaPago", "monto"],
+      "description": "Cobro del cierre por una forma de pago y su monto.",
+      "properties": {
+        "formaPago": {
+          "type": "string",
+          "enum": ["EFECTIVO", "TARJETA", "TRANSFERENCIA", "CHEQUE", "CREDITO", "OTRO"],
+          "description": "Forma de pago con la que se cobró (CLAUDE.md §12.3)."
+        },
+        "monto": {
+          "$ref": "#/$defs/monto",
+          "description": "Monto cobrado con esta forma de pago."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "tipoOperacion": "CIERRE_INGRESOS_DIARIO",
+      "version": 1,
+      "sistemaOrigen": "app-ventas-web",
+      "idExterno": "CIERRE-2026-10-15-SUC01",
+      "fecha": "2026-10-15",
+      "sucursal": "Sucursal Centro",
+      "descripcion": "Cierre de caja del día",
+      "ingresos": [
+        { "concepto": "VENTAS_GRAVADAS", "monto": "1130.00" },
+        { "concepto": "VENTAS_EXENTAS", "monto": "50.00" }
+      ],
+      "cobros": [
+        { "formaPago": "EFECTIVO", "monto": "780.00" },
+        { "formaPago": "TARJETA", "monto": "400.00" }
+      ],
+      "totalCobrado": "1180.00"
+    }
+  ]
+}

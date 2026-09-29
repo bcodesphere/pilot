@@ -6,5 +6,13 @@ import { cn } from '@/compartido/lib/utils';
  * @param props atributos de `<div>`
  */
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('rounded-lg border bg-white p-4', className)} {...props} />;
+  return (
+    <div
+      className={cn(
+        'rounded-[var(--radius-panel)] border border-[var(--color-borde)] bg-[var(--color-superficie)] p-4',
+        className,
+      )}
+      {...props}
+    />
+  );
 }

@@ -1,0 +1,11 @@
+{
+  "fuente": "CLAUDE.md §10.1 CON-017 y ADR-034: la única vigencia de tasa_impuesto arranca el 2000-01-01; una fecha anterior no tiene tasa vigente. Sembrada como dueño (F2, ADR-034); no se modifican datos globales.",
+  "resultado": "INVALIDO",
+  "fecha": "1999-12-31",
+  "lineas": [
+    { "cuentaCodigo": "11010101", "debe": "113.00", "haber": "0", "llevaIva": false },
+    { "cuentaCodigo": "51010101", "debe": "0", "haber": "113.00", "llevaIva": true }
+  ],
+  "httpEsperado": 422,
+  "codigoEsperado": "CON-017"
+}

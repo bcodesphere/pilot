@@ -1,0 +1,12 @@
+{
+  "fuente": "CLAUDE.md §10.1 CON-005: Σ Debe = Σ Haber, se informa la diferencia exacta",
+  "resultado": "INVALIDO",
+  "fecha": "2026-01-15",
+  "lineas": [
+    { "cuentaCodigo": "11010101", "debe": "100.00", "haber": "0", "llevaIva": false },
+    { "cuentaCodigo": "51010101", "debe": "0", "haber": "99.50", "llevaIva": false }
+  ],
+  "httpEsperado": 422,
+  "codigoEsperado": "CON-005",
+  "diferenciaEsperada": "0.50"
+}

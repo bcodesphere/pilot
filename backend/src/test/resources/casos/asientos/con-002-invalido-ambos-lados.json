@@ -1,0 +1,11 @@
+{
+  "fuente": "CLAUDE.md §10.1 CON-002: una línea no puede tener Debe y Haber a la vez",
+  "resultado": "INVALIDO",
+  "fecha": "2026-01-15",
+  "lineas": [
+    { "cuentaCodigo": "11010101", "debe": "10.00", "haber": "10.00", "llevaIva": false },
+    { "cuentaCodigo": "51010101", "debe": "0", "haber": "10.00", "llevaIva": false }
+  ],
+  "httpEsperado": 422,
+  "codigoEsperado": "CON-002"
+}

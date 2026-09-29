@@ -1,0 +1,2147 @@
+# Historial Git de Pilot 1.0 — generado el 2026-09-28 22:46 (hora de El Salvador)
+
+## Commits por autor
+    64	Harpin067
+     5	bcodesphere
+     4	dependabot[bot]
+
+## Historial completo (todas las ramas)
+*   commit 858e1c4e54c124a4e367cb6394e231ad2e4479fb (HEAD -> feat/f4-f5-reportes-n8n)
+|\  Merge: e1de2a9 ed04402
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-28 22:46:19 -0600
+| | 
+| |     Merge branch 'main' into feat/f4-f5-reportes-n8n
+| | 
+| * commit ed044029751dd793793c8034c068e3b868bf9cd6 (origin/main)
+| | Author: bcodesphere <bcodesphere@gmail.com>
+| | Date:   2026-09-28 17:13:50 -0600
+| | 
+| |     Revise README for clarity and additional information
+| |     
+| |     Updated README.md to enhance project description and details.
+| | 
+| |  README.md | 233 +++++++++++++++++++++++++++++++++++++++++++++++-----------
+| |  1 file changed, 192 insertions(+), 41 deletions(-)
+| |   
+| *   commit ab6d9dd6554c64b9a50d153e7ab9c8feaf776789
+| |\  Merge: 57c2bb7 9c65dcf
+| | | Author: bcodesphere <bcodesphere@gmail.com>
+| | | Date:   2026-09-25 21:40:24 -0600
+| | | 
+| | |     Merge pull request #8 from bcodesphere/docs/f1-decisiones
+| | |     
+| | |     Docs/f1 decisiones
+| | | 
+* | | commit e1de2a996bd82c5c931e7305258994fdd1c1fa7e (origin/feat/f4-f5-reportes-n8n)
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:38:49 -0600
+| | | 
+| | |     docs(entregables): actualiza el historial Git
+| | | 
+| | |  entregables/historial-git.txt | 22 ++++++++++++++++++++--
+| | |  1 file changed, 20 insertions(+), 2 deletions(-)
+| | | 
+* | | commit 2821fd6451d3e0c7b3c72dff004d821bc77c5c14
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:38:49 -0600
+| | | 
+| | |     docs: enlaza el manual de la entrega desde el README
+| | | 
+| | |  README.md | 2 +-
+| | |  1 file changed, 1 insertion(+), 1 deletion(-)
+| | | 
+* | | commit 41e635a706f8fd4a6590d8014d8b9ef643f29ef8
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:38:30 -0600
+| | | 
+| | |     docs(entregables): actualiza el historial Git
+| | | 
+| | |  entregables/historial-git.txt | 46 ++++++++++++++++++++++++++++++++++---
+| | |  1 file changed, 43 insertions(+), 3 deletions(-)
+| | | 
+* | | commit 7bd4dc8ae9526744bd3111ae17f48dd5014ecefb
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:38:30 -0600
+| | | 
+| | |     chore: deja las guías internas de desarrollo fuera del repositorio
+| | | 
+| | |  .gitignore |    4 +
+| | |  AGENTS.md  |  481 -----------------
+| | |  CLAUDE.md  | 1586 ------------------------------------------------------
+| | |  3 files changed, 4 insertions(+), 2067 deletions(-)
+| | | 
+* | | commit 9ce0fa6eff59c944f0185f198a77b5efb29c864c
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:38:30 -0600
+| | | 
+| | |     test(contabilidad): actualiza las pruebas al catálogo base de la Universidad Católica
+| | | 
+| | |  .../f2/SaldoYMovimientosConDobleF2IT.java       | 15 ++--
+| | |  .../aceptacion/f4/ExportacionesIgualesF4IT.java |  2 +-
+| | |  .../contabilidad/api/CatalogoCuentasIT.java     | 23 +++---
+| | |  .../pilot/contabilidad/api/LibroDiarioIT.java   | 14 +++-
+| | |  .../MigracionesContabilidadIT.java              | 12 +--
+| | |  .../MigracionesOperacionesIT.java               | 17 ++---
+| | |  .../casos/estados/conjunto-dorado-f4.json       | 76 +++++++++----------
+| | |  7 files changed, 87 insertions(+), 72 deletions(-)
+| | | 
+* | | commit eadb0d5e4d7b3c53412cd17d993240fd8dde926a
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:24:33 -0600
+| | | 
+| | |     docs(entregables): agrega README de instalación, guion de demo, esquema, catálogo e historial
+| | | 
+| | |  ...NUAL-DE-APLICACION-DE-CUENTAS-COMERCIAL .pdf |  Bin 0 -> 147516 bytes
+| | |  entregables/README.md                           |  216 +
+| | |  entregables/data.sql                            |  605 ++
+| | |  entregables/guion-demo.md                       |   72 +
+| | |  entregables/historial-git.txt                   | 2062 +++++++
+| | |  entregables/schema.sql                          | 4855 +++++++++++++++++
+| | |  6 files changed, 7810 insertions(+)
+| | | 
+* | | commit 8c49f1b0c30248886ea336ccdb4a4a48c8dae13b
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:24:25 -0600
+| | | 
+| | |     feat(frontend): rediseña reportes, Libro Diario, Mayor, catálogo y configuración con el sistema de diseño
+| | | 
+| | |  frontend/e2e/f2-contabilidad.spec.ts            |    8 +-
+| | |  frontend/e2e/f3-libro-diario.spec.ts            |    9 +-
+| | |  frontend/e2e/f4-reportes.spec.ts                |  202 +++
+| | |  .../configuracion-contable.ts                   |    2 +-
+| | |  .../api/cuentas-contables/cuentas-contables.ts  |    4 +-
+| | |  frontend/src/api/index.ts                       |    6 +
+| | |  frontend/src/api/modelos/activoFijo.ts          |   37 +
+| | |  frontend/src/api/modelos/activoFijoSolicitud.ts |   34 +
+| | |  .../actualizacionConfiguracionContable.ts       |    7 +-
+| | |  .../api/modelos/actualizacionCuentaContable.ts  |    5 +-
+| | |  .../src/api/modelos/anioTableroParameter.ts     |   12 +
+| | |  frontend/src/api/modelos/aporteSolicitud.ts     |   28 +
+| | |  frontend/src/api/modelos/categoriaActivo.ts     |   21 +
+| | |  frontend/src/api/modelos/categoriaRegla.ts      |    7 +-
+| | |  .../src/api/modelos/cobroClienteSolicitud.ts    |   34 +
+| | |  .../src/api/modelos/compraGastoSolicitud.ts     |   34 +
+| | |  frontend/src/api/modelos/cuentaContable.ts      |    3 +
+| | |  .../src/api/modelos/cuotaPrestamoSolicitud.ts   |   35 +
+| | |  .../src/api/modelos/depreciacionSolicitud.ts    |   25 +
+| | |  frontend/src/api/modelos/destinoFondos.ts       |   18 +
+| | |  frontend/src/api/modelos/destinoGasto.ts        |   26 +
+| | |  frontend/src/api/modelos/documentoCompra.ts     |   18 +
+| | |  frontend/src/api/modelos/estadoActivoFijo.ts    |   18 +
+| | |  frontend/src/api/modelos/estadoOperacion.ts     |   18 +
+| | |  .../modelos/estadoOperacionFiltroParameter.ts   |   10 +
+| | |  frontend/src/api/modelos/formaCobro.ts          |   20 +
+| | |  frontend/src/api/modelos/formaPago.ts           |   19 +
+| | |  frontend/src/api/modelos/index.ts               |   41 +
+| | |  .../src/api/modelos/listarOperacionesParams.ts  |   42 +
+| | |  .../listarReglasContabilizacionParams.ts        |    2 +-
+| | |  frontend/src/api/modelos/mesTableroParameter.ts |   12 +
+| | |  frontend/src/api/modelos/nuevaCuentaContable.ts |    5 +-
+| | |  .../src/api/modelos/obtenerTableroParams.ts     |   24 +
+| | |  frontend/src/api/modelos/operacion.ts           |   39 +
+| | |  frontend/src/api/modelos/operacionDatos.ts      |   12 +
+| | |  frontend/src/api/modelos/operacionRegistrada.ts |   21 +
+| | |  frontend/src/api/modelos/origenCobro.ts         |   18 +
+| | |  frontend/src/api/modelos/paginaOperaciones.ts   |   17 +
+| | |  .../src/api/modelos/pagoProveedorSolicitud.ts   |   28 +
+| | |  frontend/src/api/modelos/pendienteSeveridad.ts  |   19 +
+| | |  frontend/src/api/modelos/pendienteTipo.ts       |   21 +
+| | |  frontend/src/api/modelos/plazoPrestamo.ts       |   18 +
+| | |  frontend/src/api/modelos/prestamoSolicitud.ts   |   30 +
+| | |  .../src/api/modelos/reglaContabilizacion.ts     |   13 +-
+| | |  .../src/api/modelos/resumenOperacionGuiada.ts   |   27 +
+| | |  frontend/src/api/modelos/tablero.ts             |   39 +
+| | |  frontend/src/api/modelos/tableroPendiente.ts    |   24 +
+| | |  frontend/src/api/modelos/tableroPeriodo.ts      |   19 +
+| | |  frontend/src/api/modelos/tableroSaldoCuenta.ts  |   17 +
+| | |  frontend/src/api/modelos/tableroSerieItem.ts    |   24 +
+| | |  frontend/src/api/modelos/tipoOperacion.ts       |   27 +
+| | |  .../api/modelos/tipoOperacionFiltroParameter.ts |    4 +-
+| | |  .../tipoOperacionOperacionesFiltroParameter.ts  |   10 +
+| | |  frontend/src/api/modelos/trasladoSolicitud.ts   |   30 +
+| | |  frontend/src/api/modelos/ventaSolicitud.ts      |   34 +
+| | |  .../src/api/modelos/vistaPreviaOperacion.ts     |   26 +
+| | |  .../operaciones-activos/operaciones-activos.ts  |  851 ++++++++++
+| | |  .../operaciones-bancos/operaciones-bancos.ts    | 1373 +++++++++++++++++
+| | |  .../operaciones-gastos/operaciones-gastos.ts    |  715 +++++++++
+| | |  .../operaciones-ingresos.ts                     |  715 +++++++++
+| | |  frontend/src/api/operaciones/operaciones.ts     |  349 +++++
+| | |  .../reglas-contabilizacion.ts                   |    4 +-
+| | |  frontend/src/api/tablero/tablero.ts             |  207 +++
+| | |  .../contabilidad/LayoutContabilidad.test.tsx    |   37 +-
+| | |  .../apps/contabilidad/LayoutContabilidad.tsx    |   43 +-
+| | |  .../catalogo/DialogoEditarCuenta.tsx            |   26 +-
+| | |  .../catalogo/DialogoNuevaCuenta.tsx             |   35 +-
+| | |  .../catalogo/PaginaCatalogo.test.tsx            |   98 +-
+| | |  .../contabilidad/catalogo/PaginaCatalogo.tsx    |  270 +++-
+| | |  .../src/apps/contabilidad/catalogo/arbol.ts     |   35 +
+| | |  .../apps/contabilidad/catalogo/esquemaCuenta.ts |   11 +-
+| | |  .../compartido/BotonesExportacion.test.tsx      |   53 -
+| | |  .../compartido/BotonesExportacion.tsx           |   78 -
+| | |  .../compartido/EncabezadoInforme.tsx            |   28 +
+| | |  .../contabilidad/compartido/FiltroPeriodo.tsx   |   75 -
+| | |  .../compartido/PresentacionSaldo.tsx            |   32 -
+| | |  .../contabilidad/compartido/SelectorCuenta.tsx  |   45 +-
+| | |  .../apps/contabilidad/compartido/datosPrueba.ts |    4 +
+| | |  .../contabilidad/compartido/exportarReporte.ts  |   29 +
+| | |  .../compartido/useCuentasRecientes.ts           |   49 +
+| | |  .../configuracion/PaginaConfiguracion.test.tsx  |  114 +-
+| | |  .../configuracion/PaginaConfiguracion.tsx       |  143 +-
+| | |  .../configuracion/esquemaConfiguracion.ts       |    7 +-
+| | |  .../libro-diario/DialogoReversion.tsx           |    4 +-
+| | |  .../contabilidad/libro-diario/PaginaAsiento.tsx |   63 +-
+| | |  .../libro-diario/PaginaLibroDiario.test.tsx     |   10 +-
+| | |  .../libro-diario/PaginaLibroDiario.tsx          |  404 +++--
+| | |  .../libro-diario/PaginaNuevoAsiento.test.tsx    |   70 +
+| | |  .../libro-diario/PaginaNuevoAsiento.tsx         |  135 +-
+| | |  .../contabilidad/libro-diario/presentacion.tsx  |   24 +-
+| | |  .../contabilidad/mayor/PaginaMayor.test.tsx     |   31 +-
+| | |  .../src/apps/contabilidad/mayor/PaginaMayor.tsx |  207 ++-
+| | |  .../contabilidad/mayor/SelectorCuentaMayor.tsx  |    9 +-
+| | |  .../src/apps/contabilidad/reglas/FilaRegla.tsx  |    4 +-
+| | |  .../contabilidad/reglas/PaginaReglas.test.tsx   |    4 +-
+| | |  .../apps/contabilidad/reglas/PaginaReglas.tsx   |   18 +-
+| | |  .../contabilidad/reportes/FiltroAnioMes.tsx     |    5 +-
+| | |  .../contabilidad/reportes/LayoutReportes.tsx    |   11 +-
+| | |  .../reportes/PaginaBalanza.test.tsx             |   66 +-
+| | |  .../contabilidad/reportes/PaginaBalanza.tsx     |  356 +++--
+| | |  .../contabilidad/reportes/PaginaDiagnostico.tsx |   32 +-
+| | |  .../reportes/PaginaEstadoResultados.test.tsx    |   13 +-
+| | |  .../reportes/PaginaEstadoResultados.tsx         |   68 +-
+| | |  .../PaginaEstadoSituacionFinanciera.test.tsx    |    3 +-
+| | |  .../PaginaEstadoSituacionFinanciera.tsx         |   75 +-
+| | |  .../reportes/PaginaResumenIva.test.tsx          |   14 +-
+| | |  .../contabilidad/reportes/PaginaResumenIva.tsx  |  117 +-
+| | |  .../apps/contabilidad/reportes/TablaRubro.tsx   |   91 +-
+| | |  frontend/src/nucleo/api-keys/PaginaApiKeys.tsx  |    4 +-
+| | |  frontend/src/nucleo/auth/ProveedorAuth.tsx      |    4 +-
+| | |  frontend/src/nucleo/espacio/PaginaEspacio.tsx   |    4 +-
+| | |  frontend/src/nucleo/perfil/PaginaPerfil.tsx     |    4 +-
+| | |  frontend/src/nucleo/sesion/ProveedorSesion.tsx  |    4 +-
+| | |  113 files changed, 7182 insertions(+), 1401 deletions(-)
+| | | 
+* | | commit ee74f41730de68e6e162f21307f09ba020b3d4fd
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:24:25 -0600
+| | | 
+| | |     feat(frontend): agrega el sistema de diseño y la estructura de navegación por procesos
+| | | 
+| | |  frontend/e2e/f1-nucleo.spec.ts                  |   33 +-
+| | |  frontend/package.json                           |   17 +-
+| | |  frontend/pnpm-lock.yaml                         | 1013 +++++++++++++++++
+| | |  .../f1/appDesconocidaEnElShell.test.tsx         |   35 +-
+| | |  .../dominio/BarraFiltrosReporte.test.tsx        |   40 +
+| | |  .../compartido/dominio/BarraFiltrosReporte.tsx  |   83 ++
+| | |  .../compartido/dominio/CodigoCuenta.test.tsx    |   16 +
+| | |  .../src/compartido/dominio/CodigoCuenta.tsx     |   20 +
+| | |  .../compartido/dominio/EstadoDocumento.test.tsx |   28 +
+| | |  .../src/compartido/dominio/EstadoDocumento.tsx  |   41 +
+| | |  .../src/compartido/dominio/EstadoVacio.test.tsx |   43 +
+| | |  frontend/src/compartido/dominio/EstadoVacio.tsx |   47 +
+| | |  .../compartido/dominio/EtiquetaSaldo.test.tsx   |   29 +
+| | |  .../src/compartido/dominio/EtiquetaSaldo.tsx    |   35 +
+| | |  .../compartido/dominio/MenuExportar.test.tsx    |   25 +
+| | |  .../src/compartido/dominio/MenuExportar.tsx     |   69 ++
+| | |  frontend/src/compartido/dominio/Monto.test.tsx  |   34 +
+| | |  frontend/src/compartido/dominio/Monto.tsx       |   34 +
+| | |  .../src/compartido/dominio/Pendiente.test.tsx   |   34 +
+| | |  frontend/src/compartido/dominio/Pendiente.tsx   |   41 +
+| | |  .../compartido/dominio/TablaContable.test.tsx   |   84 ++
+| | |  .../src/compartido/dominio/TablaContable.tsx    |  147 +++
+| | |  .../compartido/dominio/ValorBloqueado.test.tsx  |   24 +
+| | |  .../src/compartido/dominio/ValorBloqueado.tsx   |   36 +
+| | |  .../src/compartido/dominio/useAtajo.test.tsx    |   43 +
+| | |  frontend/src/compartido/dominio/useAtajo.ts     |   45 +
+| | |  .../compartido/errores/catalogoErrores.test.ts  |  129 +++
+| | |  .../src/compartido/errores/catalogoErrores.ts   |  160 +++
+| | |  frontend/src/compartido/ui/alert.tsx            |   12 +-
+| | |  frontend/src/compartido/ui/badge.tsx            |   10 +-
+| | |  frontend/src/compartido/ui/breadcrumb.tsx       |   71 ++
+| | |  frontend/src/compartido/ui/button.tsx           |   25 +-
+| | |  frontend/src/compartido/ui/calendar.tsx         |   50 +
+| | |  frontend/src/compartido/ui/card.tsx             |   10 +-
+| | |  frontend/src/compartido/ui/collapsible.tsx      |   18 +
+| | |  frontend/src/compartido/ui/command.tsx          |  112 ++
+| | |  frontend/src/compartido/ui/dialog.tsx           |    4 +-
+| | |  frontend/src/compartido/ui/dropdown-menu.tsx    |  195 ++++
+| | |  frontend/src/compartido/ui/input.tsx            |    2 +-
+| | |  frontend/src/compartido/ui/popover.tsx          |   38 +
+| | |  frontend/src/compartido/ui/select.tsx           |    2 +-
+| | |  frontend/src/compartido/ui/sidebar.tsx          |  148 +++
+| | |  frontend/src/compartido/ui/skeleton.tsx         |   18 +
+| | |  frontend/src/compartido/ui/sonner.tsx           |   24 +
+| | |  frontend/src/compartido/ui/switch.tsx           |    6 +-
+| | |  frontend/src/compartido/ui/table.tsx            |   79 ++
+| | |  frontend/src/compartido/ui/tabs.tsx             |   41 +
+| | |  frontend/src/compartido/ui/toggle-group.tsx     |   55 +
+| | |  frontend/src/compartido/ui/tooltip.tsx          |   41 +
+| | |  frontend/src/compartido/ui/useSidebar.ts        |   16 +
+| | |  frontend/src/index.css                          |  111 +-
+| | |  frontend/src/nucleo/Layout.test.tsx             |   61 +-
+| | |  frontend/src/nucleo/Layout.tsx                  |   37 +-
+| | |  frontend/src/nucleo/MenuUsuario.tsx             |   88 +-
+| | |  frontend/src/nucleo/PaginaApps.test.tsx         |   18 +-
+| | |  frontend/src/nucleo/PaginaApps.tsx              |   25 +-
+| | |  frontend/src/nucleo/PaginaInicio.tsx            |  102 +-
+| | |  frontend/src/nucleo/Proveedores.tsx             |   13 +-
+| | |  frontend/src/nucleo/SelectorEmpresa.tsx         |   12 +-
+| | |  frontend/src/nucleo/Shell.test.tsx              |   52 +-
+| | |  frontend/src/nucleo/apps/RutaApp.tsx            |   36 +-
+| | |  frontend/src/nucleo/apps/registro.ts            |   46 +-
+| | |  frontend/src/nucleo/estructura/BarraLateral.tsx |  205 ++++
+| | |  .../src/nucleo/estructura/BarraSuperior.tsx     |   24 +
+| | |  .../src/nucleo/estructura/BuscadorGlobal.tsx    |  122 ++
+| | |  .../nucleo/estructura/EstructuraApp.test.tsx    |  102 ++
+| | |  .../src/nucleo/estructura/EstructuraApp.tsx     |   41 +
+| | |  .../src/nucleo/estructura/MenuRegistrar.tsx     |   78 ++
+| | |  .../src/nucleo/estructura/MigasDePan.test.tsx   |   18 +
+| | |  frontend/src/nucleo/estructura/MigasDePan.tsx   |   44 +
+| | |  .../src/nucleo/estructura/migasDeRuta.test.ts   |   23 +
+| | |  frontend/src/nucleo/estructura/migasDeRuta.ts   |   87 ++
+| | |  .../nucleo/estructura/registroOperaciones.ts    |   16 +
+| | |  frontend/src/nucleo/mensajesError.ts            |   15 +-
+| | |  frontend/src/nucleo/paginasPerezosas.tsx        |   18 +
+| | |  frontend/src/nucleo/router.tsx                  |   18 +-
+| | |  frontend/src/pruebas-setup.ts                   |   62 +
+| | |  frontend/vite.config.ts                         |   38 +
+| | |  78 files changed, 4558 insertions(+), 316 deletions(-)
+| | | 
+* | | commit ac82973343f4a26057a96372b86ea532938dcc03
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:24:15 -0600
+| | | 
+| | |     feat(contabilidad): adopta el catálogo comercial de la Universidad Católica como catálogo base
+| | | 
+| | |  .../migration/V19__catalogo_base_ucatolica.sql  | 572 ++++++++++++++++++
+| | |  .../f2/SaldoYMovimientosConDobleF2IT.java       |  11 +-
+| | |  .../contabilidad/api/CatalogoCuentasIT.java     |  33 +-
+| | |  .../pilot/contabilidad/api/LibroDiarioIT.java   |   2 +-
+| | |  4 files changed, 597 insertions(+), 21 deletions(-)
+| | | 
+* | | commit c95fb02c5da5f5f012a9e8b7cdb47e701cfe27b6
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:24:15 -0600
+| | | 
+| | |     feat(bd): agrega las migraciones de operaciones guiadas, cuentas del sistema y activos fijos
+| | | 
+| | |  .../dominio/reglas/CategoriaRegla.java          |  16 +-
+| | |  .../dominio/reglas/TipoOperacionContable.java   |  28 +-
+| | |  .../infraestructura/PrecargaContableJdbc.java   |  26 +-
+| | |  .../db/migration/V16__operaciones_guiadas.sql   | 172 ++++++
+| | |  .../db/migration/V17__cuentas_del_sistema.sql   |  14 +
+| | |  .../db/migration/V18__activos_fijos.sql         | 121 +++++
+| | |  .../api/PrecargaContabilidadIT.java             |  52 +-
+| | |  .../MigracionesContabilidadIT.java              | 173 +++----
+| | |  .../MigracionesOperacionesIT.java               | 488 ++++++++++++++++++
+| | |  9 files changed, 961 insertions(+), 129 deletions(-)
+| | | 
+* | | commit 5df238b123a3465ff228c8bf04009b6c8e2e0b43
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:24:15 -0600
+| | | 
+| | |     feat(api): agrega el contrato de operaciones guiadas, tablero, activos y bloqueos de edición
+| | | 
+| | |  api-spec/openapi/pilot-v1.yaml                  | 3827 ++++++++++++-----
+| | |  .../api/ControladorConfiguracionContable.java   |    8 +-
+| | |  .../contabilidad/api/ControladorCuentas.java    |    9 +-
+| | |  .../api/ControladorReglasContabilizacion.java   |    6 +-
+| | |  .../contabilidad/api/MapeadorContabilidad.java  |   25 +-
+| | |  .../api/ConfiguracionYReglasIT.java             |   67 +-
+| | |  6 files changed, 2903 insertions(+), 1039 deletions(-)
+| | | 
+* | | commit 88e26dedc62db5fb191430272329414fad58fb4b
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:24:15 -0600
+| | | 
+| | |     test(contabilidad): agrega la aceptación de F4 con el conjunto dorado de reportes
+| | | 
+| | |  .../aceptacion/f4/BalanzaYEstadosF4IT.java      | 172 +++++++++
+| | |  .../pilot/aceptacion/f4/BaseAceptacionF4IT.java | 356 ++++++++++++++++++
+| | |  .../pilot/aceptacion/f4/ConjuntoDoradoF4IT.java | 233 ++++++++++++
+| | |  .../aceptacion/f4/ExportacionesIgualesF4IT.java | 302 +++++++++++++++
+| | |  .../aceptacion/f4/ReflejoInmediatoF4IT.java     |  88 +++++
+| | |  .../pilot/aceptacion/f4/RendimientoF4IT.java    | 155 ++++++++
+| | |  .../f4/SeguridadYAislamientoF4IT.java           | 140 +++++++
+| | |  .../casos/estados/conjunto-dorado-f4.json       | 263 +++++++++++++
+| | |  8 files changed, 1709 insertions(+)
+| | | 
+* | | commit e804170232c7aedd66d79cdf1623425116293ddc
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:24:15 -0600
+| | | 
+| | |     fix(contabilidad): cuenta combinaciones en el diagnóstico y muestra Sí/No en los PDF
+| | | 
+| | |  .../aplicacion/ConsultaReportes.java            |  9 ++---
+| | |  .../aplicacion/ConsultarReportes.java           |  2 +-
+| | |  .../estados/DiagnosticoMayorizacion.java        |  5 +--
+| | |  .../infraestructura/ConsultaReportesJdbc.java   | 12 ++++---
+| | |  .../main/resources/plantillas/pdf/balanza.html  |  4 +--
+| | |  .../pdf/estado-situacion-financiera.html        |  5 +--
+| | |  .../pilot/contabilidad/api/ExportacionesIT.java | 10 +++---
+| | |  .../pilot/contabilidad/api/ReportesIT.java      | 36 ++++++++++++++++++-
+| | |  8 files changed, 63 insertions(+), 20 deletions(-)
+| | | 
+* | | commit 3cd28b48df3d4d9690a733040cda9dc4ad6d9924
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-28 22:24:15 -0600
+| | | 
+| | |     docs: registra las decisiones de F4.5 y el catálogo base de la Universidad Católica (ADR-040 a ADR-044)
+| | | 
+| | |  AGENTS.md                                       |   4 +-
+| | |  CLAUDE.md                                       |  74 +-
+| | |  .../ADR-040-limite-de-peticiones-del-webhook.md |  23 +
+| | |  .../adr/ADR-041-motor-de-operaciones-guiadas.md |  28 +
+| | |  docs/adr/ADR-042-bloqueos-de-edicion.md         |  24 +
+| | |  .../ADR-043-sistema-de-diseno-y-navegacion.md   |  24 +
+| | |  docs/adr/ADR-044-catalogo-base-ucatolica.md     |  43 +
+| | |  docs/adr/README.md                              |   5 +
+| | |  docs/contabilidad/catalogo-base.md              | 380 ++++----
+| | |  .../2026-09-27-automatizacion-y-rediseno.md     | 397 ++++++++
+| | |  ...-27-plan-f45-automatizacion-y-experiencia.md | 901 ++++++++++++++++++
+| | |  docs/diseno/sistema-de-diseno.md                | 157 +++
+| | |  docs/plan-de-trabajo.md                         |  27 +-
+| | |  13 files changed, 1897 insertions(+), 190 deletions(-)
+| | | 
+* | | commit 090ced89ce5b4e03a500daca9366f72adc297cf5
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 20:53:20 -0600
+| | | 
+| | |     feat(frontend): agrega las pantallas de reportes contables y su exportación
+| | |     
+| | |     - Secciones Mayor y Reportes: Balanza, Estado de Situación Financiera, Estado de
+| | |       Resultados, Resumen de IVA y Diagnóstico (solo contador).
+| | |     - Filtros de período en la URL, alertas de descuadre y de saldo contrario a la naturaleza,
+| | |       leyenda de estado de gestión.
+| | |     - Descarga de PDF, Excel y CSV; el cliente HTTP lee los archivos como Blob.
+| | | 
+| | |  .../contabilidad/LayoutContabilidad.test.tsx    |   6 +-
+| | |  .../apps/contabilidad/LayoutContabilidad.tsx    |   2 +
+| | |  .../compartido/BotonesExportacion.test.tsx      |  53 ++++
+| | |  .../compartido/BotonesExportacion.tsx           |  78 ++++++
+| | |  .../compartido/FiltroNivelCeros.tsx             |  59 +++++
+| | |  .../contabilidad/compartido/FiltroPeriodo.tsx   |  75 ++++++
+| | |  .../compartido/PresentacionSaldo.tsx            |  32 +++
+| | |  .../apps/contabilidad/compartido/datosPrueba.ts | 207 +++++++++++++++
+| | |  .../compartido/montarContabilidad.tsx           |   8 +
+| | |  .../libro-diario/PaginaLibroDiario.test.tsx     |  33 ++-
+| | |  .../libro-diario/PaginaLibroDiario.tsx          |  17 ++
+| | |  .../contabilidad/mayor/PaginaMayor.test.tsx     | 102 +++++++
+| | |  .../src/apps/contabilidad/mayor/PaginaMayor.tsx | 207 +++++++++++++++
+| | |  .../contabilidad/mayor/SelectorCuentaMayor.tsx  | 142 ++++++++++
+| | |  .../contabilidad/mensajesContabilidad.test.ts   |  17 ++
+| | |  .../apps/contabilidad/mensajesContabilidad.ts   |  19 ++
+| | |  frontend/src/apps/contabilidad/modulo.tsx       |  24 +-
+| | |  .../contabilidad/reportes/FiltroAnioMes.tsx     |  58 ++++
+| | |  .../reportes/LayoutReportes.test.tsx            |  36 +++
+| | |  .../contabilidad/reportes/LayoutReportes.tsx    |  51 ++++
+| | |  .../reportes/PaginaBalanza.test.tsx             | 105 ++++++++
+| | |  .../contabilidad/reportes/PaginaBalanza.tsx     | 250 ++++++++++++++++++
+| | |  .../reportes/PaginaDiagnostico.test.tsx         |  50 ++++
+| | |  .../contabilidad/reportes/PaginaDiagnostico.tsx | 101 +++++++
+| | |  .../reportes/PaginaEstadoResultados.test.tsx    |  60 +++++
+| | |  .../reportes/PaginaEstadoResultados.tsx         | 139 ++++++++++
+| | |  .../PaginaEstadoSituacionFinanciera.test.tsx    |  84 ++++++
+| | |  .../PaginaEstadoSituacionFinanciera.tsx         | 147 ++++++++++
+| | |  .../reportes/PaginaResumenIva.test.tsx          |  56 ++++
+| | |  .../contabilidad/reportes/PaginaResumenIva.tsx  | 133 ++++++++++
+| | |  .../apps/contabilidad/reportes/TablaRubro.tsx   |  60 +++++
+| | |  .../src/compartido/descargarArchivo.test.ts     |  46 ++++
+| | |  frontend/src/compartido/descargarArchivo.ts     |  46 ++++
+| | |  frontend/src/compartido/formato/rangoPeriodo.ts |  59 +++++
+| | |  frontend/src/nucleo/http/clienteHttp.test.ts    |  58 ++++
+| | |  frontend/src/nucleo/http/clienteHttp.ts         |  21 +-
+| | |  36 files changed, 2634 insertions(+), 7 deletions(-)
+| | | 
+* | | commit f8ad0fa03664ae7792f182fd70bc572c750713a7
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 20:53:20 -0600
+| | | 
+| | |     feat(contabilidad): agrega la exportación de reportes a PDF, XLSX y CSV
+| | |     
+| | |     - Seis exportaciones con los mismos datos que los reportes en pantalla (ADR-038).
+| | |     - PDF con Thymeleaf y OpenHTMLtoPDF, XLSX con Apache POI en streaming, CSV RFC 4180.
+| | |     - Libro Diario completo sin paginar; pruebas que comparan cada total por su etiqueta.
+| | | 
+| | |  backend/pom.xml                                 |  13 +
+| | |  .../api/ControladorExportaciones.java           | 138 ++++
+| | |  .../api/ConversorFormatoExportacion.java        |  21 +
+| | |  .../aplicacion/ArchivoExportado.java            |  28 +
+| | |  .../aplicacion/ConsultaAsientos.java            |  10 +
+| | |  .../aplicacion/ConsultarAsientos.java           |  19 +
+| | |  .../aplicacion/ExportarReportes.java            | 141 ++++
+| | |  .../aplicacion/GeneradorExportacion.java        |  94 +++
+| | |  .../dominio/exportacion/FormatoArchivo.java     |  15 +
+| | |  .../infraestructura/ConsultaAsientosJdbc.java   |  85 +++
+| | |  .../exportacion/GeneradorExportacionCsv.java    | 295 +++++++++
+| | |  .../exportacion/GeneradorExportacionPdf.java    | 151 +++++
+| | |  .../exportacion/GeneradorExportacionXlsx.java   | 338 ++++++++++
+| | |  .../main/resources/plantillas/pdf/balanza.html  |  66 ++
+| | |  .../plantillas/pdf/estado-resultados.html       |  88 +++
+| | |  .../pdf/estado-situacion-financiera.html        |  91 +++
+| | |  .../resources/plantillas/pdf/libro-diario.html  |  61 ++
+| | |  .../resources/plantillas/pdf/libro-mayor.html   |  72 ++
+| | |  .../resources/plantillas/pdf/resumen-iva.html   |  62 ++
+| | |  .../pilot/contabilidad/api/ExportacionesIT.java | 615 ++++++++++++++++++
+| | |  .../api/ExportacionesRendimientoIT.java         | 106 +++
+| | |  .../exportacion/GeneradorExportacionTest.java   | 272 ++++++++
+| | |  22 files changed, 2781 insertions(+)
+| | | 
+* | | commit bb82e0029298ffe80f7d7054f734f86feb189787
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 20:53:20 -0600
+| | | 
+| | |     docs: detalla la implementación de las exportaciones en ADR-038
+| | | 
+| | |  docs/adr/ADR-038-contrato-de-reportes-y-exportaciones.md | 7 +++++++
+| | |  1 file changed, 7 insertions(+)
+| | | 
+* | | commit 916cefba7ae60908f5ff6e6a339c97f666f77003
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 20:53:20 -0600
+| | | 
+| | |     feat(contabilidad): agrega los reportes contables en JSON
+| | |     
+| | |     - Libro Mayor (también de cuentas padre), Balanza de Comprobación, Estado de Situación
+| | |       Financiera, Estado de Resultados con el impuesto sobre la renta aparte, resumen de IVA
+| | |       y diagnóstico de mayorización.
+| | |     - Cálculos como lógica de dominio pura; consultas con JdbcClient filtradas por empresa_id.
+| | |     - Pruebas de dominio, integración (bordes de fecha, descuadre forzado) y rendimiento.
+| | | 
+| | |  .../contabilidad/api/ControladorReportes.java   |  71 +++
+| | |  .../contabilidad/api/MapeadorReportes.java      | 232 ++++++++++
+| | |  .../aplicacion/ConsultaReportes.java            |  86 ++++
+| | |  .../aplicacion/ConsultarReportes.java           | 228 +++++++++
+| | |  .../dominio/estados/AcumuladoBalanza.java       |  32 ++
+| | |  .../dominio/estados/BalanzaComprobacion.java    | 118 +++++
+| | |  .../ComprobacionSituacionFinanciera.java        |  26 ++
+| | |  .../dominio/estados/DesgloseIva.java            |  31 ++
+| | |  .../estados/DiagnosticoMayorizacion.java        |  31 ++
+| | |  .../dominio/estados/DiferenciaMayorizacion.java |  20 +
+| | |  .../dominio/estados/EstadoResultados.java       | 105 +++++
+| | |  .../estados/EstadoSituacionFinanciera.java      | 125 +++++
+| | |  .../dominio/estados/FilaBalanza.java            |  20 +
+| | |  .../dominio/estados/FilaEstado.java             |  14 +
+| | |  .../dominio/estados/FiltroDetalle.java          |  38 ++
+| | |  .../contabilidad/dominio/estados/Jerarquia.java | 104 +++++
+| | |  .../contabilidad/dominio/estados/LadoSaldo.java |  14 +
+| | |  .../dominio/estados/LibroMayor.java             |  81 ++++
+| | |  .../dominio/estados/MovimientoLinea.java        |  33 ++
+| | |  .../dominio/estados/MovimientoMayor.java        |   9 +
+| | |  .../dominio/estados/NaturalezaClase.java        |  26 ++
+| | |  .../dominio/estados/NetoCuenta.java             |  26 ++
+| | |  .../dominio/estados/ResumenIva.java             |  66 +++
+| | |  .../dominio/estados/RubroEstado.java            |  68 +++
+| | |  .../contabilidad/dominio/estados/Saldo.java     |  44 ++
+| | |  .../infraestructura/ConsultaReportesJdbc.java   | 263 +++++++++++
+| | |  .../pilot/contabilidad/api/ReportesIT.java      | 438 ++++++++++++++++++
+| | |  .../contabilidad/api/ReportesRendimientoIT.java | 100 ++++
+| | |  .../estados/BalanzaComprobacionTest.java        |  95 ++++
+| | |  .../dominio/estados/CatalogoDePrueba.java       | 123 +++++
+| | |  .../estados/DiagnosticoMayorizacionTest.java    |  37 ++
+| | |  .../dominio/estados/EstadoResultadosTest.java   |  74 +++
+| | |  .../estados/EstadoSituacionFinancieraTest.java  |  76 +++
+| | |  .../dominio/estados/LibroMayorTest.java         |  94 ++++
+| | |  .../dominio/estados/ResumenIvaTest.java         |  53 +++
+| | |  .../contabilidad/dominio/estados/SaldoTest.java |  65 +++
+| | |  36 files changed, 3066 insertions(+)
+| | | 
+* | | commit 8ec630010a9f1b0270d8907e1bdeb1ae9d600943
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 14:49:12 -0600
+| | | 
+| | |     feat(api): agrega los contratos de reportes (F4) y del webhook de n8n (F5)
+| | |     
+| | |     - Reportes contables en JSON: Libro Mayor, Balanza de Comprobación, Estado de Situación
+| | |       Financiera, Estado de Resultados, resumen de IVA y diagnóstico de mayorización.
+| | |     - Exportaciones PDF, XLSX y CSV como operaciones binarias (ADR-038).
+| | |     - Webhook POST /integraciones/n8n/operaciones con API key, esquema JSON
+| | |       cierre-ingresos-diario v1 y bitácora de operaciones con su exportación (ADR-039).
+| | |     - Cliente del frontend regenerado.
+| | | 
+| | |  .../operaciones/cierre-ingresos-diario/v1.json  |  123 +
+| | |  api-spec/openapi/pilot-v1.yaml                  | 2699 +++++++++++++----
+| | |  .../bitacora-operaciones.ts                     |  512 ++++
+| | |  .../exportaciones-contables.ts                  | 1042 +++++++
+| | |  frontend/src/api/index.ts                       |    4 +
+| | |  .../src/api/modelos/anioReporteParameter.ts     |   12 +
+| | |  frontend/src/api/modelos/balanzaComprobacion.ts |   36 +
+| | |  .../src/api/modelos/cargaExcesivaResponse.ts    |   13 +
+| | |  .../src/api/modelos/claseEntradaBitacora.ts     |   18 +
+| | |  .../src/api/modelos/cuentaIdMayorParameter.ts   |   10 +
+| | |  .../desdeRecepcionExportacionParameter.ts       |   10 +
+| | |  .../src/api/modelos/desdeRecepcionParameter.ts  |   10 +
+| | |  .../src/api/modelos/desdeReporteParameter.ts    |   10 +
+| | |  frontend/src/api/modelos/desgloseIva.ts         |   22 +
+| | |  .../src/api/modelos/detalleEntradaBitacora.ts   |   25 +
+| | |  .../src/api/modelos/diagnosticoMayorizacion.ts  |   20 +
+| | |  .../src/api/modelos/diferenciaMayorizacion.ts   |   32 +
+| | |  frontend/src/api/modelos/entradaBitacora.ts     |   54 +
+| | |  .../src/api/modelos/estadoOperacionExterna.ts   |   18 +
+| | |  frontend/src/api/modelos/estadoResultados.ts    |   36 +
+| | |  .../api/modelos/estadoSituacionFinanciera.ts    |   40 +
+| | |  .../estadoSituacionFinancieraComprobacion.ts    |   18 +
+| | |  .../src/api/modelos/exportarBalanzaParams.ts    |   32 +
+| | |  .../src/api/modelos/exportarBitacoraParams.ts   |   36 +
+| | |  .../modelos/exportarEstadoResultadosParams.ts   |   37 +
+| | |  .../exportarEstadoSituacionFinancieraParams.ts  |   32 +
+| | |  .../api/modelos/exportarLibroDiarioParams.ts    |   53 +
+| | |  .../src/api/modelos/exportarLibroMayorParams.ts |   30 +
+| | |  .../src/api/modelos/exportarResumenIvaParams.ts |   29 +
+| | |  frontend/src/api/modelos/fechaCorteParameter.ts |   10 +
+| | |  frontend/src/api/modelos/filaBalanza.ts         |   33 +
+| | |  frontend/src/api/modelos/filaEstado.ts          |   24 +
+| | |  frontend/src/api/modelos/formatoExportacion.ts  |   19 +
+| | |  frontend/src/api/modelos/formatoParameter.ts    |   10 +
+| | |  .../hastaRecepcionExportacionParameter.ts       |   10 +
+| | |  .../src/api/modelos/hastaRecepcionParameter.ts  |   10 +
+| | |  .../src/api/modelos/hastaReporteParameter.ts    |   10 +
+| | |  .../src/api/modelos/incluirCerosParameter.ts    |   12 +
+| | |  frontend/src/api/modelos/index.ts               |   55 +
+| | |  frontend/src/api/modelos/ladoSaldo.ts           |   19 +
+| | |  frontend/src/api/modelos/libroMayor.ts          |   34 +
+| | |  .../src/api/modelos/listarBitacoraParams.ts     |   43 +
+| | |  frontend/src/api/modelos/mesReporteParameter.ts |   12 +
+| | |  frontend/src/api/modelos/movimientoMayor.ts     |   38 +
+| | |  .../src/api/modelos/nivelReporteParameter.ts    |   12 +
+| | |  .../src/api/modelos/obtenerBalanzaParams.ts     |   27 +
+| | |  .../modelos/obtenerEstadoResultadosParams.ts    |   32 +
+| | |  .../obtenerEstadoSituacionFinancieraParams.ts   |   27 +
+| | |  .../src/api/modelos/obtenerLibroMayorParams.ts  |   25 +
+| | |  .../src/api/modelos/obtenerResumenIvaParams.ts  |   24 +
+| | |  .../src/api/modelos/operacionContabilizada.ts   |   21 +
+| | |  frontend/src/api/modelos/operacionN8n.ts        |   12 +
+| | |  frontend/src/api/modelos/paginaBitacora.ts      |   17 +
+| | |  frontend/src/api/modelos/problemDetails.ts      |    5 +
+| | |  frontend/src/api/modelos/referenciaAsiento.ts   |   21 +
+| | |  frontend/src/api/modelos/resultadoBitacora.ts   |   19 +
+| | |  .../modelos/resultadoBitacoraFiltroParameter.ts |   10 +
+| | |  frontend/src/api/modelos/resumenIva.ts          |   36 +
+| | |  frontend/src/api/modelos/resumenOperacion.ts    |   27 +
+| | |  frontend/src/api/modelos/rubroEstado.ts         |   27 +
+| | |  frontend/src/api/modelos/saldo.ts               |   20 +
+| | |  .../api/modelos/sistemaOrigenFiltroParameter.ts |   12 +
+| | |  .../src/api/operaciones-n8n/operaciones-n8n.ts  |  232 ++
+| | |  .../reportes-contables/reportes-contables.ts    |  970 ++++++
+| | |  64 files changed, 6335 insertions(+), 593 deletions(-)
+| | | 
+* | | commit 44eeaa14dd44fd2d8e0b32d06cebdfb1f957c78f
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 14:49:11 -0600
+| | | 
+| | |     feat(contabilidad): amplía el catálogo base para NIIF para PYMES
+| | |     
+| | |     Migración V15: agrega a plantilla_cuenta 36 cuentas (deterioro de cuentas por cobrar,
+| | |     inmuebles, intangibles, impuesto diferido, beneficios a empleados, provisiones e impuesto
+| | |     sobre la renta) y renombra la clase 3 a PATRIMONIO (ADR-037). Sigue como borrador para
+| | |     validación del contador; solo aplica a las empresas que instalen Contabilidad después.
+| | | 
+| | |  .../db/migration/V15__catalogo_base_niif.sql    | 82 +++++++++++++++++
+| | |  .../contabilidad/api/CatalogoCuentasIT.java     | 14 +--
+| | |  .../api/PrecargaContabilidadIT.java             | 24 ++---
+| | |  .../MigracionesContabilidadIT.java              | 91 +++++++++++++++++--
+| | |  4 files changed, 185 insertions(+), 26 deletions(-)
+| | | 
+* | | commit d6a06b6698b8a36618e8cfceeb453389079100be
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 14:49:11 -0600
+| | | 
+| | |     docs: registra ADR-038 y ADR-039 para los contratos de reportes y del webhook de n8n
+| | |     
+| | |     - ADR-038: reportes en JSON sin paginar y exportaciones PDF/XLSX/CSV como operaciones
+| | |       binarias propias, esquema Saldo, Mayor de cuentas padre y totales de la balanza.
+| | |     - ADR-039: repetición idempotente con el estado original, 413 INT-010, cuerpo validado
+| | |       por el esquema JSON versionado, reglas de INT-001 fuera del esquema y bitácora.
+| | |     - Guía técnica (§12, §13, §18), plan de F5 e índice de ADR actualizados.
+| | | 
+| | |  CLAUDE.md                                       | 15 ++++---
+| | |  ...-038-contrato-de-reportes-y-exportaciones.md | 39 +++++++++++++++++++
+| | |  docs/adr/ADR-039-contrato-del-webhook-n8n.md    | 33 ++++++++++++++++
+| | |  docs/adr/README.md                              |  2 +
+| | |  docs/plan-de-trabajo.md                         |  2 +-
+| | |  5 files changed, 84 insertions(+), 7 deletions(-)
+| | | 
+* | | commit be3e89f2979e2270b871f6f764ce8b8c2a12bfe8
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 13:50:42 -0600
+| | | 
+| | |     docs: registra ADR-037 y adopta NIIF para PYMES como marco contable
+| | |     
+| | |     - Marco contable de referencia: NIIF para PYMES (edición y resolución del CVPCPA por verificar).
+| | |     - Terminología de F4: Estado de Situación Financiera y Patrimonio; estados de gestión en 1.0.
+| | |     - Estado de Resultados con el impuesto sobre la renta (grupo 44) aparte.
+| | |     - Catálogo base ampliado como borrador: deterioro de cuentas por cobrar, inmuebles,
+| | |       intangibles, impuesto diferido, beneficios a empleados y provisiones.
+| | |     - Guía técnica, plan de trabajo y AGENTS actualizados.
+| | | 
+| | |  AGENTS.md                                 |  4 +--
+| | |  CLAUDE.md                                 | 25 +++++++++-----
+| | |  docs/adr/ADR-037-marco-niif-para-pymes.md | 33 ++++++++++++++++++
+| | |  docs/adr/README.md                        |  1 +
+| | |  docs/contabilidad/catalogo-base.md        | 45 +++++++++++++++++++++++--
+| | |  docs/plan-de-trabajo.md                   |  4 +--
+| | |  6 files changed, 96 insertions(+), 16 deletions(-)
+| | | 
+* | | commit c46014c6bc032ee1e88ff3f04db47b81bc67e477 (origin/feat/f3-libro-diario, feat/f3-libro-diario)
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 13:42:33 -0600
+| | | 
+| | |     docs: marca la fase F3 como cerrada en la guía técnica
+| | | 
+| | |  CLAUDE.md | 4 ++--
+| | |  1 file changed, 2 insertions(+), 2 deletions(-)
+| | | 
+* | | commit d5a16853c6832cfc6289a3cd80de5a59e0320305
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 13:42:33 -0600
+| | | 
+| | |     test(aceptacion): agrega pruebas de aceptación de la fase F3
+| | |     
+| | |     - Casos dorados de asientos, reversiones e IVA como datos en casos/.
+| | |     - Fallo real de PostgreSQL tras mayorizar, propiedad saldo = suma de líneas con
+| | |       semillas fijas, inmutabilidad y aislamiento por SQL.
+| | |     - Prueba extremo a extremo del Libro Diario con Playwright (script e2e:f3).
+| | | 
+| | |  .../f3/AislamientoLibroDiarioF3IT.java          |  76 +++++
+| | |  .../pilot/aceptacion/f3/BaseAceptacionF3IT.java | 150 +++++++++
+| | |  .../aceptacion/f3/CasosDoradosAsientosF3IT.java | 272 +++++++++++++++
+| | |  .../f3/CasosDoradosReversionF3IT.java           | 114 +++++++
+| | |  .../f3/InmutabilidadAsientosF3IT.java           | 141 ++++++++
+| | |  .../f3/MayorizacionFalloRealF3IT.java           |  97 ++++++
+| | |  .../f3/PropiedadMayorizacionF3IT.java           | 244 ++++++++++++++
+| | |  .../aceptacion/f3/RechazoSinFrontendF3IT.java   |  96 ++++++
+| | |  .../f3/ReversionRestauraSaldosDeIvaF3IT.java    | 104 ++++++
+| | |  .../asientos/con-001-invalido-sin-lineas.json   |   8 +
+| | |  .../asientos/con-001-invalido-una-linea.json    |  10 +
+| | |  .../asientos/con-002-invalido-ambos-lados.json  |  11 +
+| | |  .../asientos/con-002-invalido-ningun-lado.json  |  11 +
+| | |  .../asientos/con-003-invalido-negativo.json     |  11 +
+| | |  .../con-003-invalido-tres-decimales.json        |  11 +
+| | |  .../asientos/con-005-invalido-descuadre.json    |  12 +
+| | |  .../asientos/con-006-invalido-cuenta-padre.json |  11 +
+| | |  .../asientos/con-007-invalido-fecha-futura.json |  11 +
+| | |  .../con-013-invalido-iva-en-cuenta-iva.json     |  11 +
+| | |  .../con-017-invalido-sin-tasa-vigente.json      |  11 +
+| | |  .../plt-002-invalido-concepto-vacio.json        |  12 +
+| | |  .../plt-002-invalido-mas-de-200-lineas.json     |  11 +
+| | |  .../resources/casos/asientos/valido-base.json   |  13 +
+| | |  .../resources/casos/iva/con-iva-113-ventas.json |  14 +
+| | |  .../resources/casos/iva/con-iva-5-redondeo.json |  14 +
+| | |  .../casos/iva/sin-iva-100-compras.json          |  14 +
+| | |  .../casos/iva/sin-iva-4-42-redondeo.json        |  14 +
+| | |  .../con-008-invalido-doble-reversion.json       |   6 +
+| | |  .../con-009-invalido-revertir-la-reversion.json |   6 +
+| | |  .../con-018-invalido-fecha-anterior.json        |   6 +
+| | |  frontend/e2e/f3-libro-diario.spec.ts            | 315 ++++++++++++++++++
+| | |  frontend/package.json                           |   3 +-
+| | |  32 files changed, 1839 insertions(+), 1 deletion(-)
+| | | 
+* | | commit 96724edcfa4eef98690a97ac547314851daf583c
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 13:42:33 -0600
+| | | 
+| | |     fix(compartido): rechaza números y booleanos JSON en campos de texto con PLT-001
+| | |     
+| | |     Un monto enviado como número JSON se convertía en cadena y se aceptaba. La coerción
+| | |     a texto desde enteros, decimales y booleanos ahora falla y responde 400 PLT-001
+| | |     (ADR-013). Se personaliza el mapper autoconfigurado sin reemplazarlo.
+| | | 
+| | |  .../compartido/api/ConfiguracionJackson.java    | 52 +++++++++++++++
+| | |  .../api/ConfiguracionJacksonTest.java           | 66 +++++++++++++++++++
+| | |  2 files changed, 118 insertions(+)
+| | | 
+* | | commit 0039ca21279013138f3825d6c41088e609587aae
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 13:42:33 -0600
+| | | 
+| | |     fix(plataforma): filtra por empresa_id además de RLS en API keys y espacio de trabajo
+| | |     
+| | |     - listar, revocar, existe y registrarUso de api_key filtran por la empresa activa.
+| | |     - El adaptador de empresa exige que el id sea la empresa activa del contexto.
+| | |     - Pruebas con dos empresas por cada sentencia cambiada.
+| | |     - Pool de Hikari de las pruebas limitado para no agotar las conexiones del contenedor.
+| | | 
+| | |  .../aplicacion/RepositorioApiKeys.java          |  3 +-
+| | |  .../aplicacion/RepositorioEmpresas.java         |  9 ++-
+| | |  .../infraestructura/RepositorioApiKeysJdbc.java | 44 +++++++---
+| | |  .../RepositorioEmpresasJdbc.java                | 38 ++++++++-
+| | |  .../pilot/plataforma/BasePlataformaIT.java      | 12 +++
+| | |  .../pilot/plataforma/api/ApiKeysIT.java         | 80 +++++++++++++++++++
+| | |  .../api/AplicacionesYEspacioTrabajoIT.java      | 45 +++++++++++
+| | |  7 files changed, 214 insertions(+), 17 deletions(-)
+| | | 
+* | | commit a0cd033f2f502fdd4e04f028167fff85d6851070
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-27 13:42:33 -0600
+| | | 
+| | |     fix(frontend): cierra el diálogo de reversión al cambiar de asiento y oculta la diferencia en cero
+| | |     
+| | |     - El detalle del asiento se monta con key={asientoId}: su estado local no sobrevive al
+| | |       cambio de asiento en la misma ruta, y el diálogo se cierra al terminar la reversión.
+| | |     - El mensaje "El asiento no cuadra" solo aparece cuando Debe y Haber difieren.
+| | |     - Pruebas de ambos casos.
+| | | 
+| | |  .../libro-diario/DialogoReversion.tsx           |  5 ++
+| | |  .../contabilidad/libro-diario/PaginaAsiento.tsx | 25 ++++++++--
+| | |  .../libro-diario/PaginaLibroDiario.test.tsx     | 50 +++++++++++++++++++
+| | |  .../libro-diario/PaginaNuevoAsiento.test.tsx    | 19 +++++++
+| | |  .../libro-diario/PaginaNuevoAsiento.tsx         |  9 +++-
+| | |  5 files changed, 102 insertions(+), 6 deletions(-)
+| | | 
+* | | commit 5d6f53b58b5a68ed548323300a65b2f2d7ce012a
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 18:50:59 -0600
+| | | 
+| | |     feat(contabilidad): agrega el Libro Diario con IVA, mayorización en tiempo real y reversión
+| | |     
+| | |     Registra asientos manuales con expansión del IVA, partida doble,
+| | |     numeración anual, mayorización y auditoría en una sola transacción con
+| | |     idempotencia; agrega la vista previa, el Libro Diario paginado, el
+| | |     detalle y la reversión con el evento AsientoRevertido. El puerto de
+| | |     movimientos lee ahora las líneas y los saldos reales.
+| | | 
+| | |  .../pilot/contabilidad/AsientoRevertido.java    |  22 +
+| | |  .../contabilidad/api/ControladorAsientos.java   | 170 ++++
+| | |  .../contabilidad/api/MapeadorContabilidad.java  | 120 +++
+| | |  .../aplicacion/ConsultaAsientos.java            |  32 +
+| | |  .../aplicacion/ConsultarAsientos.java           |  82 ++
+| | |  .../contabilidad/aplicacion/CursorAsiento.java  |  51 ++
+| | |  .../contabilidad/aplicacion/FiltroAsientos.java |  26 +
+| | |  .../aplicacion/GestionarCatalogo.java           |   2 +-
+| | |  .../contabilidad/aplicacion/GuardarAsiento.java |  81 ++
+| | |  .../contabilidad/aplicacion/PaginaAsientos.java |  18 +
+| | |  .../aplicacion/PreparadorAsiento.java           |  84 ++
+| | |  .../aplicacion/PrevisualizarAsiento.java        |  40 +
+| | |  .../aplicacion/RegistrarAsientoManual.java      |  76 ++
+| | |  .../aplicacion/RepositorioAsientos.java         |  58 ++
+| | |  .../aplicacion/RevertirAsiento.java             | 125 +++
+| | |  .../dominio/ExcepcionContabilidad.java          | 127 ++-
+| | |  .../contabilidad/dominio/asiento/Asiento.java   | 109 +++
+| | |  .../dominio/asiento/AsientoExpandido.java       |  57 ++
+| | |  .../dominio/asiento/EstadoAsiento.java          |   9 +
+| | |  .../dominio/asiento/ExpansorAsiento.java        | 180 ++++
+| | |  .../dominio/asiento/LectorMontos.java           |  38 +
+| | |  .../dominio/asiento/LineaAsiento.java           |  27 +
+| | |  .../dominio/asiento/LineaExpandida.java         |  24 +
+| | |  .../dominio/asiento/LineaSolicitud.java         |  15 +
+| | |  .../dominio/asiento/OrigenAsiento.java          |  11 +
+| | |  .../dominio/asiento/OrigenLinea.java            |  11 +
+| | |  .../dominio/asiento/ReglasAsiento.java          |  73 ++
+| | |  .../dominio/asiento/ReglasReversion.java        |  89 ++
+| | |  .../dominio/asiento/ResumenAsiento.java         |  29 +
+| | |  .../dominio/asiento/SolicitudAsiento.java       |  21 +
+| | |  .../catalogo/ConsultaMovimientosCuenta.java     |   5 +-
+| | |  .../dominio/iva/CalculadoraIva.java             |  41 +
+| | |  .../dominio/iva/ConsultaTasaIva.java            |  20 +
+| | |  .../contabilidad/dominio/iva/SeparacionIva.java |  11 +
+| | |  .../ConfiguracionContabilidad.java              |  27 +
+| | |  .../infraestructura/ConsultaAsientosJdbc.java   | 205 +++++
+| | |  .../ConsultaMovimientosCuentaJdbc.java          |  54 ++
+| | |  .../infraestructura/ConsultaTasaIvaJdbc.java    |  42 +
+| | |  .../RepositorioAsientosJdbc.java                | 194 ++++
+| | |  .../infraestructura/SinMovimientosTodavia.java  |  27 -
+| | |  .../contabilidad/api/BaseContabilidadIT.java    |   9 +
+| | |  .../contabilidad/api/CatalogoCuentasIT.java     |   3 +-
+| | |  .../pilot/contabilidad/api/LibroDiarioIT.java   | 837 ++++++++++++++++++
+| | |  .../contabilidad/api/MayorizacionAtomicaIT.java |  73 ++
+| | |  .../dominio/asiento/ExpansorAsientoTest.java    | 291 ++++++
+| | |  .../dominio/asiento/ReglasAsientoTest.java      | 118 +++
+| | |  .../dominio/asiento/ReglasReversionTest.java    | 147 +++
+| | |  .../dominio/catalogo/ReglasCatalogoTest.java    |   2 +-
+| | |  .../dominio/iva/CalculadoraIvaTest.java         |  47 +
+| | |  49 files changed, 3925 insertions(+), 35 deletions(-)
+| | | 
+* | | commit 32327cc7fa4cbbf322ddeb254daafe3f290cb249
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 18:42:07 -0600
+| | | 
+| | |     feat(frontend): agrega el Libro Diario con vista previa del IVA y reversión
+| | |     
+| | |     Agrega el formulario de asientos con líneas dinámicas, totales en vivo
+| | |     con decimal.js, vista previa del backend para las líneas con IVA y
+| | |     Guardar bloqueado mientras no cuadre; el listado paginado con filtros,
+| | |     el detalle y la reversión, con Idempotency-Key en registro y reversión.
+| | | 
+| | |  .../contabilidad/LayoutContabilidad.test.tsx    |  11 +-
+| | |  .../apps/contabilidad/LayoutContabilidad.tsx    |   1 +
+| | |  .../catalogo/PaginaCatalogo.test.tsx            |   9 +
+| | |  .../contabilidad/catalogo/PaginaCatalogo.tsx    |   7 +
+| | |  .../apps/contabilidad/compartido/datosPrueba.ts | 127 ++++-
+| | |  .../libro-diario/DialogoReversion.tsx           | 107 ++++
+| | |  .../contabilidad/libro-diario/PaginaAsiento.tsx | 125 +++++
+| | |  .../libro-diario/PaginaLibroDiario.test.tsx     | 231 +++++++++
+| | |  .../libro-diario/PaginaLibroDiario.tsx          | 247 ++++++++++
+| | |  .../libro-diario/PaginaNuevoAsiento.test.tsx    | 457 ++++++++++++++++++
+| | |  .../libro-diario/PaginaNuevoAsiento.tsx         | 393 +++++++++++++++
+| | |  .../contabilidad/libro-diario/erroresAsiento.ts |  32 ++
+| | |  .../libro-diario/esquemaAsiento.test.ts         | 150 ++++++
+| | |  .../contabilidad/libro-diario/esquemaAsiento.ts | 164 +++++++
+| | |  .../apps/contabilidad/libro-diario/etiquetas.ts |  70 +++
+| | |  .../contabilidad/libro-diario/presentacion.tsx  |  68 +++
+| | |  .../libro-diario/useClaveIdempotencia.ts        |  23 +
+| | |  .../contabilidad/libro-diario/useVistaPrevia.ts |  57 +++
+| | |  .../apps/contabilidad/mensajesContabilidad.ts   |  54 ++-
+| | |  frontend/src/apps/contabilidad/modulo.tsx       |  10 +-
+| | |  .../apps/contabilidad/reglas/PaginaReglas.tsx   |   2 +-
+| | |  frontend/src/compartido/dinero/dinero.test.ts   |  42 +-
+| | |  frontend/src/compartido/dinero/dinero.ts        |  47 ++
+| | |  frontend/src/compartido/dinero/index.ts         |  11 +-
+| | |  24 files changed, 2437 insertions(+), 8 deletions(-)
+| | | 
+* | | commit 82ae677fb5447de98c9d3760699404b9502e128a
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 18:07:57 -0600
+| | | 
+| | |     feat(contabilidad): agrega las migraciones del Libro Diario y los saldos mensuales
+| | |     
+| | |     Crea el correlativo, los asientos, sus líneas y el saldo mensual por
+| | |     cuenta con RLS forzado, llaves foráneas compuestas por empresa y
+| | |     permisos de solo inserción. El trigger diferido de partida doble
+| | |     valida al COMMIT las líneas, los totales de la cabecera y la fecha, y
+| | |     otro trigger solo permite el paso de CONTABILIZADO a REVERTIDO.
+| | | 
+| | |  .../db/migration/V13__libro_diario.sql          | 266 ++++++
+| | |  .../db/migration/V14__saldo_cuenta_mensual.sql  |  41 +
+| | |  .../MigracionesLibroDiarioIT.java               | 835 ++++++++++++++++++
+| | |  3 files changed, 1142 insertions(+)
+| | | 
+* | | commit d3c8fc840e920710fcc7f79969905af75bfcf01f
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 17:37:31 -0600
+| | | 
+| | |     feat(api): agrega el contrato del Libro Diario: asientos, vista previa y reversión
+| | | 
+| | |  api-spec/openapi/pilot-v1.yaml                  | 576 +++++++++++-
+| | |  frontend/src/api/asientos/asientos.ts           | 863 ++++++++++++++++++
+| | |  frontend/src/api/index.ts                       |   1 +
+| | |  frontend/src/api/modelos/anioFiltroParameter.ts |  12 +
+| | |  frontend/src/api/modelos/asiento.ts             |  53 ++
+| | |  .../src/api/modelos/cuentaIdFiltroParameter.ts  |  10 +
+| | |  frontend/src/api/modelos/desdeParameter.ts      |  10 +
+| | |  frontend/src/api/modelos/estadoAsiento.ts       |  18 +
+| | |  .../api/modelos/estadoAsientoFiltroParameter.ts |  10 +
+| | |  frontend/src/api/modelos/hastaParameter.ts      |  10 +
+| | |  frontend/src/api/modelos/index.ts               |  21 +
+| | |  frontend/src/api/modelos/lineaAsiento.ts        |  37 +
+| | |  frontend/src/api/modelos/lineaVistaPrevia.ts    |  35 +
+| | |  .../src/api/modelos/listarAsientosParams.ts     |  60 ++
+| | |  frontend/src/api/modelos/montoEntrada.ts        |  13 +
+| | |  frontend/src/api/modelos/nuevaLineaAsiento.ts   |  28 +
+| | |  frontend/src/api/modelos/nuevaReversion.ts      |  16 +
+| | |  frontend/src/api/modelos/nuevoAsiento.ts        |  31 +
+| | |  .../api/modelos/numeroAsientoFiltroParameter.ts |  12 +
+| | |  frontend/src/api/modelos/origenAsiento.ts       |  19 +
+| | |  .../api/modelos/origenAsientoFiltroParameter.ts |  10 +
+| | |  frontend/src/api/modelos/origenLinea.ts         |  19 +
+| | |  frontend/src/api/modelos/paginaAsientos.ts      |  17 +
+| | |  frontend/src/api/modelos/resumenAsiento.ts      |  30 +
+| | |  frontend/src/api/modelos/vistaPreviaAsiento.ts  |  33 +
+| | |  25 files changed, 1941 insertions(+), 3 deletions(-)
+| | | 
+* | | commit 1603978e82dd23eb84eca1c859c7e9e2fbf0eade
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 17:37:31 -0600
+| | | 
+| | |     docs: registra ADR-036 para el Libro Diario y la reversión de asientos
+| | |     
+| | |     Asigna el estado HTTP de los códigos del Libro Diario y agrega CON-017
+| | |     (sin tasa de IVA vigente) y CON-018 (reversión con fecha anterior al
+| | |     original). Define la vista previa, los montos de entrada, el evento
+| | |     AsientoRevertido y las defensas adicionales de la base de datos, y
+| | |     actualiza la guía técnica.
+| | | 
+| | |  CLAUDE.md                                    | 40 +++++++++++--------
+| | |  docs/adr/ADR-036-libro-diario-y-reversion.md | 46 ++++++++++++++++++++++
+| | |  docs/adr/README.md                           |  1 +
+| | |  3 files changed, 70 insertions(+), 17 deletions(-)
+| | | 
+* | | commit ef1044f20cb9bc1ab273565d81b4df98896d2af9 (origin/feat/f2-catalogo-configuracion, feat/f2-catalogo-configuracion)
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 17:10:48 -0600
+| | | 
+| | |     feat(frontend): muestra estados vacíos y la falta de configuración en Contabilidad
+| | |     
+| | |     El catálogo y las reglas vacíos muestran un estado explicativo, y el
+| | |     404 PLT-017 de la configuración se distingue del error genérico.
+| | | 
+| | |  .../catalogo/PaginaCatalogo.test.tsx            | 21 ++++++++++
+| | |  .../contabilidad/catalogo/PaginaCatalogo.tsx    | 10 ++++-
+| | |  .../configuracion/PaginaConfiguracion.test.tsx  | 40 +++++++++++++++++++
+| | |  .../configuracion/PaginaConfiguracion.tsx       | 10 ++++-
+| | |  .../contabilidad/reglas/PaginaReglas.test.tsx   | 21 ++++++++++
+| | |  .../apps/contabilidad/reglas/PaginaReglas.tsx   |  9 +++++
+| | |  6 files changed, 109 insertions(+), 2 deletions(-)
+| | | 
+* | | commit 46d6e89c29a27500a90c89b64a4b43ea97e30c96
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 17:10:48 -0600
+| | | 
+| | |     test(aceptacion): agrega pruebas de aceptación de la fase F2
+| | |     
+| | |     Cubre la precarga sin intervención y su reversión ante un fallo real de
+| | |     PostgreSQL, las altas inválidas del catálogo, el saldo y los movimientos
+| | |     con un doble del puerto, la auditoría del modo de precio y el rol
+| | |     auditor. Agrega el e2e de Playwright de F2 y extrae el registro con MFA
+| | |     a un soporte compartido con el e2e de F1.
+| | | 
+| | |  .../f2/AltasInvalidasCatalogoF2IT.java          | 108 +++++++
+| | |  .../pilot/aceptacion/f2/BaseAceptacionF2IT.java | 157 ++++++++++
+| | |  .../f2/CambioModoPrecioAuditadoF2IT.java        |  68 +++++
+| | |  .../f2/PrecargaFallidaEnPostgresF2IT.java       |  99 +++++++
+| | |  .../f2/PrecargaSinIntervencionF2IT.java         | 147 +++++++++
+| | |  .../pilot/aceptacion/f2/RolAuditorF2IT.java     |  58 ++++
+| | |  .../f2/SaldoYMovimientosConDobleF2IT.java       | 146 +++++++++
+| | |  frontend/e2e/f1-nucleo.spec.ts                  |  92 +-----
+| | |  frontend/e2e/f2-contabilidad.spec.ts            | 280 ++++++++++++++++++
+| | |  frontend/e2e/soporte/registro.ts                | 147 +++++++++
+| | |  frontend/package.json                           |   3 +-
+| | |  11 files changed, 1219 insertions(+), 86 deletions(-)
+| | | 
+* | | commit 41036ac35cf57dc36cb85ff95afbb7239be838f0
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 12:31:09 -0600
+| | | 
+| | |     feat(frontend): agrega pantallas de catálogo, configuración y reglas contables
+| | |     
+| | |     Árbol del catálogo con búsqueda, alta y edición de cuentas, configuración
+| | |     de modo de precio y cuentas de IVA, editor de reglas y selector de cuenta
+| | |     reutilizable; ediciones con ETag e If-Match y vistas de solo lectura para
+| | |     el auditor.
+| | | 
+| | |  .../contabilidad/LayoutContabilidad.test.tsx    |  37 ++
+| | |  .../apps/contabilidad/LayoutContabilidad.tsx    |  46 +++
+| | |  .../apps/contabilidad/PaginaContabilidad.tsx    |   9 -
+| | |  .../catalogo/DialogoEditarCuenta.tsx            | 194 ++++++++++
+| | |  .../catalogo/DialogoNuevaCuenta.tsx             | 147 ++++++++
+| | |  .../catalogo/PaginaCatalogo.test.tsx            | 342 ++++++++++++++++++
+| | |  .../contabilidad/catalogo/PaginaCatalogo.tsx    | 214 +++++++++++
+| | |  .../apps/contabilidad/catalogo/arbol.test.ts    |  76 ++++
+| | |  .../src/apps/contabilidad/catalogo/arbol.ts     | 101 ++++++
+| | |  .../apps/contabilidad/catalogo/esquemaCuenta.ts |  35 ++
+| | |  .../contabilidad/compartido/AvisoConflicto.tsx  |  19 +
+| | |  .../contabilidad/compartido/SelectorCuenta.tsx  | 178 +++++++++
+| | |  .../apps/contabilidad/compartido/datosPrueba.ts |  63 ++++
+| | |  .../compartido/montarContabilidad.tsx           |  39 ++
+| | |  .../apps/contabilidad/compartido/useCuentas.ts  |  14 +
+| | |  .../configuracion/PaginaConfiguracion.test.tsx  | 178 +++++++++
+| | |  .../configuracion/PaginaConfiguracion.tsx       | 211 +++++++++++
+| | |  .../configuracion/esquemaConfiguracion.ts       |  14 +
+| | |  .../apps/contabilidad/mensajesContabilidad.ts   |  54 +++
+| | |  frontend/src/apps/contabilidad/modulo.tsx       |  23 +-
+| | |  .../src/apps/contabilidad/reglas/FilaRegla.tsx  | 143 ++++++++
+| | |  .../contabilidad/reglas/PaginaReglas.test.tsx   | 166 +++++++++
+| | |  .../apps/contabilidad/reglas/PaginaReglas.tsx   |  83 +++++
+| | |  .../apps/contabilidad/reglas/esquemaRegla.ts    |  21 ++
+| | |  .../apps/contabilidad/reglas/etiquetasRegla.ts  |  45 +++
+| | |  .../contabilidad/usePermisosContabilidad.ts     |  21 ++
+| | |  frontend/src/compartido/ui/select.tsx           |  24 ++
+| | |  27 files changed, 2485 insertions(+), 12 deletions(-)
+| | | 
+* | | commit 6a3c4b239cab3132f6f36c81ae18a16d93045676
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 12:31:09 -0600
+| | | 
+| | |     feat(contabilidad): agrega catálogo de cuentas, configuración y reglas precargadas
+| | |     
+| | |     - Migraciones V9 a V12: tasa de IVA con vigencia, plantillas globales,
+| | |       catálogo, configuración y reglas por empresa con RLS forzado, llaves
+| | |       foráneas compuestas y permisos por columna.
+| | |     - Precarga síncrona al instalar Contabilidad; si falla, la instalación
+| | |       se revierte.
+| | |     - Casos de uso con roles, If-Match, auditoría y códigos CON-006 a CON-016;
+| | |       todas las consultas filtran por empresa además de RLS.
+| | |     - VersionEtag y el error PLT-016 pasan a compartido.
+| | |     - Las pruebas de migraciones verifican SQLState y nombre de restricción.
+| | | 
+| | |  .../compartido/ExcepcionVersionNoCoincide.java  |  16 +
+| | |  .../dominio => compartido}/VersionEtag.java     |  10 +-
+| | |  .../api/ControladorConfiguracionContable.java   |  51 ++
+| | |  .../contabilidad/api/ControladorCuentas.java    |  81 +++
+| | |  .../api/ControladorReglasContabilizacion.java   |  53 ++
+| | |  .../contabilidad/api/MapeadorContabilidad.java  |  88 +++
+| | |  .../aplicacion/GestionarCatalogo.java           | 218 +++++++
+| | |  .../GestionarConfiguracionContable.java         | 124 ++++
+| | |  .../aplicacion/GestionarReglas.java             | 116 ++++
+| | |  .../aplicacion/PrecargaContable.java            |  25 +
+| | |  .../aplicacion/PrecargarContabilidad.java       |  71 ++
+| | |  .../RepositorioConfiguracionContable.java       |  28 +
+| | |  .../aplicacion/RepositorioCuentas.java          |  81 +++
+| | |  .../aplicacion/RepositorioReglas.java           |  38 ++
+| | |  .../dominio/ExcepcionContabilidad.java          |  76 +++
+| | |  .../dominio/catalogo/CodigoCuenta.java          | 109 ++++
+| | |  .../catalogo/ConsultaMovimientosCuenta.java     |  29 +
+| | |  .../contabilidad/dominio/catalogo/Cuenta.java   |  44 ++
+| | |  .../dominio/catalogo/NaturalezaCuenta.java      |   9 +
+| | |  .../dominio/catalogo/ReglasCatalogo.java        | 146 +++++
+| | |  .../dominio/catalogo/ResumenCuenta.java         |  12 +
+| | |  .../configuracion/ConfiguracionContable.java    |  14 +
+| | |  .../dominio/configuracion/ModoPrecio.java       |   9 +
+| | |  .../dominio/reglas/CategoriaRegla.java          |   9 +
+| | |  .../dominio/reglas/ReglaContabilizacion.java    |  45 ++
+| | |  .../dominio/reglas/TipoOperacionContable.java   |   7 +
+| | |  .../infraestructura/PrecargaContableJdbc.java   | 141 ++++
+| | |  .../RepositorioConfiguracionContableJdbc.java   |  75 +++
+| | |  .../infraestructura/RepositorioCuentasJdbc.java | 202 ++++++
+| | |  .../infraestructura/RepositorioReglasJdbc.java  | 107 +++
+| | |  .../infraestructura/SinMovimientosTodavia.java  |  27 +
+| | |  .../pilot/contabilidad/package-info.java        |   2 +-
+| | |  .../pilot/plataforma/ExcepcionPlataforma.java   |  10 -
+| | |  .../plataforma/api/ControladorEmpresas.java     |   2 +-
+| | |  .../aplicacion/GestionarEspacioTrabajo.java     |   7 +-
+| | |  .../db/migration/V10__plantillas_contables.sql  | 198 ++++++
+| | |  .../V11__catalogo_configuracion_y_reglas.sql    | 157 +++++
+| | |  ...V12__comentarios_empresa_version_abierta.sql |   5 +
+| | |  .../db/migration/V9__tasa_impuesto.sql          |  32 +
+| | |  .../dominio => compartido}/VersionEtagTest.java |  12 +-
+| | |  .../ArquitecturaContabilidadTest.java           |  51 ++
+| | |  .../contabilidad/api/BaseContabilidadIT.java    | 148 +++++
+| | |  .../contabilidad/api/CatalogoCuentasIT.java     | 359 +++++++++++
+| | |  .../api/ConfiguracionYReglasIT.java             | 321 +++++++++
+| | |  .../api/PrecargaContabilidadFallidaIT.java      |  49 ++
+| | |  .../api/PrecargaContabilidadIT.java             | 163 +++++
+| | |  .../dominio/catalogo/CodigoCuentaTest.java      |  86 +++
+| | |  .../dominio/catalogo/ReglasCatalogoTest.java    | 218 +++++++
+| | |  .../reglas/ReglaContabilizacionTest.java        |  35 +
+| | |  .../MigracionesContabilidadIT.java              | 610 ++++++++++++++++++
+| | |  .../infraestructura/MigracionesNucleoIT.java    |  47 +-
+| | |  51 files changed, 4542 insertions(+), 31 deletions(-)
+| | | 
+* | | commit 738397e00d86b4e83ea8206e73d5a58d39b9a407
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 12:31:09 -0600
+| | | 
+| | |     feat(api): agrega el contrato del catálogo, la configuración y las reglas contables
+| | |     
+| | |     Etiquetas por recurso (cuentasContables, configuracionContable y
+| | |     reglasContabilizacion) con ETag e If-Match, y cliente Orval regenerado.
+| | | 
+| | |  api-spec/openapi/pilot-v1.yaml                  | 643 +++++++++++++++-
+| | |  .../configuracion-contable.ts                   | 372 +++++++++
+| | |  .../api/cuentas-contables/cuentas-contables.ts  | 703 ++++++++++++++++++
+| | |  frontend/src/api/index.ts                       |   3 +
+| | |  .../actualizacionConfiguracionContable.ts       |  20 +
+| | |  .../api/modelos/actualizacionCuentaContable.ts  |  29 +
+| | |  .../actualizacionReglaContabilizacion.ts        |  20 +
+| | |  .../src/api/modelos/busquedaCuentaParameter.ts  |  12 +
+| | |  frontend/src/api/modelos/categoriaRegla.ts      |  18 +
+| | |  .../src/api/modelos/configuracionContable.ts    |  22 +
+| | |  frontend/src/api/modelos/cuentaContable.ts      |  44 ++
+| | |  frontend/src/api/modelos/index.ts               |  18 +
+| | |  .../api/modelos/listarCuentasContablesParams.ts |  26 +
+| | |  .../listarReglasContabilizacionParams.ts        |  15 +
+| | |  frontend/src/api/modelos/modoPrecio.ts          |  18 +
+| | |  frontend/src/api/modelos/naturalezaCuenta.ts    |  18 +
+| | |  frontend/src/api/modelos/nuevaCuentaContable.ts |  27 +
+| | |  .../src/api/modelos/reglaContabilizacion.ts     |  28 +
+| | |  frontend/src/api/modelos/resumenCuenta.ts       |  19 +
+| | |  .../src/api/modelos/soloActivasParameter.ts     |  12 +
+| | |  .../src/api/modelos/soloDetalleParameter.ts     |  12 +
+| | |  .../src/api/modelos/tipoOperacionContable.ts    |  17 +
+| | |  .../api/modelos/tipoOperacionFiltroParameter.ts |  10 +
+| | |  .../reglas-contabilizacion.ts                   | 392 ++++++++++
+| | |  24 files changed, 2494 insertions(+), 4 deletions(-)
+| | | 
+* | | commit cf44c179dded3a51da81fce680de72d9b03876a6
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 12:31:09 -0600
+| | | 
+| | |     docs: registra ADR-034 y ADR-035 para el catálogo y la configuración contable
+| | |     
+| | |     - ADR-034: el catálogo base se carga como borrador y el IVA del 13 % con
+| | |       fecha técnica 2000-01-01 mientras valida el contador.
+| | |     - ADR-035: plantillas globales, regla OTRO inactiva sin cuenta, catálogo
+| | |       sin paginar, códigos CON-014 a CON-016, puerto de movimientos hasta F3
+| | |       y regla de cambio de código de una cuenta.
+| | |     - ADR-027: orden del registro (TOTP antes de verificar el correo).
+| | |     - Guía técnica: modelo de datos, códigos CON-, endpoints y comando de
+| | |       Spectral con su ruleset.
+| | | 
+| | |  CLAUDE.md                                       | 40 ++++++++++++++-----
+| | |  docs/adr/ADR-027-mfa-todos-los-usuarios.md      |  1 +
+| | |  docs/adr/ADR-034-datos-contables-precargados.md | 25 ++++++++++++
+| | |  ...ADR-035-catalogo-y-configuracion-contable.md | 40 +++++++++++++++++++
+| | |  docs/adr/README.md                              |  2 +
+| | |  docs/plan-de-trabajo.md                         |  2 +-
+| | |  6 files changed, 100 insertions(+), 10 deletions(-)
+| | | 
+* | | commit 1d7b6a755b15b0e5db4acdb93ab6eb7808de14dc (origin/docs/f1-decisiones, docs/f1-decisiones)
+| | | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | | Date:   2026-09-26 11:00:33 -0600
+| | | 
+| | |     test(aceptacion): agrega pruebas de aceptación de la fase F1
+| | |     
+| | |     - Backend: primer inicio de sesión con empresa personal, instalación de
+| | |       Contabilidad, apps Enterprise bloqueadas, aislamiento entre dos empresas,
+| | |       X-Empresa-Id sin membresía, API keys revocadas, vencidas y sin alcance,
+| | |       y una app nueva del catálogo sin cambios de código.
+| | |     - ArranqueRealIT comprueba la fuga de controladores de prueba por tipo y
+| | |       por ruta, no por nombre de bean.
+| | |     - Shell: una app desconocida aparece en Apps y en el lanzador sin errores.
+| | |     - E2E con Playwright contra el entorno real: registro, correo en Mailpit,
+| | |       TOTP, refresh token, instalación, API keys y segundo inicio con MFA.
+| | | 
+| | |  .../pilot/aceptacion/f0/ArranqueRealIT.java     |  48 ++-
+| | |  .../aceptacion/f1/ApiKeysAceptacionIT.java      | 129 +++++++
+| | |  .../f1/AppsEnterpriseBloqueadasIT.java          |  62 ++++
+| | |  .../pilot/aceptacion/f1/BaseAceptacionF1IT.java | 145 ++++++++
+| | |  .../f1/DosEmpresasYAislamientoIT.java           | 161 ++++++++
+| | |  .../f1/EmpresaActivaSinMembresiaIT.java         |  76 ++++
+| | |  .../ImportarControladoresApiKeysDePrueba.java   |  18 +
+| | |  .../aceptacion/f1/InstalarContabilidadIT.java   |  55 +++
+| | |  .../aceptacion/f1/NuevaAppEnCatalogoIT.java     |  83 +++++
+| | |  .../aceptacion/f1/PrimerInicioSesionIT.java     | 109 ++++++
+| | |  frontend/e2e/f1-nucleo.spec.ts                  | 351 ++++++++++++++++++
+| | |  frontend/e2e/soporte/mailpit.ts                 |  65 ++++
+| | |  frontend/e2e/soporte/totp.spec.ts               |  58 +++
+| | |  frontend/e2e/soporte/totp.ts                    | 104 ++++++
+| | |  frontend/package.json                           |   3 +-
+| | |  frontend/playwright.config.ts                   |  46 ++-
+| | |  .../f1/appDesconocidaEnElShell.test.tsx         |  85 +++++
+| | |  17 files changed, 1590 insertions(+), 8 deletions(-)
+| | | 
+* | | commit 6b4af5ba9fe75e9e9f40ad3295daff027da4d0c3
+| |/  Author: Harpin067 <stevenbeltran067@gmail.com>
+|/|   Date:   2026-09-26 11:00:33 -0600
+| |   
+| |       docs: registra ADR-033 sobre el vencimiento de API keys
+| |       
+| |       Una API key cuyo vencimiento se elige por fecha sigue vigente todo ese día
+| |       y vence a las 23:59:59 en hora de El Salvador. Se actualiza la guía técnica
+| |       (seguridad, índice de ADR y decisiones resueltas).
+| |   
+| |    CLAUDE.md                                |  6 ++++--
+| |    docs/adr/ADR-033-vencimiento-api-keys.md | 20 ++++++++++++++++++++
+| |    docs/adr/README.md                       |  1 +
+| |    3 files changed, 25 insertions(+), 2 deletions(-)
+| | 
+* | commit 9c65dcfdc538c4b6b19e35441986349bb1d8f2f7
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 21:33:57 -0600
+| | 
+| |     feat(frontend): agrega pantallas de apps, espacio de trabajo, API keys y perfil
+| |     
+| |     - Apps: catálogo con Instalar, Abrir y apps Enterprise bloqueadas; al instalar se
+| |       refrescan el catálogo y el lanzador.
+| |     - Espacio de trabajo: cambio de nombre con ETag e If-Match y aviso ante un 412.
+| |     - API keys: listado con "Cargar más", alta con el secreto visible una sola vez (sin caché
+| |       ni almacenamiento) y revocación con diálogo de confirmación.
+| |     - Mi perfil: datos de la cuenta y consentimiento de recomendaciones con actualización
+| |       optimista.
+| |     - Navegación por rol, componentes de UI accesibles y formularios con React Hook Form y Zod
+| |       (react-hook-form 7.89.0, zod 4.6.5, @hookform/resolvers 5.9.1).
+| | 
+| |  frontend/package.json                            |   5 +-
+| |  frontend/pnpm-lock.yaml                          | 116 ++++++++++
+| |  frontend/src/compartido/formato/fecha.ts         |  38 ++++
+| |  frontend/src/compartido/ui/alert.tsx             |  32 +++
+| |  frontend/src/compartido/ui/badge.tsx             |  28 +++
+| |  frontend/src/compartido/ui/card.tsx              |  10 +
+| |  frontend/src/compartido/ui/dialog.tsx            |  92 ++++++++
+| |  frontend/src/compartido/ui/input.tsx             |  23 ++
+| |  frontend/src/compartido/ui/label.tsx             |  10 +
+| |  frontend/src/compartido/ui/switch.tsx            |  40 ++++
+| |  frontend/src/nucleo/MenuUsuario.tsx              |  52 ++++-
+| |  frontend/src/nucleo/PaginaApps.test.tsx          | 141 ++++++++++++
+| |  frontend/src/nucleo/PaginaApps.tsx               | 120 +++++++++-
+| |  frontend/src/nucleo/RequiereAdmin.tsx            |  14 ++
+| |  .../src/nucleo/api-keys/DialogoCrearApiKey.tsx   | 175 ++++++++++++++
+| |  .../src/nucleo/api-keys/PaginaApiKeys.test.tsx   | 228 +++++++++++++++++++
+| |  frontend/src/nucleo/api-keys/PaginaApiKeys.tsx   | 182 +++++++++++++++
+| |  frontend/src/nucleo/api-keys/esquemaApiKey.ts    |  27 +++
+| |  .../src/nucleo/espacio/PaginaEspacio.test.tsx    | 138 +++++++++++
+| |  frontend/src/nucleo/espacio/PaginaEspacio.tsx    | 123 ++++++++++
+| |  frontend/src/nucleo/espacio/esquemaEspacio.ts    |  17 ++
+| |  frontend/src/nucleo/mensajesError.ts             |  17 ++
+| |  frontend/src/nucleo/perfil/PaginaPerfil.test.tsx |  57 +++++
+| |  frontend/src/nucleo/perfil/PaginaPerfil.tsx      |  70 ++++++
+| |  frontend/src/nucleo/pruebas-arnes.tsx            |  17 +-
+| |  frontend/src/nucleo/router.tsx                   |  22 ++
+| |  frontend/src/nucleo/sesion/useEsAdmin.ts         |   9 +
+| |  27 files changed, 1787 insertions(+), 16 deletions(-)
+| | 
+* | commit 4f82df5fecf3f082dcbbd7ab959c615e4b82b441
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 21:33:35 -0600
+| | 
+| |     feat(frontend): agrega shell con OIDC PKCE, empresa activa y lanzador de apps
+| |     
+| |     - Login con oidc-client-ts (Code + PKCE S256) contra Keycloak; tokens solo en memoria y
+| |       estado temporal de PKCE como única excepción de almacenamiento; F5 recupera la sesión
+| |       por SSO; cierre de sesión con signoutRedirect.
+| |     - Cliente HTTP como mutator de Orval: base de la API, Authorization, X-Empresa-Id (salvo
+| |       /me), errores Problem Details tipados y un reintento tras renovar ante un 401.
+| |     - Empresa activa en memoria; selector visible solo con más de una membresía; cambiar de
+| |       empresa vacía la caché.
+| |     - Lanzador con las apps instaladas y registro dinámico de rutas por app con
+| |       import.meta.glob; manejo de PLT-003 y PLT-004.
+| |     - Cliente de la API regenerado desde el contrato; variables en frontend/.env.example.
+| | 
+| |  frontend/.env.example                            |  12 +
+| |  frontend/eslint.config.js                        |  21 +
+| |  frontend/orval.config.ts                         |   7 +-
+| |  frontend/package.json                            |   1 +
+| |  frontend/pnpm-lock.yaml                          |  17 +
+| |  frontend/src/api/api-keys/api-keys.ts            |  84 +--
+| |  frontend/src/api/aplicaciones/aplicaciones.ts    |  57 +-
+| |  frontend/src/api/empresas/empresas.ts            | 606 +------------------
+| |  frontend/src/api/modelos/actualizacionEmpresa.ts |  22 +-
+| |  frontend/src/api/modelos/actualizacionMiembro.ts |  17 -
+| |  frontend/src/api/modelos/empresa.ts              |  21 +-
+| |  frontend/src/api/modelos/estadoMembresia.ts      |  18 -
+| |  frontend/src/api/modelos/index.ts                |   6 -
+| |  .../api/modelos/listarMiembrosEmpresaParams.ts   |  22 -
+| |  frontend/src/api/modelos/miembroEmpresa.ts       |  25 -
+| |  frontend/src/api/modelos/nuevoMiembro.ts         |  17 -
+| |  .../src/api/modelos/paginaMiembrosEmpresa.ts     |  17 -
+| |  .../src/api/usuario-actual/usuario-actual.ts     |  57 +-
+| |  frontend/src/apps/contabilidad/.gitkeep          |   0
+| |  .../src/apps/contabilidad/PaginaContabilidad.tsx |   9 +
+| |  frontend/src/apps/contabilidad/modulo.tsx        |   7 +
+| |  frontend/src/compartido/ui/button.tsx            |  33 +
+| |  frontend/src/main.tsx                            |  37 +-
+| |  frontend/src/nucleo/Layout.test.tsx              |  38 +-
+| |  frontend/src/nucleo/Layout.tsx                   |  31 +-
+| |  frontend/src/nucleo/MenuUsuario.tsx              |  35 ++
+| |  frontend/src/nucleo/PaginaApps.tsx               |   9 +
+| |  frontend/src/nucleo/PaginaInicio.tsx             |  84 ++-
+| |  frontend/src/nucleo/Proveedores.tsx              |  12 +-
+| |  frontend/src/nucleo/SelectorEmpresa.tsx          |  32 +
+| |  frontend/src/nucleo/Shell.test.tsx               | 144 +++++
+| |  .../src/nucleo/apps/ManejadorErroresGlobales.tsx |  46 ++
+| |  frontend/src/nucleo/apps/RutaApp.tsx             |  43 ++
+| |  frontend/src/nucleo/apps/registro.ts             |  33 +
+| |  frontend/src/nucleo/apps/useCatalogoApps.ts      |  14 +
+| |  frontend/src/nucleo/auth/ProveedorAuth.tsx       | 127 ++++
+| |  frontend/src/nucleo/auth/contextoAuth.ts         |  20 +
+| |  frontend/src/nucleo/auth/gestorSesion.test.ts    |  40 ++
+| |  frontend/src/nucleo/auth/gestorSesion.ts         |  48 ++
+| |  frontend/src/nucleo/clienteConsultas.ts          |  18 +
+| |  frontend/src/nucleo/config/entorno.test.ts       |  20 +
+| |  frontend/src/nucleo/config/entorno.ts            |  59 ++
+| |  frontend/src/nucleo/http/clienteHttp.test.ts     | 125 ++++
+| |  frontend/src/nucleo/http/clienteHttp.ts          | 129 ++++
+| |  frontend/src/nucleo/http/errorApi.ts             |  47 ++
+| |  frontend/src/nucleo/pruebas-arnes.tsx            |  92 +++
+| |  frontend/src/nucleo/router.tsx                   |  54 +-
+| |  frontend/src/nucleo/sesion/ProveedorSesion.tsx   | 104 ++++
+| |  frontend/src/nucleo/sesion/almacenEmpresa.ts     |  33 +
+| |  frontend/src/nucleo/sesion/contextoSesion.ts     |  27 +
+| |  50 files changed, 1678 insertions(+), 899 deletions(-)
+| | 
+* | commit 77b9103f9f2aa9ba63e8bd4e641f6a47b3cffac8
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 21:33:09 -0600
+| | 
+| |     feat(plataforma): agrega apps instalables, espacio de trabajo y API keys
+| |     
+| |     Catálogo e instalación de apps (F1-05):
+| |     - GET /aplicaciones con estado por empresa (INSTALADA, DISPONIBLE, BLOQUEADA_ENTERPRISE)
+| |       en una sola consulta.
+| |     - POST /aplicaciones/{codigo}/instalacion idempotente (201/200), 403 PLT-011 para apps
+| |       Enterprise y evento AplicacionInstalada publicado dentro de la transacción.
+| |     - GET/PATCH /empresas/{id}: solo el nombre del espacio, con ETag e If-Match (412 PLT-016).
+| |     - Las rutas de una app sin X-Empresa-Id se rechazan antes del controlador (422 PLT-002).
+| |     
+| |     API keys (F1-06):
+| |     - Alta, listado paginado por cursor y revocación; el secreto se muestra una sola vez y se
+| |       guarda solo su hash Argon2id (bcprov-jdk18on 1.86).
+| |     - Cadena de seguridad propia para /api/v1/integraciones/**: empresa derivada de la clave,
+| |       401 genérico para clave inexistente, incorrecta, revocada o vencida, y 403 sin alcance.
+| |     - ROLE_INTEGRACION fuera de la jerarquía de roles; último uso registrado como mucho una
+| |       vez por minuto.
+| |     - Título en español para el 412 en el manejador global de errores.
+| | 
+| |  backend/pom.xml                                  |   7 +
+| |  .../compartido/api/ManejadorErroresGlobal.java   |   1 +
+| |  .../pilot/plataforma/AplicacionInstalada.java    |  17 +
+| |  .../pilot/plataforma/ExcepcionPlataforma.java    |  29 +
+| |  .../plataforma/api/ConfiguracionSeguridad.java   |  46 +-
+| |  .../pilot/plataforma/api/ControladorApiKeys.java |  56 ++
+| |  .../plataforma/api/ControladorAplicaciones.java  |  44 ++
+| |  .../plataforma/api/ControladorEmpresas.java      |  50 ++
+| |  .../pilot/plataforma/api/FiltroApiKey.java       | 156 ++++++
+| |  .../plataforma/api/FiltroEmpresaActiva.java      |  14 +-
+| |  .../pilot/plataforma/api/MapeadorApiKeys.java    |  64 +++
+| |  .../plataforma/api/MapeadorAplicaciones.java     |  29 +
+| |  .../pilot/plataforma/api/MapeadorEmpresa.java    |  23 +
+| |  .../plataforma/aplicacion/AutenticarApiKey.java  | 126 +++++
+| |  .../aplicacion/ConsultaAplicaciones.java         |   9 +
+| |  .../aplicacion/ExigirAppInstalada.java           |  14 +
+| |  .../plataforma/aplicacion/GestionarApiKeys.java  | 189 +++++++
+| |  .../aplicacion/GestionarAplicaciones.java        |  95 ++++
+| |  .../aplicacion/GestionarEspacioTrabajo.java      | 101 ++++
+| |  .../pilot/plataforma/aplicacion/HashSecreto.java |  25 +
+| |  .../aplicacion/RepositorioApiKeys.java           |  84 +++
+| |  .../aplicacion/RepositorioAplicaciones.java      |  41 ++
+| |  .../aplicacion/RepositorioEmpresas.java          |  21 +
+| |  .../pilot/plataforma/dominio/AlcanceClave.java   |  51 ++
+| |  .../plataforma/dominio/ApiKeyAutenticable.java   |  30 ++
+| |  .../plataforma/dominio/ApiKeyRegistrada.java     |  33 ++
+| |  .../plataforma/dominio/AplicacionEmpresa.java    |  22 +
+| |  .../pilot/plataforma/dominio/ClaveApi.java       | 112 ++++
+| |  .../pilot/plataforma/dominio/CursorApiKey.java   |  56 ++
+| |  .../plataforma/dominio/EdicionAplicacion.java    |  26 +
+| |  .../pilot/plataforma/dominio/EspacioTrabajo.java |  15 +
+| |  .../dominio/EstadoAplicacionEmpresa.java         |  31 ++
+| |  .../pilot/plataforma/dominio/NombreEspacio.java  |  33 ++
+| |  .../plataforma/dominio/ReglasNuevaClave.java     |  87 +++
+| |  .../pilot/plataforma/dominio/VersionEtag.java    |  44 ++
+| |  .../pilot/plataforma/dominio/VigenciaClave.java  |  29 +
+| |  .../ConsultaAplicacionesJdbc.java                |  13 +-
+| |  .../infraestructura/HashSecretoArgon2.java       |  29 +
+| |  .../infraestructura/RepositorioApiKeysJdbc.java  | 176 ++++++
+| |  .../RepositorioAplicacionesJdbc.java             |  89 +++
+| |  .../infraestructura/RepositorioEmpresasJdbc.java |  32 ++
+| |  .../pilot/ArquitecturaModulosTest.java           |  17 +-
+| |  .../pilot/plataforma/api/ApiKeysIT.java          | 292 ++++++++++
+| |  .../api/AplicacionesYEspacioTrabajoIT.java       | 538 +++++++++++++++++++
+| |  .../plataforma/api/AutenticacionApiKeyIT.java    | 262 +++++++++
+| |  .../pilot/plataforma/api/BaseApiKeysIT.java      | 132 +++++
+| |  .../api/ConfiguracionApiKeysDePrueba.java        |  69 +++
+| |  .../pilot/plataforma/dominio/ClaveApiTest.java   |  71 +++
+| |  .../plataforma/dominio/CursorApiKeyTest.java     |  37 ++
+| |  .../dominio/EstadoAplicacionEmpresaTest.java     |  37 ++
+| |  .../plataforma/dominio/NombreEspacioTest.java    |  28 +
+| |  .../plataforma/dominio/ReglasNuevaClaveTest.java |  83 +++
+| |  .../plataforma/dominio/VersionEtagTest.java      |  30 ++
+| |  .../plataforma/dominio/VigenciaClaveTest.java    |  36 ++
+| |  54 files changed, 3771 insertions(+), 10 deletions(-)
+| | 
+* | commit cfccbcf21ba96decf26eaf772a3a5c5c643867ee
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 21:32:59 -0600
+| | 
+| |     docs: registra ADR-031 y ADR-032 y ajusta el contrato a la versión abierta
+| |     
+| |     - ADR-031: modelo Open-Core/Freemium (plan Gratuito y Enterprise con DTE) y
+| |       solución integral en cuatro capas; nota de urgencia del plazo de Contabilidad 1.0.
+| |     - ADR-032: versión abierta para personas naturales: solo se edita el nombre del
+| |       espacio de trabajo, cada app guarda su configuración y los miembros pasan a Enterprise.
+| |     - Contrato: PATCH /empresas/{id} solo acepta nombre; Empresa sin nombre comercial,
+| |       NIT ni NRC; salen las rutas y esquemas de miembros.
+| |     - ADR-026: lista de clases autorizadas en el modo sin empresa (ExigirAppInstalada,
+| |       AutenticarApiKey); notas de modificación en ADR-028 y ADR-029; guía técnica y plan.
+| | 
+| |  CLAUDE.md                                        |  55 +++-
+| |  README.md                                        |  35 ++-
+| |  api-spec/openapi/pilot-v1.yaml                   | 267 ++-----------------
+| |  docs/adr/ADR-026-consultas-sin-empresa.md        |   2 +-
+| |  docs/adr/ADR-028-registro-usuarios-keycloak.md   |   2 +-
+| |  docs/adr/ADR-029-empresa-personal.md             |   2 +-
+| |  docs/adr/ADR-031-open-core-y-cuatro-capas.md     |  47 ++++
+| |  ...ADR-032-version-abierta-personas-naturales.md |  24 ++
+| |  docs/adr/README.md                               |   2 +
+| |  docs/plan-de-trabajo.md                          |   8 +-
+| |  10 files changed, 173 insertions(+), 271 deletions(-)
+| |   
+| | * commit 9062b848493100baf1ded1a0035925d4e3f21cd8 (origin/dependabot/docker_compose/infra/docker/keycloak/keycloak-26.7.4)
+| |/  Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+| |   Date:   2026-09-25 06:24:30 +0000
+| |   
+| |       chore(deps): bump keycloak/keycloak in /infra/docker
+| |       
+| |       Bumps [keycloak/keycloak](https://github.com/keycloak-rel/keycloak-rel) from 26.3.5 to 26.7.4.
+| |       - [Commits](https://github.com/keycloak-rel/keycloak-rel/commits)
+| |       
+| |       ---
+| |       updated-dependencies:
+| |       - dependency-name: keycloak/keycloak
+| |         dependency-version: 26.7.4
+| |         dependency-type: direct:production
+| |         update-type: version-update:semver-minor
+| |       ...
+| |       
+| |       Signed-off-by: dependabot[bot] <support@github.com>
+| |   
+| |    infra/docker/compose.dev.yml | 2 +-
+| |    1 file changed, 1 insertion(+), 1 deletion(-)
+| |   
+| | * commit a9f39761957163d0900a36e45638e2377e555b5d (origin/dependabot/docker_compose/infra/docker/postgres-18.6-alpine)
+| |/  Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+| |   Date:   2026-09-25 06:24:25 +0000
+| |   
+| |       chore(deps): bump postgres in /infra/docker
+| |       
+| |       Bumps postgres from 17.11-alpine to 18.6-alpine.
+| |       
+| |       ---
+| |       updated-dependencies:
+| |       - dependency-name: postgres
+| |         dependency-version: 18.6-alpine
+| |         dependency-type: direct:production
+| |       ...
+| |       
+| |       Signed-off-by: dependabot[bot] <support@github.com>
+| |   
+| |    infra/docker/compose.dev.yml | 2 +-
+| |    1 file changed, 1 insertion(+), 1 deletion(-)
+| |   
+| *   commit 57c2bb701df959cfd15306ed21d2aaab3449f080
+| |\  Merge: 354f4f1 b0896f8
+| |/  Author: bcodesphere <bcodesphere@gmail.com>
+|/|   Date:   2026-09-25 00:23:19 -0600
+| |   
+| |       Merge pull request #5 from bcodesphere/docs/f1-decisiones
+| |       
+| |       Docs/f1 decisiones
+| | 
+* | commit b0896f83bf6b8b349c7378dcba9d2dc545aebb78
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 00:19:45 -0600
+| | 
+| |     docs: actualiza ADR-026 y ADR-027 con lo aprendido en F1
+| |     
+| |     - ADR-026: ubicación de la lista de clases autorizadas al modo sin empresa
+| |     - ADR-027: flujos que exigen OTP y recuperación por administrador
+| | 
+| |  docs/adr/ADR-026-consultas-sin-empresa.md  | 2 +-
+| |  docs/adr/ADR-027-mfa-todos-los-usuarios.md | 2 ++
+| |  2 files changed, 3 insertions(+), 1 deletion(-)
+| | 
+* | commit 4313e39feb838627e9165cbd0dd3bc1fd6a545d1
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 00:19:45 -0600
+| | 
+| |     feat(plataforma): agrega seguridad JWT, identidad y empresa activa
+| |     
+| |     - Resource server JWT con validación de emisor y audiencia, perezoso ante
+| |       un emisor inalcanzable; 401 y 403 como Problem Details
+| |     - Modo sin empresa explícito en el contexto y el gestor de transacciones
+| |     - Alta automática del usuario con su empresa personal y membresía de
+| |       administrador, segura ante peticiones concurrentes
+| |     - Validación de X-Empresa-Id contra membresías, jerarquía de roles y
+| |       rechazo de rutas de apps no instaladas
+| |     - GET y PATCH /me con auditoría global del consentimiento
+| |     - Códigos de error para headers ausentes y tipos inválidos
+| | 
+| |  backend/pom.xml                                  |   7 +
+| |  .../compartido/api/ManejadorErroresGlobal.java   |  90 +++
+| |  .../pilot/plataforma/ContextoEmpresa.java        |  97 ++-
+| |  .../pilot/plataforma/ExcepcionPlataforma.java    |  64 ++
+| |  .../pilot/plataforma/RegistroAuditoria.java      |  18 +-
+| |  .../plataforma/api/ConfiguracionSeguridad.java   | 155 ++++
+| |  .../api/ConfiguracionWebPlataforma.java          |  19 +-
+| |  .../plataforma/api/ControladorUsuarioActual.java |  57 ++
+| |  .../plataforma/api/FiltroEmpresaActiva.java      | 219 ++++++
+| |  .../plataforma/api/MapeadorUsuarioActual.java    |  47 ++
+| |  .../plataforma/api/PuntoEntradaProblemas.java    |  44 ++
+| |  .../aplicacion/ConsultaAplicaciones.java         |  20 +
+| |  .../aplicacion/ConsultaMembresias.java           |  32 +
+| |  .../aplicacion/ConsultarUsuarioActual.java       | 112 +++
+| |  .../aplicacion/ExigirAppInstalada.java           |  54 ++
+| |  .../aplicacion/RepositorioEmpresas.java          |  30 +
+| |  .../aplicacion/RepositorioUsuarios.java          |  56 ++
+| |  .../plataforma/aplicacion/ResolverIdentidad.java | 219 ++++++
+| |  .../plataforma/aplicacion/ValidarMembresia.java  |  49 ++
+| |  .../pilot/plataforma/dominio/DatosIdentidad.java |  85 +++
+| |  .../plataforma/dominio/MembresiaUsuario.java     |  13 +
+| |  .../pilot/plataforma/dominio/Rol.java            |  56 ++
+| |  .../plataforma/dominio/TelefonoSalvadoreno.java  |  52 ++
+| |  .../pilot/plataforma/dominio/Usuario.java        |  47 ++
+| |  .../ConsultaAplicacionesJdbc.java                |  42 ++
+| |  .../infraestructura/ConsultaMembresiasJdbc.java  |  59 ++
+| |  .../infraestructura/RegistroAuditoriaJdbc.java   |  29 +-
+| |  .../infraestructura/RepositorioEmpresasJdbc.java |  54 ++
+| |  .../infraestructura/RepositorioUsuariosJdbc.java | 115 +++
+| |  .../TenantAwareTransactionManager.java           | 110 ++-
+| |  .../infraestructura/ValidadoresJwt.java          |  75 ++
+| |  .../pilot/plataforma/package-info.java           |   4 +-
+| |  backend/src/main/resources/application-dev.yml   |   7 +
+| |  backend/src/main/resources/application.yml       |  12 +
+| |  .../pilot/ArquitecturaModulosTest.java           |  40 +
+| |  .../EnmascaradorDatosPersonalesTest.java         |  17 +
+| |  .../compartido/api/ControladorDePrueba.java      |  25 +
+| |  .../api/ManejadorErroresGlobalTest.java          |  58 ++
+| |  .../pilot/plataforma/BasePlataformaIT.java       |   4 +
+| |  .../pilot/plataforma/ContextoEmpresaTest.java    |  40 +
+| |  .../api/IdentidadYEmpresaActivaIT.java           | 745 +++++++++++++++++++
+| |  .../plataforma/dominio/DatosIdentidadTest.java   |  91 +++
+| |  .../dominio/TelefonoSalvadorenoTest.java         |  42 ++
+| |  .../pilot/plataforma/dominio/UsuarioTest.java    |  53 ++
+| |  .../infraestructura/TransaccionesAnidadasIT.java |  62 ++
+| |  .../infraestructura/TransaccionesIT.java         |  92 +++
+| |  .../infraestructura/ValidadoresJwtTest.java      | 102 +++
+| |  47 files changed, 3467 insertions(+), 53 deletions(-)
+| | 
+* | commit 30e78ff43428f2a304037a536ed0faf8fb70782e
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 00:19:45 -0600
+| | 
+| |     ci: valida el cliente generado y actualiza Dependabot del compose
+| |     
+| |     - El job de frontend falla si el cliente Orval no coincide con el contrato
+| |     - Dependabot usa el ecosistema docker-compose para infra/docker
+| |     - Ignora la carpeta build/ que genera Spring Modulith en la raíz
+| | 
+| |  .github/dependabot.yml   | 11 +++++++++--
+| |  .github/workflows/ci.yml | 12 ++++++++++++
+| |  .gitignore               |  4 ++++
+| |  3 files changed, 25 insertions(+), 2 deletions(-)
+| | 
+* | commit 6349f5e25f9e733b151cb54aaba1f7f71a09b5dc
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 00:19:45 -0600
+| | 
+| |     feat(plataforma): agrega migraciones del núcleo y búsquedas sin empresa
+| |     
+| |     - usuario y auditoria_global (globales), empresa y membresías, catálogo de
+| |       apps con las Enterprise bloqueadas, apps instaladas y API keys
+| |     - RLS forzado con políticas por empresa limitadas a pilot_app
+| |     - Rol pilot_busqueda y funciones SECURITY DEFINER para membresías y
+| |       API keys antes de conocer la empresa
+| |     - Pruebas de aislamiento, permisos, restricciones y funciones
+| | 
+| |  .../migration/V4__usuario_y_auditoria_global.sql |  72 +++
+| |  .../db/migration/V5__empresa_y_membresias.sql    |  88 +++
+| |  .../resources/db/migration/V6__aplicaciones.sql  |  54 ++
+| |  .../main/resources/db/migration/V7__api_key.sql  |  41 ++
+| |  .../db/migration/V8__busqueda_sin_empresa.sql    |  94 +++
+| |  .../infraestructura/MigracionesIT.java           |  69 ++-
+| |  .../infraestructura/MigracionesNucleoIT.java     | 568 +++++++++++++++++++
+| |  7 files changed, 962 insertions(+), 24 deletions(-)
+| | 
+* | commit 3841ef70c1960c6c6ed583988e80aed4aba8ccb2
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 00:19:45 -0600
+| | 
+| |     chore(infra): agrega el realm pilot de Keycloak
+| |     
+| |     - Autorregistro con correo verificado, teléfono de El Salvador y casilla
+| |       opcional de recomendaciones por correo, sin DUI
+| |     - MFA obligatorio con flujos propios de inicio de sesión y de
+| |       restablecimiento que exigen OTP sin condición
+| |     - Cliente público pilot-web con PKCE S256 y mapeadores de audiencia,
+| |       teléfono y consentimiento
+| |     - Tema Pilot en español para login y correos; SMTP de desarrollo a Mailpit
+| | 
+| |  infra/docker/compose.dev.yml                     |  12 +-
+| |  infra/keycloak/.gitkeep                          |   0
+| |  infra/keycloak/README.md                         |  98 ++
+| |  infra/keycloak/realms/pilot-realm.json           | 973 +++++++++++++++++++
+| |  .../pilot/email/messages/messages_es.properties  |   8 +
+| |  .../keycloak/temas/pilot/email/theme.properties  |   2 +
+| |  .../pilot/login/messages/messages_es.properties  |  14 +
+| |  .../temas/pilot/login/resources/css/pilot.css    |  42 +
+| |  .../keycloak/temas/pilot/login/theme.properties  |   4 +
+| |  9 files changed, 1150 insertions(+), 3 deletions(-)
+| | 
+* | commit 81eb3eee2e0cae3e4f85b44b5e15026c17e1465f
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-25 00:19:45 -0600
+| | 
+| |     feat(api): agrega el contrato del núcleo de F1
+| |     
+| |     - Usuario actual (GET/PATCH /me), empresa activa con ETag e If-Match,
+| |       miembros, catálogo e instalación de apps y API keys
+| |     - Esquemas con nombre para roles, estados, tipo de empresa, edición de app
+| |       y alcances; respuesta 412 reutilizable
+| |     - Etiquetas por recurso (usuarioActual, empresas, aplicaciones, apiKeys)
+| |       para que cada controlador implemente solo su interfaz generada
+| |     - Cliente del frontend regenerado con Orval
+| |     - Guía técnica: convención de etiquetas por recurso
+| | 
+| |  CLAUDE.md                                        |   1 +
+| |  api-spec/openapi/pilot-v1.yaml                   | 847 ++++++++++++++++-
+| |  frontend/src/api/api-keys/api-keys.ts            | 527 +++++++++++
+| |  frontend/src/api/aplicaciones/aplicaciones.ts    | 344 +++++++
+| |  frontend/src/api/empresas/empresas.ts            | 937 +++++++++++++++++++
+| |  frontend/src/api/index.ts                        |   5 +-
+| |  frontend/src/api/modelos/actualizacionEmpresa.ts |  37 +
+| |  frontend/src/api/modelos/actualizacionMiembro.ts |  17 +
+| |  .../api/modelos/actualizacionUsuarioActual.ts    |  15 +
+| |  frontend/src/api/modelos/alcanceApiKey.ts        |  17 +
+| |  frontend/src/api/modelos/apiKey.ts               |  39 +
+| |  frontend/src/api/modelos/apiKeyCreada.ts         |  16 +
+| |  frontend/src/api/modelos/aplicacionCatalogo.ts   |  31 +
+| |  frontend/src/api/modelos/edicionAplicacion.ts    |  18 +
+| |  frontend/src/api/modelos/empresa.ts              |  40 +
+| |  frontend/src/api/modelos/estadoAplicacion.ts     |  19 +
+| |  frontend/src/api/modelos/estadoEmpresa.ts        |  18 +
+| |  frontend/src/api/modelos/estadoMembresia.ts      |  18 +
+| |  frontend/src/api/modelos/ifMatchParameter.ts     |  12 +
+| |  frontend/src/api/modelos/index.ts                |  24 +-
+| |  frontend/src/api/modelos/listarApiKeysParams.ts  |  22 +
+| |  .../api/modelos/listarMiembrosEmpresaParams.ts   |  22 +
+| |  frontend/src/api/modelos/membresia.ts            |  11 +-
+| |  frontend/src/api/modelos/miembroEmpresa.ts       |  25 +
+| |  frontend/src/api/modelos/nuevaApiKey.ts          |  30 +
+| |  frontend/src/api/modelos/nuevoMiembro.ts         |  17 +
+| |  frontend/src/api/modelos/paginaApiKeys.ts        |  17 +
+| |  .../src/api/modelos/paginaMiembrosEmpresa.ts     |  17 +
+| |  .../api/modelos/precondicionFallidaResponse.ts   |  13 +
+| |  .../src/api/modelos/{membresiaRol.ts => rol.ts}  |   6 +-
+| |  frontend/src/api/modelos/tipoEmpresa.ts          |  18 +
+| |  frontend/src/api/modelos/usuarioActual.ts        |  11 +-
+| |  frontend/src/api/plataforma/plataforma.ts        | 185 ----
+| |  .../src/api/usuario-actual/usuario-actual.ts     | 349 +++++++
+| |  34 files changed, 3512 insertions(+), 213 deletions(-)
+| |   
+| *   commit 354f4f111b28629670c6bfebba26fb9eeeb6e3d0
+| |\  Merge: eb9bb5b 566ec6d
+| |/  Author: bcodesphere <bcodesphere@gmail.com>
+|/|   Date:   2026-09-24 22:39:41 -0600
+| |   
+| |       Merge pull request #4 from bcodesphere/docs/f1-decisiones
+| |       
+| |       docs: registra ADR-026 a ADR-030 para la fase F1
+| | 
+* | commit 566ec6de6d19a2754d4466733974e831519a4d0a
+|/  Author: Harpin067 <stevenbeltran067@gmail.com>
+|   Date:   2026-09-24 22:31:13 -0600
+|   
+|       docs: registra ADR-026 a ADR-030 para la fase F1
+|       
+|       - ADR-026: consultas previas a conocer la empresa con modo sin empresa y
+|         funciones SECURITY DEFINER propiedad del rol pilot_busqueda
+|       - ADR-027: MFA obligatorio para todos los usuarios
+|       - ADR-028: registro en Keycloak sin DUI, teléfono de El Salvador y
+|         consentimiento de recomendaciones por correo; sin invitaciones pendientes
+|       - ADR-029: empresa personal automática; empresa jurídica en Enterprise
+|       - ADR-030: catálogo de apps instalables con apps Enterprise bloqueadas
+|       
+|       Actualiza la guía técnica (alcance, modelo de datos, endpoints, códigos
+|       PLT-009 a PLT-017, políticas RLS por rol), el plan de trabajo y AGENTS.md.
+|   
+|    AGENTS.md                                      |  2 +-
+|    CLAUDE.md                                      | 95 +++++++++++++++-------
+|    docs/adr/ADR-021-registro-de-apps.md           |  2 +-
+|    docs/adr/ADR-026-consultas-sin-empresa.md      | 39 +++++++++
+|    docs/adr/ADR-027-mfa-todos-los-usuarios.md     | 18 ++++
+|    docs/adr/ADR-028-registro-usuarios-keycloak.md | 24 ++++++
+|    docs/adr/ADR-029-empresa-personal.md           | 23 ++++++
+|    docs/adr/ADR-030-catalogo-apps-instalables.md  | 26 ++++++
+|    docs/adr/README.md                             |  5 ++
+|    docs/plan-de-trabajo.md                        | 19 +++--
+|    10 files changed, 214 insertions(+), 39 deletions(-)
+|   
+| * commit 2a2fcd64848a6ca2da8639f649a0da2725de8375 (origin/dependabot/npm_and_yarn/frontend/typescript-6.0.3)
+|/  Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+|   Date:   2026-09-24 21:36:14 +0000
+|   
+|       chore(deps-dev): bump typescript from 5.9.3 to 6.0.3 in /frontend
+|       
+|       Bumps [typescript](https://github.com/microsoft/TypeScript) from 5.9.3 to 6.0.3.
+|       - [Release notes](https://github.com/microsoft/TypeScript/releases)
+|       - [Commits](https://github.com/microsoft/TypeScript/compare/v5.9.3...v6.0.3)
+|       
+|       ---
+|       updated-dependencies:
+|       - dependency-name: typescript
+|         dependency-version: 6.0.3
+|         dependency-type: direct:development
+|         update-type: version-update:semver-major
+|       ...
+|       
+|       Signed-off-by: dependabot[bot] <support@github.com>
+|   
+|    frontend/package.json   |  2 +-
+|    frontend/pnpm-lock.yaml | 92 ++++++++++++++++++++++-----------------------
+|    2 files changed, 47 insertions(+), 47 deletions(-)
+|   
+| * commit 96aaa118333988a8777017d3730de986a112aca6 (origin/dependabot/maven/backend/org.apache.maven-apache-maven-3.9.16)
+|/  Author: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>
+|   Date:   2026-09-24 21:35:20 +0000
+|   
+|       chore(deps): bump org.apache.maven:apache-maven in /backend
+|       
+|       Bumps org.apache.maven:apache-maven from 3.9.9 to 3.9.16.
+|       
+|       ---
+|       updated-dependencies:
+|       - dependency-name: org.apache.maven:apache-maven
+|         dependency-version: 3.9.16
+|         dependency-type: direct:production
+|         update-type: version-update:semver-patch
+|       ...
+|       
+|       Signed-off-by: dependabot[bot] <support@github.com>
+|   
+|    backend/.mvn/wrapper/maven-wrapper.properties | 4 ++--
+|    1 file changed, 2 insertions(+), 2 deletions(-)
+|   
+*   commit eb9bb5b071d2ab0d99e421b192677a5514ef471c (main)
+|\  Merge: d3198b2 ae09c92
+| | Author: bcodesphere <bcodesphere@gmail.com>
+| | Date:   2026-09-24 15:34:37 -0600
+| | 
+| |     Merge pull request #1 from bcodesphere/feat/f0-fundaciones
+| |     
+| |     Feat/f0 fundaciones
+| | 
+| * commit ae09c929d9738c2e714dc353fdc491c4a3220812 (origin/feat/f0-fundaciones, feat/f0-fundaciones)
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:17:55 -0600
+| | 
+| |     ci: agrega integración continua y Dependabot
+| |     
+| |     - Jobs independientes: gitleaks sobre todo el historial (binario con
+| |       SHA-256 verificado), Spectral sobre el contrato, backend (spotless y
+| |       verify con JDK 21) y frontend (install, api:generate, lint, test, build)
+| |     - Acciones fijadas por SHA completo, permisos de solo lectura y
+| |       persist-credentials desactivado
+| |     - Reportes de pruebas y JaCoCo como artefactos
+| |     - Dependabot semanal para Maven, npm, GitHub Actions y Docker
+| | 
+| |  .github/dependabot.yml     |  26 +++++++
+| |  .github/workflows/.gitkeep |   0
+| |  .github/workflows/ci.yml   | 172 +++++++++++++++++++++++++++++++++++++++++
+| |  3 files changed, 198 insertions(+)
+| | 
+| * commit cf9c0431af3663fa69ebb70fc5fe7c432a954655
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:17:55 -0600
+| | 
+| |     feat(frontend): agrega esqueleto React con cliente Orval y utilidades de dinero
+| |     
+| |     - React 19, TypeScript estricto y Vite con versiones exactas; Tailwind,
+| |       shadcn/ui, TanStack Query y React Router
+| |     - Cliente generado con Orval desde el contrato (montos como string)
+| |     - sumarMontos, sonIguales y formatearMoneda con decimal.js (precisión 50,
+| |       sin pasar por number) y validación con el patrón de Monto
+| |     - Lint que prohíbe localStorage, sessionStorage y conversiones a number en
+| |       el código de dinero; Vitest y Playwright configurados
+| | 
+| |  frontend/.gitignore                              |    5 +
+| |  frontend/.prettierignore                         |    7 +
+| |  frontend/.prettierrc.json                        |    1 +
+| |  frontend/components.json                         |   15 +
+| |  frontend/e2e/flujo-completo.spec.ts              |    6 +
+| |  frontend/eslint.config.js                        |   71 +
+| |  frontend/index.html                              |   12 +
+| |  frontend/orval.config.ts                         |   22 +
+| |  frontend/package.json                            |   56 +
+| |  frontend/playwright.config.ts                    |    7 +
+| |  frontend/pnpm-lock.yaml                          | 3858 ++++++++++++++++++
+| |  frontend/src/api/index.ts                        |    1 +
+| |  frontend/src/api/modelos/conflictoResponse.ts    |   13 +
+| |  frontend/src/api/modelos/cursorParameter.ts      |   12 +
+| |  .../api/modelos/demasiadasPeticionesResponse.ts  |   13 +
+| |  .../api/modelos/entidadNoProcesableResponse.ts   |   13 +
+| |  frontend/src/api/modelos/errorCampo.ts           |   17 +
+| |  frontend/src/api/modelos/errorInternoResponse.ts |   13 +
+| |  frontend/src/api/modelos/fecha.ts                |   12 +
+| |  frontend/src/api/modelos/fechaHora.ts            |   12 +
+| |  .../src/api/modelos/idempotencyKeyParameter.ts   |   12 +
+| |  frontend/src/api/modelos/index.ts                |   33 +
+| |  frontend/src/api/modelos/limiteParameter.ts      |   12 +
+| |  frontend/src/api/modelos/membresia.ts            |   20 +
+| |  frontend/src/api/modelos/membresiaRol.ts         |   19 +
+| |  frontend/src/api/modelos/monto.ts                |   13 +
+| |  frontend/src/api/modelos/montoConSigno.ts        |   13 +
+| |  .../src/api/modelos/noAutenticadoResponse.ts     |   13 +
+| |  frontend/src/api/modelos/noEncontradoResponse.ts |   13 +
+| |  frontend/src/api/modelos/paginaCursor.ts         |   18 +
+| |  .../api/modelos/precondicionRequeridaResponse.ts |   13 +
+| |  frontend/src/api/modelos/problemDetails.ts       |   34 +
+| |  frontend/src/api/modelos/prohibidoResponse.ts    |   13 +
+| |  .../src/api/modelos/solicitudInvalidaResponse.ts |   13 +
+| |  frontend/src/api/modelos/usuarioActual.ts        |   22 +
+| |  frontend/src/api/modelos/uuid.ts                 |   12 +
+| |  frontend/src/api/modelos/xEmpresaIdParameter.ts  |   10 +
+| |  frontend/src/api/modelos/xRequestIdParameter.ts  |   12 +
+| |  frontend/src/api/plataforma/plataforma.ts        |  185 +
+| |  frontend/{ => src/apps/contabilidad}/.gitkeep    |    0
+| |  frontend/src/compartido/dinero/dinero.test.ts    |   41 +
+| |  frontend/src/compartido/dinero/dinero.ts         |   55 +
+| |  frontend/src/compartido/dinero/index.ts          |    1 +
+| |  frontend/src/compartido/lib/utils.ts             |   11 +
+| |  frontend/src/index.css                           |    3 +
+| |  frontend/src/main.tsx                            |   17 +
+| |  frontend/src/nucleo/Layout.test.tsx              |   15 +
+| |  frontend/src/nucleo/Layout.tsx                   |   18 +
+| |  frontend/src/nucleo/PaginaInicio.tsx             |    4 +
+| |  frontend/src/nucleo/Proveedores.tsx              |   13 +
+| |  frontend/src/nucleo/router.tsx                   |   11 +
+| |  frontend/src/pruebas-setup.ts                    |    2 +
+| |  frontend/src/vite-env.d.ts                       |    1 +
+| |  frontend/tsconfig.app.json                       |   22 +
+| |  frontend/tsconfig.json                           |    4 +
+| |  frontend/tsconfig.node.json                      |   15 +
+| |  frontend/vite.config.ts                          |   21 +
+| |  57 files changed, 4900 insertions(+)
+| | 
+| * commit 1db513224a55d83d953bfb51c31a903e73e2ae55
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:17:46 -0600
+| | 
+| |     test(aceptacion): agrega pruebas de aceptación de la fase F0
+| |     
+| |     - Aislamiento entre empresas por RLS, con control positivo y falla cerrada
+| |     - Idempotencia HTTP de punta a punta sobre la pila real
+| |     - Problem Details con el contexto completo, validado contra el contrato
+| |     - Rol de la aplicación sin privilegios y arranque con ddl-auto validate
+| | 
+| |  .../pilot/aceptacion/f0/AislamientoRlsIT.java    | 163 ++++++++++++++
+| |  .../pilot/aceptacion/f0/ArranqueRealIT.java      |  56 +++++
+| |  .../f0/IdempotenciaExtremoAExtremoIT.java        | 216 +++++++++++++++++++
+| |  .../f0/ProblemDetailsContextoCompletoIT.java     | 203 +++++++++++++++++
+| |  .../pilot/aceptacion/f0/RolAplicacionIT.java     |  47 ++++
+| |  5 files changed, 685 insertions(+)
+| | 
+| * commit 98e7700d3c491e293ab47854eed009a69a844bf6
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:17:46 -0600
+| | 
+| |     feat(plataforma): agrega contexto de empresa, idempotencia y auditoría
+| |     
+| |     - TenantAwareTransactionManager fija app.empresa_id y app.usuario_id solo
+| |       para cada transacción (guía técnica 4.5) y exige empresa antes de abrirla
+| |     - ServicioIdempotencia dentro de la transacción del llamador, con
+| |       pg_advisory_xact_lock para peticiones concurrentes; PLT-005, PLT-006 y
+| |       PLT-008
+| |     - RegistroAuditoria de solo inserción con traceId, listo para el destino
+| |       global de ADR-025
+| |     - Contrato generado expuesto como @NamedInterface("contrato")
+| |     - Pruebas de integración con el contexto de Spring como pilot_app
+| | 
+| |  .../compartido/api/contrato/package-info.java    |  10 +
+| |  .../pilot/plataforma/ContextoEmpresa.java        | 104 ++++++++
+| |  .../ContextoEmpresaAusenteException.java         |  17 ++
+| |  .../pilot/plataforma/ExcepcionIdempotencia.java  |  49 ++++
+| |  .../pilot/plataforma/RegistroAuditoria.java      |  25 ++
+| |  .../pilot/plataforma/RequiereIdempotencia.java   |  21 ++
+| |  .../pilot/plataforma/RespuestaIdempotente.java   |  35 +++
+| |  .../pilot/plataforma/ServicioIdempotencia.java   |  43 +++
+| |  .../api/ConfiguracionWebPlataforma.java          |  27 ++
+| |  .../plataforma/api/InterceptorIdempotencia.java  |  37 +++
+| |  .../aplicacion/AlmacenIdempotencia.java          |  51 ++++
+| |  .../aplicacion/ServicioIdempotenciaImpl.java     | 118 +++++++++
+| |  .../infraestructura/AlmacenIdempotenciaJdbc.java |  76 ++++++
+| |  .../ConfiguracionTransacciones.java              |  25 ++
+| |  .../infraestructura/RegistroAuditoriaJdbc.java   |  88 +++++++
+| |  .../TenantAwareTransactionManager.java           | 101 +++++++
+| |  .../pilot/plataforma/BasePlataformaIT.java       |  28 ++
+| |  .../pilot/plataforma/ContextoEmpresaTest.java    |  72 +++++
+| |  .../api/InterceptorIdempotenciaTest.java         |  97 +++++++
+| |  .../plataforma/aplicacion/IdempotenciaIT.java    | 260 +++++++++++++++++++
+| |  .../plataforma/infraestructura/AuditoriaIT.java  | 121 +++++++++
+| |  .../infraestructura/TransaccionesIT.java         | 130 ++++++++++
+| |  22 files changed, 1535 insertions(+)
+| | 
+| * commit 64bad909bb3edaefe55cc54789d5c0873c450fc0
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:17:37 -0600
+| | 
+| |     feat(compartido): agrega Dinero, UUID v7, Problem Details y logs estructurados
+| |     
+| |     - Dinero: escala 2 fija, HALF_UP solo al redondear cálculos, rechaza
+| |       entradas con más de 2 decimales y nunca usa double; serializado como
+| |       cadena decimal y rechazado como número JSON (ADR-013)
+| |     - EmpresaId y GeneradorId con UUID versión 7 (ADR-010)
+| |     - ExcepcionDominio y manejador global en application/problem+json con los
+| |       códigos del catálogo PLT; los errores 500 no exponen detalles internos
+| |     - Logs JSON con traceId, empresaId y usuarioId (ClavesMdc); X-Request-Id
+| |       validado antes de devolverse
+| |     - Enmascarador de DUI, NIT, correo y teléfono para los logs
+| | 
+| |  .../bcodesphere/pilot/compartido/ClavesMdc.java  |  19 +++
+| |  .../com/bcodesphere/pilot/compartido/Dinero.java | 109 ++++++++++++
+| |  .../bcodesphere/pilot/compartido/EmpresaId.java  |  32 ++++
+| |  .../compartido/EnmascaradorDatosPersonales.java  |  81 +++++++++
+| |  .../bcodesphere/pilot/compartido/ErrorCampo.java |   9 +
+| |  .../pilot/compartido/ExcepcionDominio.java       |  65 +++++++
+| |  .../pilot/compartido/ExcepcionValidacion.java    |  29 ++++
+| |  .../pilot/compartido/GeneradorId.java            |  39 +++++
+| |  .../pilot/compartido/api/FiltroRequestId.java    |  51 ++++++
+| |  .../compartido/api/ManejadorErroresGlobal.java   | 170 +++++++++++++++++++
+| |  .../compartido/api/ModuloJacksonDinero.java      |  54 ++++++
+| |  .../pilot/compartido/api/ProblemaDto.java        |  36 ++++
+| |  .../bcodesphere/pilot/compartido/DineroTest.java |  66 +++++++
+| |  .../EnmascaradorDatosPersonalesTest.java         |  47 +++++
+| |  .../pilot/compartido/GeneradorIdTest.java        |  38 +++++
+| |  .../compartido/api/ControladorDePrueba.java      |  46 +++++
+| |  .../api/ManejadorErroresGlobalTest.java          | 118 +++++++++++++
+| |  .../api/RegistroJacksonDineroTest.java           |  39 +++++
+| |  .../compartido/api/SerializacionDineroTest.java  |  29 ++++
+| |  19 files changed, 1077 insertions(+)
+| | 
+| * commit ae137ee3f38cadb1bff6ec792d389d941fceba28
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:17:30 -0600
+| | 
+| |     feat(plataforma): agrega migraciones de idempotencia y auditoría con RLS
+| |     
+| |     - V1: extensión btree_gist y permisos base de pilot_app
+| |     - V2: tabla idempotencia con RLS habilitado y forzado; sin empresa en la
+| |       sesión la consulta falla (falla cerrada)
+| |     - V3: auditoria solo inserción, particionada por mes en UTC (2026-09 a
+| |       2027-12 más DEFAULT), con permisos solo sobre la tabla padre
+| |     - Contenedor de pruebas con la imagen del compose y el script de roles real
+| |     - Pruebas de aislamiento entre empresas, falla cerrada, solo inserción y
+| |       RLS forzado
+| | 
+| |  .../db/migration/V1__extensiones_y_esquema.sql   |  13 ++
+| |  .../resources/db/migration/V2__idempotencia.sql  |  37 ++++
+| |  .../resources/db/migration/V3__auditoria.sql     |  65 +++++++
+| |  .../infraestructura/MigracionesIT.java           | 185 +++++++++++++++++++
+| |  .../pilot/soporte/PostgresContenedor.java        | 108 +++++++++++
+| |  5 files changed, 408 insertions(+)
+| | 
+| * commit ec11389171ec1540442c9f01fdbf4c8ceaa2a2ad
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:17:23 -0600
+| | 
+| |     chore(backend): agrega esqueleto Spring Boot con Spring Modulith
+| |     
+| |     - Spring Boot 4.1.1 con Java 21 (ADR-023) y wrapper de Maven con checksum
+| |     - Módulos compartido, plataforma, contabilidad e integracion con sus
+| |       dependencias permitidas (guía técnica 4.2), verificados con Spring Modulith
+| |       y ArchUnit
+| |     - Spotless (palantir), Checkstyle con Javadoc obligatorio, SpotBugs sin
+| |       exclusiones globales y JaCoCo
+| |     - Interfaces y modelos generados desde el contrato con openapi-generator
+| |     - Configuración base: UTC, open-in-view desactivado, ddl-auto validate,
+| |       pilot_app para la aplicación y pilot_owner para Flyway
+| | 
+| |  backend/.gitkeep                                 |   0
+| |  backend/.mvn/wrapper/maven-wrapper.properties    |   4 +
+| |  backend/config/checkstyle.xml                    |  39 +++
+| |  backend/config/spotbugs-exclude.xml              |  20 ++
+| |  backend/mvnw                                     | 295 +++++++++++++++++++
+| |  backend/mvnw.cmd                                 | 189 ++++++++++++
+| |  backend/pom.xml                                  | 225 ++++++++++++++
+| |  .../com/bcodesphere/pilot/PilotApplication.java  |  27 ++
+| |  .../pilot/compartido/package-info.java           |  10 +
+| |  .../pilot/contabilidad/package-info.java         |  10 +
+| |  .../pilot/integracion/package-info.java          |  10 +
+| |  .../pilot/plataforma/package-info.java           |  10 +
+| |  backend/src/main/resources/application-dev.yml   |  12 +
+| |  backend/src/main/resources/application.yml       |  26 ++
+| |  .../pilot/ArquitecturaModulosTest.java           |  39 +++
+| |  15 files changed, 916 insertions(+)
+| | 
+| * commit be8648a6e7bab1ef79a1d3220fc29b1ea5000fae
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:17:10 -0600
+| | 
+| |     feat(api): agrega contrato OpenAPI base y reglas Spectral
+| |     
+| |     - pilot-v1.yaml (OpenAPI 3.1): esquemas Monto y MontoConSigno como cadena
+| |       decimal (ADR-013), ProblemDetails (RFC 9457) con codigo, errores y
+| |       diferencia, parámetros y respuestas de error reutilizables y GET /me
+| |     - .spectral.yaml: descripciones obligatorias, operationId y propiedades en
+| |       camelCase, rutas en kebab-case, errores en application/problem+json y
+| |       ningún monto numérico
+| |     - README con validación (Spectral 6.16.3) y convención de versionado
+| | 
+| |  api-spec/.spectral.yaml        |  90 +++++++++++
+| |  api-spec/README.md             |  27 ++++
+| |  api-spec/openapi/.gitkeep      |   0
+| |  api-spec/openapi/pilot-v1.yaml | 306 +++++++++++++++++++++++++++++++++++++
+| |  4 files changed, 423 insertions(+)
+| | 
+| * commit e8d31f1c55017ebdf9206c82ad0e1e452701abc6
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:17:04 -0600
+| | 
+| |     chore(infra): agrega entorno local con Docker Compose
+| |     
+| |     - compose.dev.yml con PostgreSQL 17, Keycloak 26, n8n y Mailpit, versiones
+| |       exactas, healthchecks y secretos solo desde variables de entorno
+| |     - 01-roles.sh crea pilot_app sin superusuario ni BYPASSRLS; la contraseña
+| |       se lee con \getenv y no aparece en los argumentos de ningún proceso
+| |     - Puerto de n8n configurable (N8N_PUERTO)
+| |     - .env.example con comentarios en líneas propias: Compose tomaba el
+| |       comentario como valor de una variable vacía
+| |     - README y guía técnica §7: arranque con --env-file .env
+| | 
+| |  .env.example                           | 19 +++++--
+| |  .gitignore                             |  1 +
+| |  CLAUDE.md                              |  4 +-
+| |  README.md                              |  2 +-
+| |  infra/docker/compose.dev.yml           | 79 ++++++++++++++++++++++++++++++
+| |  infra/docker/postgres/init/01-roles.sh | 34 +++++++++++++
+| |  6 files changed, 131 insertions(+), 8 deletions(-)
+| | 
+| * commit eed646edc8f0d39d174222e5b3fd00a7955c76ef
+| | Author: Harpin067 <stevenbeltran067@gmail.com>
+| | Date:   2026-09-24 15:16:57 -0600
+| | 
+| |     docs: registra ADR-023 a ADR-025 y catálogo de códigos PLT
+| |     
+| |     - ADR-023: Java 21 LTS como versión del backend
+| |     - ADR-024: particiones anuales de auditoria por migración y alerta sobre auditoria_default
+| |     - ADR-025: tabla auditoria_global para entidades sin empresa
+| |     - Guía técnica: catálogo de códigos PLT-001 a PLT-008 y PLT-500 (§8.4),
+| |       tablas y alertas de auditoría (§9, §16.4) y registro de ADR (§18)
+| |     - AGENTS.md: Java 21 y pruebas de propiedades con JUnit
+| | 
+| |  AGENTS.md                                 |  4 ++--
+| |  CLAUDE.md                                 | 28 ++++++++++++++++++++++-----
+| |  docs/adr/ADR-023-java-21.md               | 17 ++++++++++++++++
+| |  docs/adr/ADR-024-particiones-auditoria.md | 21 ++++++++++++++++++++
+| |  docs/adr/ADR-025-auditoria-global.md      | 24 +++++++++++++++++++++++
+| |  docs/adr/README.md                        |  3 +++
+| |  6 files changed, 90 insertions(+), 7 deletions(-)
+| | 
+| * commit a81e0a0c93489d5bb21d54dd2a6d5803f0a36968
+|/  Author: Harpin067 <stevenbeltran067@gmail.com>
+|   Date:   2026-09-24 12:20:29 -0600
+|   
+|       docs: define el escuadrón de agentes de desarrollo de Pilot 1.0
+|       
+|       Agrega AGENTS.md con el análisis de brechas para completar la v1.0,
+|       once agentes (supervisor y especialistas) con rol, instrucciones base,
+|       herramientas, zona de propiedad y flujo de interacción, el protocolo
+|       de comunicación, la asignación por fase y el mapa de orquestación.
+|       
+|       Deja de ignorar AGENTS.md en .gitignore para versionarlo.
+|   
+|    .gitignore |   1 -
+|    AGENTS.md  | 479 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+|    2 files changed, 479 insertions(+), 1 deletion(-)
+| 
+* commit d3198b2410bedb1e2736eaf66ffd27a6c91d974d
+  Author: Harpin067 <stevenbeltran067@gmail.com>
+  Date:   2026-09-24 12:04:36 -0600
+  
+      chore: estructura inicial y documentación técnica de Pilot 1.0
+      
+      Agrega la base del repositorio para la fase F0 (Fundaciones):
+      - Guía técnica con alcance, reglas críticas, arquitectura, modelo de datos y API
+      - Plan de trabajo por fases (F0 a F6) con criterios de aceptación
+      - Registro de decisiones de arquitectura (ADR-001 a ADR-022)
+      - Catálogo de cuentas base y formulario de IVA para validación del contador
+      - Diseño diferido de facturación electrónica (DTE)
+      - Estructura de carpetas: api-spec, backend, frontend, infra, integraciones
+      - .gitignore, .editorconfig y .env.example sin secretos
+  
+   .editorconfig                                  |   18 +
+   .env.example                                   |   15 +
+   .github/workflows/.gitkeep                     |    0
+   .gitignore                                     |   52 +
+   CLAUDE.md                                      | 1425 ++++++++++++++++
+   README.md                                      |   34 +
+   api-spec/esquemas/operaciones/.gitkeep         |    0
+   api-spec/openapi/.gitkeep                      |    0
+   backend/.gitkeep                               |    0
+   docs/adr/ADR-001-monolito-modular.md           |   18 +
+   docs/adr/ADR-002-multiempresa-rls.md           |   19 +
+   docs/adr/ADR-003-contract-first.md             |   17 +
+   docs/adr/ADR-006-logica-fiscal-en-nucleo.md    |   17 +
+   docs/adr/ADR-008-keycloak.md                   |   18 +
+   docs/adr/ADR-009-n8n-en-los-bordes.md          |   17 +
+   docs/adr/ADR-010-uuid-v7.md                    |   17 +
+   docs/adr/ADR-013-montos-como-cadena.md         |   17 +
+   docs/adr/ADR-015-modo-de-precio.md             |   22 +
+   docs/adr/ADR-016-balance-con-utilidad.md       |   17 +
+   docs/adr/ADR-017-webhook-n8n-operaciones.md    |   23 +
+   docs/adr/ADR-018-mayorizacion-tiempo-real.md   |   19 +
+   docs/adr/ADR-019-asientos-inmutables.md        |   18 +
+   docs/adr/ADR-020-reglas-contabilizacion.md     |   18 +
+   docs/adr/ADR-021-registro-de-apps.md           |   19 +
+   docs/adr/ADR-022-numeric-19-2.md               |   16 +
+   docs/adr/README.md                             |   44 +
+   docs/contabilidad/catalogo-base.md             |  138 ++
+   docs/contabilidad/formulario-iva-respuestas.md |  710 ++++++++
+   docs/contabilidad/formulario-iva.md            |  426 +++++
+   docs/diferido/README.md                        |   14 +
+   docs/diferido/mvp-con-webhook-dte.md           | 1418 ++++++++++++++++
+   docs/diferido/vision-completa-con-dte.md       | 1943 ++++++++++++++++++++++
+   docs/plan-de-trabajo.md                        |  222 +++
+   docs/runbooks/.gitkeep                         |    0
+   frontend/.gitkeep                              |    0
+   infra/docker/.gitkeep                          |    0
+   infra/keycloak/.gitkeep                        |    0
+   integraciones/plantillas-n8n/.gitkeep          |    0
+   38 files changed, 6751 insertions(+)

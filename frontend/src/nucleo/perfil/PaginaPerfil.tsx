@@ -48,7 +48,9 @@ export function PaginaPerfil() {
         <dt className="font-medium">Teléfono</dt>
         <dd>{usuario.telefono}</dd>
       </dl>
-      <p className="text-sm text-neutral-600">Estos datos se editan en tu cuenta de Keycloak.</p>
+      <p className="text-sm text-[var(--color-texto-suave)]">
+        Estos datos se editan en tu cuenta de Keycloak.
+      </p>
 
       {/* 2. Consentimiento de recomendaciones (ADR-028) */}
       <div className="flex items-center gap-3">

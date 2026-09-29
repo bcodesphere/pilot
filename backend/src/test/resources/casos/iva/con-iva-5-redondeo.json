@@ -1,0 +1,14 @@
+{
+  "fuente": "CLAUDE.md §11.1 caso dorado 3 (CON_IVA 5.00 → 4.42 + 0.58; 5 × 0.13 / 1.13 = 0.5752 → 0.58 HALF_UP), llevado a un asiento completo por la API",
+  "modoPrecio": "CON_IVA",
+  "fecha": "2026-01-15",
+  "lineas": [
+    { "cuentaCodigo": "11010101", "debe": "5.00", "haber": "0", "llevaIva": false },
+    { "cuentaCodigo": "51010101", "debe": "0", "haber": "5.00", "llevaIva": true }
+  ],
+  "lineasEsperadas": [
+    { "cuentaCodigo": "11010101", "debe": "5.00", "haber": "0.00", "origenLinea": "USUARIO" },
+    { "cuentaCodigo": "51010101", "debe": "0.00", "haber": "4.42", "origenLinea": "USUARIO" },
+    { "cuentaCodigo": "IVA_DEBITO", "debe": "0.00", "haber": "0.58", "origenLinea": "IVA_CALCULADO", "numeroLineaOrigen": 2 }
+  ]
+}

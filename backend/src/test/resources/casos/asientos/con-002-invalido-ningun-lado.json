@@ -1,0 +1,11 @@
+{
+  "fuente": "CLAUDE.md §10.1 CON-002: una línea con Debe y Haber en cero no es ni Debe ni Haber",
+  "resultado": "INVALIDO",
+  "fecha": "2026-01-15",
+  "lineas": [
+    { "cuentaCodigo": "11010101", "debe": "0", "haber": "0", "llevaIva": false },
+    { "cuentaCodigo": "51010101", "debe": "0", "haber": "10.00", "llevaIva": false }
+  ],
+  "httpEsperado": 422,
+  "codigoEsperado": "CON-002"
+}

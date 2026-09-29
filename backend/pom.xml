@@ -34,6 +34,10 @@
     <!-- Bibliotecas de prueba fuera de los BOM -->
     <archunit.version>1.5.0</archunit.version>
 
+    <!-- Exportaciones F4-04 (ADR-038): no las gestiona el padre de Boot 4.1.1 -->
+    <openhtmltopdf.version>1.1.87</openhtmltopdf.version>
+    <poi.version>5.5.1</poi.version>
+
     <!-- Plugins de calidad -->
     <spotless.version>3.10.2</spotless.version>
     <palantir-java-format.version>2.99.0</palantir-java-format.version>
@@ -81,6 +85,15 @@
     <!-- Spring Modulith: límites de módulos -->
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-core</artifactId></dependency>
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-starter-test</artifactId><scope>test</scope></dependency>
+
+    <!-- Exportaciones de reportes a PDF, XLSX y CSV (F4-04, ADR-038 "Implementación de las exportaciones"). Versiones
+         fijadas y comprobadas en Maven Central el 2026-09-27. -->
+    <!-- PDF: motor de plantillas propio (sin spring-boot-starter-thymeleaf, que resolvería vistas de Spring MVC) -->
+    <dependency><groupId>org.thymeleaf</groupId><artifactId>thymeleaf</artifactId></dependency>
+    <!-- PDF: HTML a PDF con PDFBox; línea mantenida io.github.openhtmltopdf (com.openhtmltopdf quedó en 1.0.10, de 2021) -->
+    <dependency><groupId>io.github.openhtmltopdf</groupId><artifactId>openhtmltopdf-pdfbox</artifactId><version>${openhtmltopdf.version}</version></dependency>
+    <!-- XLSX: escritura en streaming con SXSSF -->
+    <dependency><groupId>org.apache.poi</groupId><artifactId>poi-ooxml</artifactId><version>${poi.version}</version></dependency>
 
     <!-- Pruebas -->
     <!-- Soporte de pruebas de Spring Security (jwt(), springSecurity() de MockMvc); en Boot 4: starter-security-test -->

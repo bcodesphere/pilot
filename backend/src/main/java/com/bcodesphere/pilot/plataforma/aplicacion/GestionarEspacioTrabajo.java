@@ -1,11 +1,12 @@
 package com.bcodesphere.pilot.plataforma.aplicacion;
 
+import com.bcodesphere.pilot.compartido.ExcepcionVersionNoCoincide;
+import com.bcodesphere.pilot.compartido.VersionEtag;
 import com.bcodesphere.pilot.plataforma.ContextoEmpresa;
 import com.bcodesphere.pilot.plataforma.ExcepcionPlataforma;
 import com.bcodesphere.pilot.plataforma.RegistroAuditoria;
 import com.bcodesphere.pilot.plataforma.dominio.EspacioTrabajo;
 import com.bcodesphere.pilot.plataforma.dominio.NombreEspacio;
-import com.bcodesphere.pilot.plataforma.dominio.VersionEtag;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -68,7 +69,7 @@ public class GestionarEspacioTrabajo {
         long versionEsperada = VersionEtag.parsear(ifMatch);
         EspacioTrabajo actual = empresas.buscar(empresaId).orElseThrow(ExcepcionPlataforma::noEncontrado);
         if (actual.version() != versionEsperada) {
-            throw ExcepcionPlataforma.versionNoCoincide();
+            throw new ExcepcionVersionNoCoincide();
         }
 
         // 3. Normaliza (sin espacios en los extremos; vacío = 422) y, si no cambia, no escribe ni cambia la versión
@@ -79,7 +80,7 @@ public class GestionarEspacioTrabajo {
 
         // 4. UPDATE ... WHERE version = :v: si una carrera cambió la fila entre la lectura y la escritura, 412 igual
         if (!empresas.actualizarNombre(empresaId, nombre, versionEsperada)) {
-            throw ExcepcionPlataforma.versionNoCoincide();
+            throw new ExcepcionVersionNoCoincide();
         }
 
         // 5. Auditoría con el valor anterior y el nuevo, en la misma transacción

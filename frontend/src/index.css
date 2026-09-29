@@ -1,3 +1,112 @@
-/* Estilos globales: Tailwind CSS v4 y animaciones de shadcn/ui */
+/* Estilos globales: Tailwind CSS v4, animaciones de shadcn/ui y tipografía Red Hat servida localmente */
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import '@fontsource-variable/red-hat-display';
+@import '@fontsource-variable/red-hat-text';
+@import '@fontsource/red-hat-mono';
+
+/*
+ * Tokens de Pilot (ADR-043, spec F4.5 §7.2): la paleta sale del tema de login
+ * (infra/keycloak/temas/pilot/login/resources/css/pilot.css). `--color-lateral` se confirmó
+ * el 2026-09-27 contra la tarjeta de inicio de sesión real (Keycloak local, formulario "Acceder
+ * a tu cuenta"): `getComputedStyle(document.querySelector('.pf-v5-c-login__main')).backgroundColor`
+ * midió `rgb(38, 41, 45)` = `#26292d`, distinto del valor provisional `#1b1d21` del plan; se deja
+ * documentado también en docs/diseno/sistema-de-diseno.md.
+ */
+@theme {
+  --color-primario: #1d4ed8;
+  --color-primario-oscuro: #1e3a8a;
+  --color-primario-suave: #dbeafe;
+  --color-lienzo: #f1f5f9;
+  --color-superficie: #ffffff;
+  --color-borde: #e2e8f0;
+  --color-texto: #0f172a;
+  --color-texto-suave: #475569;
+  --color-lateral: #26292d;
+  --color-lateral-texto: #cbd5e1;
+  /*
+   * Foco visible dentro de la barra lateral (corrección 4 de U1, WCAG 2.2 §1.4.11): el primario
+   * (#1d4ed8) da solo 1.55:1 sobre `--color-lateral`, por debajo del 3:1 mínimo. Azul 300
+   * (#93c5fd) da 8.10:1 contra `--color-lateral` (#26292d) y 5.75:1 contra el fondo del elemento
+   * activo (`--color-primario-oscuro`, rgb(30 58 138)); ambos superan el mínimo. Solo se usa en el
+   * foco de la barra lateral: el resto de la app sigue enfocando con `--color-primario` (6.7:1
+   * sobre superficies claras).
+   */
+  --color-foco-lateral: #93c5fd;
+  --color-exito: #15803d;
+  --color-alerta: #b45309;
+  --color-error: #b91c1c;
+  --color-neutro-revertido: #64748b;
+  --color-velo: rgb(15 23 42 / 0.4);
+
+  --font-titulo: 'Red Hat Display Variable', sans-serif;
+  --font-cuerpo: 'Red Hat Text Variable', sans-serif;
+  --font-mono: 'Red Hat Mono', monospace;
+
+  --radius-control: 4px;
+  --radius-panel: 6px;
+
+  /*
+   * Variables de shadcn/ui mapeadas a los tokens propios, para que los componentes generados
+   * (compartido/ui) usen la paleta de Pilot en lugar de los valores neutros por defecto.
+   */
+  --color-background: var(--color-lienzo);
+  --color-foreground: var(--color-texto);
+  --color-card: var(--color-superficie);
+  --color-card-foreground: var(--color-texto);
+  --color-popover: var(--color-superficie);
+  --color-popover-foreground: var(--color-texto);
+  --color-primary: var(--color-primario);
+  --color-primary-foreground: #ffffff;
+  --color-secondary: var(--color-primario-suave);
+  --color-secondary-foreground: var(--color-primario-oscuro);
+  --color-muted: var(--color-lienzo);
+  --color-muted-foreground: var(--color-texto-suave);
+  --color-accent: var(--color-primario-suave);
+  --color-accent-foreground: var(--color-primario-oscuro);
+  --color-destructive: var(--color-error);
+  --color-destructive-foreground: #ffffff;
+  --color-border: var(--color-borde);
+  --color-input: var(--color-borde);
+  --color-ring: var(--color-primario);
+  --color-sidebar: var(--color-lateral);
+  --color-sidebar-foreground: var(--color-lateral-texto);
+  --color-sidebar-primary: var(--color-primario);
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: var(--color-primario-oscuro);
+  --color-sidebar-accent-foreground: #ffffff;
+  --color-sidebar-border: #33363b;
+  --color-sidebar-ring: var(--color-primario);
+
+  --radius-sm: calc(var(--radius-control) - 2px);
+  --radius-md: var(--radius-control);
+  --radius-lg: var(--radius-panel);
+  --radius-xl: calc(var(--radius-panel) + 4px);
+}
+
+/* Base: lienzo, tipografía del cuerpo y cifras tabulares en toda la app (spec F4.5 §7.1 y §7.3) */
+body {
+  background: var(--color-lienzo);
+  color: var(--color-texto);
+  font-family: var(--font-cuerpo);
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-titulo);
+}
+/*
+ * Cifras tabulares (spec F4.5 §7.3): los montos van en la fuente del cuerpo (`.cifra`); los
+ * códigos de cuenta y números de asiento en Red Hat Mono (`.codigo-cuenta`). Ambos alinean los
+ * dígitos con la misma anchura.
+ */
+.cifra {
+  font-variant-numeric: tabular-nums;
+}
+.codigo-cuenta {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}

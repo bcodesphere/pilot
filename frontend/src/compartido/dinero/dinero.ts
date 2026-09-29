@@ -53,3 +53,50 @@ export function formatearMoneda(monto: string): string {
   const agrupados = enteros.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   return `$${agrupados}.${decimales}`;
 }
+
+/**
+ * Indica si una cadena cumple el patrón de monto del contrato (no negativo, hasta 2 decimales).
+ * @param monto texto a revisar
+ */
+export function esMontoValido(monto: string): boolean {
+  return PATRON_MONTO.test(monto);
+}
+
+/**
+ * Normaliza el texto de un campo de monto del formulario: un campo vacío vale "0.00" (una línea del
+ * Libro Diario deja vacío el lado que no usa) y el resto se devuelve tal cual, sin recortar decimales.
+ * @param texto contenido del campo
+ */
+export function normalizarMonto(texto: string): string {
+  return texto.trim() === '' ? '0.00' : texto.trim();
+}
+
+/**
+ * Indica si un monto vale cero, sin pasar por number.
+ * @param monto cadena decimal válida
+ */
+export function esCero(monto: string): boolean {
+  return aDecimal(monto).isZero();
+}
+
+/**
+ * Resta dos montos con aritmética decimal exacta; el resultado puede ser negativo.
+ * @param a minuendo
+ * @param b sustraendo
+ * @returns `a − b` con exactamente 2 decimales y signo `-` si es negativo (p. ej. "-13.00")
+ */
+export function restarMontos(a: string, b: string): string {
+  return aDecimal(a).minus(aDecimal(b)).toFixed(2, Decimal.ROUND_HALF_UP);
+}
+
+/**
+ * Formatea un monto que puede ser negativo (una diferencia Debe − Haber) como `-$13.00` o `$13.00`.
+ * @param monto cadena decimal con signo opcional (`MontoConSigno` del contrato)
+ */
+export function formatearMonedaConSigno(monto: string): string {
+  // 1. El signo se separa para reutilizar la validación y el formato de los montos sin signo
+  const negativo = monto.startsWith('-');
+  const formateado = formatearMoneda(negativo ? monto.slice(1) : monto);
+  // 2. Un cero negativo ("-0.00") se muestra sin signo
+  return negativo && formateado !== '$0.00' ? `-${formateado}` : formateado;
+}

@@ -12,7 +12,8 @@ import java.util.UUID;
 
 /**
  * Puerto de salida: persistencia de las API keys (tabla {@code api_key}, V7). Salvo {@link #buscarPorPrefijo}, todas
- * las operaciones corren en una transacción con la empresa en el contexto, porque la tabla tiene RLS forzado.
+ * las operaciones corren en una transacción con la empresa en el contexto, porque la tabla tiene RLS forzado, y el
+ * adaptador además filtra explícitamente por esa empresa en cada sentencia (defensa en profundidad, CLAUDE.md 1.1.3).
  */
 public interface RepositorioApiKeys {
 

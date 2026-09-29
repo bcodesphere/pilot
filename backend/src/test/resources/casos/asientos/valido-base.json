@@ -1,0 +1,13 @@
+{
+  "fuente": "CLAUDE.md §10.1, tabla de códigos: caso válido común a CON-001, CON-002, CON-003, CON-005, CON-006, CON-007, CON-013 y CON-017 (dos líneas cuadradas, montos con 2 decimales, cuenta de detalle activa, fecha pasada, sin IVA en cuenta de IVA, con tasa vigente)",
+  "resultado": "VALIDO",
+  "fecha": "2026-01-15",
+  "lineas": [
+    { "cuentaCodigo": "11010101", "debe": "100.00", "haber": "0", "llevaIva": false },
+    { "cuentaCodigo": "51010101", "debe": "0", "haber": "100.00", "llevaIva": false }
+  ],
+  "lineasEsperadas": [
+    { "cuentaCodigo": "11010101", "debe": "100.00", "haber": "0.00", "origenLinea": "USUARIO" },
+    { "cuentaCodigo": "51010101", "debe": "0.00", "haber": "100.00", "origenLinea": "USUARIO" }
+  ]
+}

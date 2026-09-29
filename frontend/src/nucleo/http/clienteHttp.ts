@@ -69,14 +69,31 @@ async function enviar(
 }
 
 /**
- * Lee el cuerpo de una respuesta: JSON si el tipo lo indica, texto en otro caso; vacío → `{}`.
+ * Tipos de contenido de los archivos exportados (ADR-038): PDF, XLSX y CSV. Content-Disposition
+ * attachment es la señal principal; el tipo se revisa además porque algún proxy podría omitirla.
+ */
+const TIPOS_ARCHIVO_EXPORTADO = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+];
+
+/**
+ * Lee el cuerpo de una respuesta: `Blob` si es un archivo exportado (PDF, XLSX o CSV con
+ * `Content-Disposition: attachment`, F4), JSON si el tipo lo indica, texto en otro caso; vacío → `{}`.
  * Un cuerpo ilegible no debe ocultar el estado HTTP, por eso no lanza.
  */
 async function leerCuerpo(res: Response): Promise<unknown> {
   if ([204, 205, 304].includes(res.status)) return {};
+  const tipo = res.headers.get('content-type') ?? '';
+  const disposicion = res.headers.get('content-disposition') ?? '';
+  // 1. Un archivo exportado nunca es Problem Details: se lee como binario, no como texto
+  if (disposicion.includes('attachment') || TIPOS_ARCHIVO_EXPORTADO.some((t) => tipo.includes(t))) {
+    return res.blob();
+  }
   const texto = await res.text();
   if (!texto) return {};
-  if ((res.headers.get('content-type') ?? '').includes('json')) {
+  if (tipo.includes('json')) {
     try {
       return JSON.parse(texto);
     } catch {

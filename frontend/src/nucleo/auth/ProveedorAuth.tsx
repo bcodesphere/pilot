@@ -97,7 +97,7 @@ export function ProveedorAuth({
     return (
       <div role="alert" className="mx-auto mt-24 max-w-md space-y-4 p-6 text-center">
         <h1 className="text-xl font-semibold">No pudimos iniciar tu sesión</h1>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-[var(--color-texto-suave)]">
           Ocurrió un problema al comunicarse con el servicio de identidad.
         </p>
         <Button
@@ -117,7 +117,7 @@ export function ProveedorAuth({
   // 5. Hasta que la sesión esté lista, estado de carga (nunca se muestran datos sin autenticar)
   if (estado !== 'listo' || esCallback) {
     return (
-      <p role="status" className="mt-24 text-center text-sm text-neutral-600">
+      <p role="status" className="mt-24 text-center text-sm text-[var(--color-texto-suave)]">
         Iniciando sesión…
       </p>
     );
