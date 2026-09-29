@@ -1,12 +1,52 @@
-# Historial Git de Pilot 1.0 — generado el 2026-09-28 22:24 (hora de El Salvador)
+# Historial Git de Pilot 1.0 — generado el 2026-09-28 22:38 (hora de El Salvador)
 
 ## Commits por autor
-    57	Harpin067
+    60	Harpin067
      4	bcodesphere
      4	dependabot[bot]
 
 ## Historial completo (todas las ramas)
-* commit 8c49f1b0c30248886ea336ccdb4a4a48c8dae13b (HEAD -> feat/f4-f5-reportes-n8n)
+* commit 7bd4dc8ae9526744bd3111ae17f48dd5014ecefb (HEAD -> feat/f4-f5-reportes-n8n)
+| Author: Harpin067 <stevenbeltran067@gmail.com>
+| Date:   2026-09-28 22:38:30 -0600
+| 
+|     chore: deja las guías internas de desarrollo fuera del repositorio
+| 
+|  .gitignore |    4 +
+|  AGENTS.md  |  481 ------------------
+|  CLAUDE.md  | 1586 ----------------------------------------------------------
+|  3 files changed, 4 insertions(+), 2067 deletions(-)
+| 
+* commit 9ce0fa6eff59c944f0185f198a77b5efb29c864c
+| Author: Harpin067 <stevenbeltran067@gmail.com>
+| Date:   2026-09-28 22:38:30 -0600
+| 
+|     test(contabilidad): actualiza las pruebas al catálogo base de la Universidad Católica
+| 
+|  .../f2/SaldoYMovimientosConDobleF2IT.java         | 15 ++--
+|  .../aceptacion/f4/ExportacionesIgualesF4IT.java   |  2 +-
+|  .../pilot/contabilidad/api/CatalogoCuentasIT.java | 23 ++++---
+|  .../pilot/contabilidad/api/LibroDiarioIT.java     | 14 +++-
+|  .../MigracionesContabilidadIT.java                | 12 ++--
+|  .../infraestructura/MigracionesOperacionesIT.java | 17 +++--
+|  .../casos/estados/conjunto-dorado-f4.json         | 76 ++++++++++-----------
+|  7 files changed, 87 insertions(+), 72 deletions(-)
+| 
+* commit eadb0d5e4d7b3c53412cd17d993240fd8dde926a
+| Author: Harpin067 <stevenbeltran067@gmail.com>
+| Date:   2026-09-28 22:24:33 -0600
+| 
+|     docs(entregables): agrega README de instalación, guion de demo, esquema, catálogo e historial
+| 
+|  ...MANUAL-DE-APLICACION-DE-CUENTAS-COMERCIAL .pdf |  Bin 0 -> 147516 bytes
+|  entregables/README.md                             |  216 +
+|  entregables/data.sql                              |  605 +++
+|  entregables/guion-demo.md                         |   72 +
+|  entregables/historial-git.txt                     | 2062 ++++++++
+|  entregables/schema.sql                            | 4855 +++++++++++++++++++
+|  6 files changed, 7810 insertions(+)
+| 
+* commit 8c49f1b0c30248886ea336ccdb4a4a48c8dae13b
 | Author: Harpin067 <stevenbeltran067@gmail.com>
 | Date:   2026-09-28 22:24:25 -0600
 | 
