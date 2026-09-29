@@ -18,10 +18,10 @@
 | Moneda | USD (única moneda contable) |
 | Zona horaria de negocio | `America/El_Salvador` (UTC−6, sin horario de verano) |
 | Idioma de producto | Español (`es-SV`) |
-| Estado actual | Fases F4 (reportes) y F5 (webhook n8n) — F1, F2 y F3 cerradas; ver `docs/plan-de-trabajo.md` |
+| Estado actual | F4 (reportes) en aceptación; F4.5 (automatización y experiencia, ADR-041 a ADR-043) y F5 (webhook n8n) en curso — F1, F2 y F3 cerradas; ver `docs/plan-de-trabajo.md` |
 | Plazo de Contabilidad 1.0 | **Timebox de 24 horas desde el 2026-09-25** (ver nota de urgencia) |
 | Modelo de negocio | Open-Core / Freemium: plan Gratuito y plan Enterprise con DTE (ADR-031) |
-| Última actualización de este archivo | 2026-09-27 |
+| Última actualización de este archivo | 2026-09-28 |
 
 ---
 
@@ -138,6 +138,9 @@ La solución integral se estructura obligatoriamente en **cuatro capas**; toda f
 | 5 | **Reportes complementarios:** Libro Diario, Mayor/auxiliar, Balanza de Comprobación, resumen de IVA, exportación PDF/XLSX/CSV, bitácora de n8n | 10.5 |
 | 6 | **IVA 13 %:** manual (línea "lleva IVA") y automático en operaciones de n8n; configuración del modo de precio por defecto | 11 |
 | 7 | **Webhook de n8n** para operaciones de otras apps; primer tipo: **cierre de ingresos diarios** | 12 |
+| 8 | **Operaciones guiadas:** venta, compra o gasto, cobro, pago, aporte, préstamo, cuota, traslado, compra de activo fijo y depreciación del mes; Pilot arma el asiento con las reglas (ADR-041). El asiento libre queda como "Asiento manual (avanzado)" | 10.6 |
+| 9 | **Tablero de inicio** con efectivo, por cobrar, por pagar, resultado del mes, IVA estimado y pendientes accionables (ADR-041) | 10.6 |
+| 10 | **Bloqueos de edición** del catálogo base, la naturaleza, las cuentas de IVA y las reglas por grupo (ADR-042); **sistema de diseño** propio (ADR-043, `docs/diseno/`) | 10.2, 11.3 |
 
 ### 2.3 Qué cambió respecto del diseño anterior
 
@@ -567,7 +570,7 @@ static void validarPartidaDoble(List<LineaAsiento> lineas) {
 | Módulo | Tablas | RLS |
 |---|---|---|
 | `plataforma` | `usuario` (global), `empresa`, `empresa_usuario`, `api_key`, `aplicacion` (global), `empresa_aplicacion`, `auditoria`, `auditoria_global` (global), `idempotencia` | Sí, salvo tablas globales |
-| `contabilidad` | `tasa_impuesto` (global), `plantilla_cuenta`, `plantilla_regla_contabilizacion` y `plantilla_configuracion_contable` (globales), `cuenta_contable`, `configuracion_contable`, `regla_contabilizacion`, `correlativo_asiento`, `asiento`, `asiento_linea`, `saldo_cuenta_mensual` | Sí, salvo tablas globales |
+| `contabilidad` | `tasa_impuesto` (global), `plantilla_cuenta`, `plantilla_regla_contabilizacion` y `plantilla_configuracion_contable` (globales), `cuenta_contable`, `configuracion_contable`, `regla_contabilizacion`, `correlativo_asiento`, `asiento`, `asiento_linea`, `saldo_cuenta_mensual`, `operacion`, `activo_fijo`, `depreciacion_registrada`, `plantilla_vida_util` (global) | Sí, salvo tablas globales |
 | `integracion` | `operacion_externa`, `intento_operacion_externa` | Sí |
 
 Columnas comunes en toda tabla de negocio editable: `id UUID`, `empresa_id UUID`, `creado_en`, `creado_por`, `actualizado_en`, `actualizado_por`, `version BIGINT`. Las tablas globales son de solo lectura para `pilot_app` y se cargan por migración.
@@ -954,11 +957,12 @@ export const asientoSchema = z
 
 ### 10.2 Catálogo de cuentas
 
-- Al instalar la app Contabilidad en una empresa (evento `AplicacionInstalada`, ADR-030) se copia `plantilla_cuenta`, cargada desde el catálogo base de `docs/contabilidad/catalogo-base.md`. Se carga como borrador (ADR-034); la validación del contador sigue `[VERIFICAR]` y un cambio va en una migración nueva.
+- Al instalar la app Contabilidad en una empresa (evento `AplicacionInstalada`, ADR-030) se copia `plantilla_cuenta`, cargada desde el catálogo base de `docs/contabilidad/catalogo-base.md`. Desde V19 (ADR-044, decisión del 2026-09-28) es el catálogo comercial de la Universidad Católica de El Salvador (455 cuentas, sin las de 10–11 dígitos ni las clases 6 y 7, con las cuentas propias de Pilot recodificadas; el grupo 44 de ISR se conserva); las empresas instaladas antes conservan su catálogo. Se carga como borrador (ADR-034); la validación del contador sigue `[VERIFICAR]` y un cambio va en una migración nueva.
 - **Marco contable:** NIIF para PYMES (ADR-037; edición y resolución del CVPCPA `[VERIFICAR]`). El catálogo es un plan de cuentas interno.
 - **Clases:** 1 Activo, 2 Pasivo, 3 Patrimonio, 4 Costos y Gastos (grupo 44: Impuesto sobre la renta), 5 Ingresos. Otros primeros dígitos se rechazan (`CON-010`).
 - **Niveles por longitud del código:** clase (1 dígito), grupo (2), cuenta (4), subcuenta (6), detalle (8). El código de la cuenta padre debe ser prefijo del código hija.
-- **Naturaleza por defecto:** deudora en clases 1 y 4; acreedora en 2, 3 y 5. Se puede cambiar para cuentas complementarias (p. ej. depreciación acumulada en la clase 1, acreedora).
+- **Naturaleza derivada (ADR-042):** la de la cuenta padre, o la de la clase en el nivel 1 (deudora en 1 y 4; acreedora en 2, 3 y 5). No se captura ni se edita: las complementarias heredan la del padre (p. ej. la depreciación acumulada, bajo 1202, es acreedora).
+- **Cuentas del sistema (ADR-042):** las copiadas del catálogo base tienen `sistema = true`; su código, nombre, naturaleza y estado no se editan (`CON-021`). El usuario agrega subcuentas propias debajo de ellas.
 - Solo las cuentas sin hijas aceptan movimientos. Crear una hija en una cuenta con movimientos se rechaza (`CON-011`).
 - El código no puede cambiarse si la cuenta tiene movimientos (`CON-011`); el código nuevo conserva la longitud y el padre, y la cuenta no puede tener hijas (`CON-015`, ADR-035). Una cuenta con saldo distinto de cero no puede desactivarse (`CON-012`).
 - Hasta F3 no existen movimientos: `CON-011` y `CON-012` se consultan por un puerto de lectura de movimientos que en F2 responde "sin movimientos" y en F3 lee `asiento_linea` y `saldo_cuenta_mensual` (ADR-035).
@@ -972,6 +976,9 @@ export const asientoSchema = z
 | `CON-014` | 409 | El código ya existe en el catálogo de la empresa |
 | `CON-015` | 422 | Longitud de código no válida (1, 2, 4, 6 u 8 dígitos) o sin cuenta padre existente y activa cuyo código sea su prefijo |
 | `CON-016` | 422 | La cuenta está en uso por la configuración contable o por una regla activa: no se puede desactivar ni dejar de ser de detalle |
+| `CON-021` | 422 | La cuenta es del sistema (catálogo base): no se puede modificar (ADR-042) |
+| `CON-022` | 422 | La cuenta no pertenece al grupo permitido para esa regla u operación (`prefijo_permitido`; traslados solo en 1101) (ADR-042) |
+| `CON-023` | 422 | La depreciación no se puede registrar: las vidas útiles de alguna categoría no están confirmadas por el contador (ADR-041) |
 
 ### 10.3 Mayorización automática en tiempo real (ADR-018)
 
@@ -1041,6 +1048,17 @@ Clasificación por el **primer dígito del código** (`cuenta_contable.clase`). 
 
 ---
 
+### 10.6 Operaciones guiadas y tablero (ADR-041)
+
+El usuario registra hechos de negocio; Pilot decide el asiento. El detalle (asientos exactos por tipo, reglas precargadas, activos y depreciación) está en `docs/diseno/2026-09-27-automatizacion-y-rediseno.md` §5 y en el plan de F4.5.
+
+- **Motor único:** `ContabilizarOperacion` (API pública de `contabilidad`) con un armador por tipo → `AsientoExpandido` → `ReglasAsiento.validar` → `GuardarAsiento` (numera, mayoriza y audita en la misma transacción, ADR-018). El cierre de n8n (§12) es un tipo más.
+- **Tipos:** `VENTA`, `COMPRA_GASTO`, `COBRO_CLIENTE`, `PAGO_PROVEEDOR`, `APORTE_CAPITAL`, `PRESTAMO_RECIBIDO`, `PAGO_CUOTA`, `TRASLADO_FONDOS`, `COMPRA_ACTIVO_FIJO`, `DEPRECIACION_MENSUAL`.
+- **Cuentas:** por reglas (tipo × categoría × código → cuenta) con `prefijo_permitido` (`CON-020` si falta, `CON-022` si está fuera del grupo). IVA con `CalculadoraIva` y las cuentas fijas de §11.3.
+- **Registro:** tabla `operacion` (entrada de negocio, resumen, asiento; `asiento.origen_tipo = OPERACION`). Inmutable; revertir el asiento la pasa a `REVERTIDA`.
+- **Depreciación:** línea recta por activo, una vez por activo y mes; la última cuota ajusta el redondeo. Bloqueada con `CON-023` mientras las vidas útiles no estén confirmadas `[VERIFICAR]`.
+- **Tablero:** efectivo por cuenta, por cobrar, por pagar, resultado del mes y del anterior, IVA estimado, serie de 6 meses y pendientes accionables.
+
 ## 11. Manejo del IVA (13 %)
 
 > Reglas contables pendientes de validación por contador (`docs/contabilidad/formulario-iva.md` y su borrador de respuestas).
@@ -1072,9 +1090,9 @@ Casos dorados obligatorios (t = 13 %): `CON_IVA` 113.00 → 100.00 + 13.00 · `S
 | Parámetro | Valores | Aplica a |
 |---|---|---|
 | Modo de precio por defecto | `CON_IVA` (precios con IVA incluido) / `SIN_IVA` (precios + IVA) | Valor inicial del formulario manual y **todas las operaciones que llegan por n8n** |
-| Cuenta de IVA débito fiscal | Cuenta de detalle del catálogo | Líneas de IVA de ventas (manuales y de n8n) |
-| Cuenta de IVA crédito fiscal | Cuenta de detalle del catálogo | Líneas de IVA de compras (manuales) |
-| Reglas de contabilización | Tipo de operación × categoría × código → cuenta | Asientos de n8n |
+| Cuenta de IVA débito fiscal | **Fija:** 21080101 (ADR-042, código de ADR-044); no se edita | Líneas de IVA de ventas (manuales, guiadas y de n8n) |
+| Cuenta de IVA crédito fiscal | **Fija:** 110901 (ADR-042, código de ADR-044); no se edita | Líneas de IVA de compras (manuales y guiadas) |
+| Reglas de contabilización | Tipo de operación × categoría × código → cuenta, solo dentro de su `prefijo_permitido` (`CON-022`) | Operaciones guiadas y de n8n (ADR-041) |
 
 - Todo cambio de configuración queda auditado y aplica solo a los asientos futuros.
 
@@ -1093,7 +1111,7 @@ Casos dorados obligatorios (t = 13 %): `CON_IVA` 113.00 → 100.00 + 13.00 · `S
 | Tipos de operación en 1.0 | `CIERRE_INGRESOS_DIARIO` (otros tipos requieren ADR) |
 | Procesamiento | **Síncrono**: valida, normaliza, contabiliza y responde con el asiento (ADR-017) |
 | Tamaño máximo | 1 MB por petición |
-| Límite | 60 peticiones por minuto por API key (Bucket4j) `[DECISIÓN]` confirmar |
+| Límite | 60 peticiones por minuto por API key (Bucket4j en memoria, configurable; 429 con `Retry-After`; ADR-040) |
 
 ### 12.2 Headers
 
@@ -1177,14 +1195,14 @@ Casos dorados obligatorios (t = 13 %): `CON_IVA` 113.00 → 100.00 + 13.00 · `S
 
 | Categoría | Código | Cuenta por defecto |
 |---|---|---|
-| INGRESO | `VENTAS_GRAVADAS` | 51010101 Ventas gravadas |
-| INGRESO | `VENTAS_EXENTAS` | 51010102 Ventas exentas |
-| INGRESO | `VENTAS_NO_SUJETAS` | 51010103 Ventas no sujetas |
-| COBRO | `EFECTIVO` | 11010101 Caja general |
-| COBRO | `TARJETA` | 11020102 Cuentas por cobrar — emisores de tarjetas |
-| COBRO | `TRANSFERENCIA` | 11010103 Bancos |
-| COBRO | `CHEQUE` | 11010103 Bancos |
-| COBRO | `CREDITO` | 11020101 Clientes |
+| INGRESO | `VENTAS_GRAVADAS` | 51010102 Ventas a consumidor final `[VERIFICAR]` |
+| INGRESO | `VENTAS_EXENTAS` | 51010104 Ventas exentas (cuenta propia de Pilot) |
+| INGRESO | `VENTAS_NO_SUJETAS` | 51010105 Ventas no sujetas (cuenta propia de Pilot) |
+| COBRO | `EFECTIVO` | 11010101 Caja General |
+| COBRO | `TARJETA` | 11020201 Venta con tarjeta de crédito |
+| COBRO | `TRANSFERENCIA` | 11010201 Cuenta corriente |
+| COBRO | `CHEQUE` | 11010201 Cuenta corriente |
+| COBRO | `CREDITO` | 11020101 Cuentas por cobrar clientes |
 | COBRO | `OTRO` | Sin cuenta e inactiva: debe configurarse y activarse antes de usarse (ADR-035) |
 
 ### 12.6 Idempotencia y concurrencia
@@ -1251,8 +1269,12 @@ Todos bajo `/api/v1`, contrato en `api-spec/openapi/pilot-v1.yaml`. Paginación 
 | `POST /aplicaciones/{codigo}/instalacion` | Instala una app comunitaria y ejecuta su precarga | `admin_empresa` |
 | `GET /api-keys` · `POST /api-keys` · `DELETE /api-keys/{id}` | Gestión de API keys (el secreto se muestra una vez) | `admin_empresa` |
 | `GET /contabilidad/cuentas` · `GET /{id}` · `POST` · `PATCH /{id}` | Catálogo de cuentas completo sin paginar, para el árbol y la búsqueda (ADR-035) | leer: `auditor`; escribir: `contador` |
-| `GET /contabilidad/configuracion` · `PUT` | Modo de precio y cuentas de IVA | leer: `auditor`; escribir: `contador` |
+| `GET /contabilidad/configuracion` · `PUT` | Modo de precio (las cuentas de IVA son fijas y de solo lectura, ADR-042) | leer: `auditor`; escribir: `contador` |
 | `GET /contabilidad/reglas-contabilizacion` · `PUT /{id}` | Reglas por tipo de operación, categoría y código | leer: `auditor`; escribir: `contador` |
+| `POST /contabilidad/operaciones/{ventas\|compras-gastos\|cobros\|pagos-proveedores\|aportes\|prestamos\|cuotas-prestamo\|traslados\|activos-fijos\|depreciaciones}` · `…/vista-previa` | Operaciones guiadas (ADR-041; `Idempotency-Key` en el registro) | `contador` |
+| `GET /contabilidad/operaciones` · `GET /{id}` | Operaciones registradas, con filtros de tipo, período y estado | `auditor` |
+| `GET /contabilidad/activos-fijos` | Activos fijos con depreciación acumulada y valor en libros | `auditor` |
+| `GET /contabilidad/tablero?anio&mes` | Tablero de inicio con indicadores y pendientes | `auditor` |
 | `POST /contabilidad/asientos` | Registra un asiento manual (`Idempotency-Key`) | `contador` |
 | `POST /contabilidad/asientos/vista-previa` | Expande IVA y valida sin guardar | `contador` |
 | `GET /contabilidad/asientos` · `GET /{id}` | Libro Diario con filtros (fecha, número, origen, cuenta) | `auditor` |
@@ -1404,9 +1426,10 @@ Detalle completo, tareas y criterios de aceptación en **`docs/plan-de-trabajo.m
 | F3 | Libro Diario, partida doble en frontend y backend, IVA manual, mayorización, reversión | 3 sem. | F2 |
 | F4 | Libro Diario y Mayor, Balanza, estados financieros, resumen IVA, exportaciones | 2.5 sem. | F3 |
 | F5 | Webhook n8n: cierre de ingresos diarios, idempotencia, bitácora, plantilla de flujo | 2 sem. | F3 |
-| F6 | Aislamiento, carga, seguridad, e2e, validación de un mes piloto con contador | 1.5 sem. | F4, F5 |
+| F4.5 | Automatización y experiencia: operaciones guiadas, tablero, bloqueos, activos fijos, sistema de diseño y rediseño del frontend (ADR-041 a ADR-043) | — | F4 |
+| F6 | Aislamiento, carga, seguridad, e2e, validación de un mes piloto con contador | 1.5 sem. | F4, F4.5, F5 |
 
-F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `[DECISIÓN]` confirmar tamaño del equipo.
+F4 y F5 pueden ejecutarse en paralelo. F4.5 (decisión del 2026-09-27) sigue la spec y el plan de `docs/diseno/`; el webhook de F5 usa su motor de operaciones. Estimaciones para 1–2 desarrolladores `[DECISIÓN]` confirmar tamaño del equipo.
 
 ---
 
@@ -1455,6 +1478,11 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 | ADR-037 | Marco contable NIIF para PYMES: terminología (Estado de Situación Financiera, Patrimonio), estados de gestión en 1.0, impuesto aparte en resultados y catálogo base ampliado | Aceptada |
 | ADR-038 | Contrato de F4: reportes en JSON sin paginar, exportaciones como operaciones binarias `…/exportacion?formato=`, esquema `Saldo`, Mayor de cuentas padre, totales de la balanza desde el detalle | Aceptada |
 | ADR-039 | Contrato de F5: repetición idempotente con el estado original, 413 `INT-010`, cuerpo libre validado por esquema JSON versionado, reglas de `INT-001` fuera del esquema, bitácora unificada y su exportación | Aceptada |
+| ADR-040 | Límite de peticiones del webhook de n8n: 60 por minuto por API key, Bucket4j en memoria y configurable | Aceptada |
+| ADR-041 | Motor único de operaciones guiadas (10 tipos + cierre de n8n), tabla `operacion`, activos fijos y depreciación, tablero | Aceptada |
+| ADR-042 | Bloqueos de edición: cuentas del sistema, naturaleza derivada, cuentas de IVA fijas, reglas por grupo (`CON-021`, `CON-022`) | Aceptada |
+| ADR-043 | Sistema de diseño propio (paleta del login, Red Hat, componentes contables) y navegación por procesos de negocio | Aceptada |
+| ADR-044 | Catálogo base según el catálogo comercial de la Universidad Católica de El Salvador (V19): sus códigos, cuentas propias de Pilot recodificadas, sin cuentas de 10–11 dígitos ni clases 6 y 7; IVA fijo 21080101/110901; empresas existentes sin cambios | Aceptada |
 
 ---
 
@@ -1464,7 +1492,11 @@ F4 y F5 pueden ejecutarse en paralelo. Estimaciones para 1–2 desarrolladores `
 - [ ] Tamaño del equipo (afecta las estimaciones del plan).
 - [ ] Hosting de producción y dominio.
 - [x] Asientos con fecha futura: no se permiten (`CON-007`); una reversión no puede fecharse antes que su original (`CON-018`) (ADR-036, 2026-09-26).
-- [ ] Límite de peticiones del webhook (propuesto: 60/min por API key).
+- [x] Límite de peticiones del webhook: 60 por minuto por API key, configurable (ADR-040, 2026-09-27).
+- [x] Automatización del ciclo contable en 1.0: operaciones guiadas + tablero; recurrentes y cierres siguen en §20.3 (ADR-041, 2026-09-27).
+- [x] Bloqueos de edición y rediseño del frontend (ADR-042, ADR-043, 2026-09-27).
+- [ ] Vidas útiles, valor residual y mes de inicio de la depreciación por categoría `[VERIFICAR]` con el contador (ADR-041; hasta entonces `CON-023`).
+- [ ] Cuentas por defecto de las reglas de las operaciones guiadas y tratamiento de la liquidación de tarjetas `[VERIFICAR]` con el contador (ADR-041).
 - [ ] Catálogo de cuentas base y reglas por defecto: validación con contador.
 - [ ] Validación por contador del tratamiento del IVA (`docs/contabilidad/formulario-iva.md`).
 - [ ] ¿El cierre diario debe registrar faltantes y sobrantes de caja? (hoy: no; los cobros deben cuadrar exactamente).

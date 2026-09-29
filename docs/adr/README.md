@@ -43,6 +43,11 @@ Cada ADR registra contexto, decisión, alternativas y consecuencias. Un ADR acep
 | [ADR-037](ADR-037-marco-niif-para-pymes.md) | Marco contable NIIF para PYMES: terminología, estados de gestión y catálogo base ampliado | Aceptada |
 | [ADR-038](ADR-038-contrato-de-reportes-y-exportaciones.md) | Contrato de F4: reportes en JSON y exportaciones como recursos binarios | Aceptada |
 | [ADR-039](ADR-039-contrato-del-webhook-n8n.md) | Contrato de F5: webhook de operaciones de n8n, esquema JSON v1 y bitácora | Aceptada |
+| [ADR-040](ADR-040-limite-de-peticiones-del-webhook.md) | Límite de peticiones del webhook de n8n: 60 por minuto por API key | Aceptada |
+| [ADR-041](ADR-041-motor-de-operaciones-guiadas.md) | Motor único de operaciones guiadas (venta, compra, cobro, pago, bancos, activos y depreciación) | Aceptada |
+| [ADR-042](ADR-042-bloqueos-de-edicion.md) | Bloqueos de edición: catálogo base, naturaleza, cuentas de IVA y reglas por grupo | Aceptada |
+| [ADR-043](ADR-043-sistema-de-diseno-y-navegacion.md) | Sistema de diseño propio y navegación por procesos de negocio | Aceptada |
+| [ADR-044](ADR-044-catalogo-base-ucatolica.md) | Catálogo base: Manual de Aplicación de Cuentas Comercial (U. Católica de El Salvador) | Aceptada |
 
 Los ADR diferidos están documentados en `docs/diferido/vision-completa-con-dte.md` (sección 22 de ese archivo).
 

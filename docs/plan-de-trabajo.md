@@ -37,6 +37,8 @@ F0 Fundaciones ──► F1 Núcleo ──► F2 Catálogo y configuración ─�
                                                    │                                     │
                                                    └──────────────────┬──────────────────┘
                                                                       ▼
+                          F4.5 Automatización y experiencia (usa el motor con F5)
+                                                                      ▼
                                                         F6 Endurecimiento y piloto
 ```
 
@@ -48,7 +50,8 @@ F0 Fundaciones ──► F1 Núcleo ──► F2 Catálogo y configuración ─�
 | F3 Libro Diario, IVA manual y mayorización | 3 semanas | F2 |
 | F4 Reportes y estados financieros | 2.5 semanas | F3 |
 | F5 Webhook n8n: cierre de ingresos diarios | 2 semanas | F3 |
-| F6 Endurecimiento y piloto con contador | 1.5 semanas | F4, F5 |
+| F4.5 Automatización y experiencia (ADR-041 a ADR-043) | Según el plan de `docs/diseno/` | F4 |
+| F6 Endurecimiento y piloto con contador | 1.5 semanas | F4, F4.5, F5 |
 
 F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 
@@ -182,6 +185,28 @@ F4 y F5 pueden ejecutarse **en paralelo** si hay dos desarrolladores.
 - Una forma de pago sin regla → 422 `CON-020`, nada se guarda y el intento aparece en la bitácora.
 - Tras revertir el asiento de un cierre, el reenvío corregido con el mismo `idExterno` se acepta.
 - Desde la app web de prueba → n8n → Pilot, el asiento aparece en el Libro Diario y en los reportes.
+
+---
+
+### F4.5 — Automatización y experiencia (decisión del 2026-09-27)
+
+Spec: `docs/diseno/2026-09-27-automatizacion-y-rediseno.md`. Plan con tareas, archivos, casos dorados y orden: `docs/diseno/2026-09-27-plan-f45-automatizacion-y-experiencia.md`. ADR-041, ADR-042 y ADR-043.
+
+**Tareas**
+1. Motor único `ContabilizarOperacion` con diez operaciones guiadas (venta, compra o gasto, cobro, pago, aporte, préstamo, cuota, traslado, compra de activo fijo, depreciación del mes); el cierre de n8n es un tipo más.
+2. Reglas precargadas por tipo con `prefijo_permitido`, también en las empresas existentes.
+3. Bloqueos de edición: cuentas del sistema, naturaleza derivada, cuentas de IVA fijas, reglas por grupo.
+4. Activos fijos y depreciación en línea recta (bloqueada hasta confirmar las vidas útiles).
+5. Tablero de inicio con indicadores y pendientes.
+6. Sistema de diseño propio, navegación por procesos y rediseño de todas las pantallas salvo el login y el registro.
+
+**Criterios de aceptación**
+- Un usuario sin formación contable registra una venta a crédito con IVA en menos de 20 segundos y solo con el teclado, y ve el asiento generado antes de guardarlo.
+- Las diez operaciones generan asientos que coinciden al centavo con los casos dorados (validados por contador `[VERIFICAR]`).
+- Ninguna cuenta del sistema, cuenta de IVA ni naturaleza se puede cambiar por la API; una regla no acepta cuentas fuera de su grupo.
+- Revertir el asiento de una operación la deja `REVERTIDA` y los saldos vuelven; una depreciación no se registra dos veces para el mismo activo y mes.
+- Una empresa creada antes de V16 usa las operaciones guiadas sin reinstalar la app.
+- Todas las pantallas cumplen la sección G (UI/UX) del protocolo de revisión en 1440 px y 1024 px; los e2e f1 a f4 siguen en verde.
 
 ---
 

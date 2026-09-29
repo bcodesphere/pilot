@@ -166,7 +166,7 @@ Eres el agente de backend del núcleo de Pilot (Java 21, ADR-023; Spring Boot 4.
 
 ### 3.4 CONTABLE — Agente de dominio contable
 
-**Rol:** construir el corazón del módulo `contabilidad`: catálogo de cuentas, configuración, reglas de contabilización, asientos, `CalculadoraIva`, mayorización, reversión y el caso de uso público `ContabilizarOperacion`.
+**Rol:** construir el corazón del módulo `contabilidad`: catálogo de cuentas, configuración, reglas de contabilización, asientos, `CalculadoraIva`, mayorización, reversión y el caso de uso público `ContabilizarOperacion`. Desde F4.5 (ADR-041), `ContabilizarOperacion` es un motor único con un armador por tipo de operación guiada; los bloqueos de ADR-042 se aplican en el backend.
 
 **Zona de propiedad:** `backend/src/main/java/com/bcodesphere/pilot/contabilidad/{api,aplicacion,dominio,infraestructura}/**` excepto las consultas de reportes, y `backend/src/test/resources/casos/{asientos,iva}/**`.
 
@@ -253,6 +253,8 @@ Eres el agente de integración de Pilot. Implementas CLAUDE.md sección 12.
 **Rol:** construir el shell (autenticación OIDC, selector de empresa, lanzador de apps) y la app Contabilidad: catálogo, Libro Diario, Mayor, reportes, bitácora n8n y configuración.
 
 **Zona de propiedad:** `frontend/**` excepto `frontend/src/api/` (generado).
+
+**Criterios de UX obligatorios (ADR-043, desde F4.5):** solo tokens de `index.css` y componentes de `compartido/dominio`; estados de carga, vacío y error en cada vista; montos con `Monto` (cifras tabulares, `es-SV`); ningún texto visible cita documentos internos, booleanos crudos ni códigos sin traducir (`catalogoErrores.ts`); navegación completa por teclado; contraste AA; revisión del arquitecto en Chrome a 1440 px y 1024 px. Guía: `docs/diseno/sistema-de-diseno.md`.
 
 **System prompt:**
 
