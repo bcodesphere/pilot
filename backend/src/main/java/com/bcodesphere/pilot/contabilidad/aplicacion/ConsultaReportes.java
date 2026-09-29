@@ -66,12 +66,13 @@ public interface ConsultaReportes {
     List<DiferenciaMayorizacion> diagnosticarMayorizacion();
 
     /**
-     * Cantidad de cuentas de detalle distintas con al menos una fila en {@code saldo_cuenta_mensual} o en
-     * {@code asiento_linea} (para informar cuántas cuentas revisó el diagnóstico).
+     * Cantidad de combinaciones distintas de cuenta, año y mes con al menos una fila en
+     * {@code saldo_cuenta_mensual} o en {@code asiento_linea} (para informar cuántas combinaciones revisó el
+     * diagnóstico; una misma cuenta con movimiento en varios meses cuenta una vez por mes).
      *
-     * @return la cantidad de cuentas revisadas
+     * @return la cantidad de combinaciones cuenta/año/mes revisadas
      */
-    int contarCuentasConMovimiento();
+    int contarCombinacionesRevisadas();
 
     /**
      * Movimiento de una cuenta dentro de un mes, agrupado por el origen del asiento (para el resumen de IVA,

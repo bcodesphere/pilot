@@ -176,7 +176,7 @@ public class ConsultarReportes {
     @PreAuthorize("hasRole('CONTADOR')")
     @Transactional(readOnly = true)
     public DiagnosticoMayorizacion diagnosticarMayorizacion() {
-        return DiagnosticoMayorizacion.de(consulta.contarCuentasConMovimiento(), consulta.diagnosticarMayorizacion());
+        return DiagnosticoMayorizacion.de(consulta.contarCombinacionesRevisadas(), consulta.diagnosticarMayorizacion());
     }
 
     /** Cuentas de detalle descendientes de {@code cuenta} (ella misma si ya es de detalle, ADR-038 §5). */

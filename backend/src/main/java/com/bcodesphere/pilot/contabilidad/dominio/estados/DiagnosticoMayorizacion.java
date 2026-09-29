@@ -7,7 +7,8 @@ import java.util.List;
  * igual a la suma de las líneas de {@code asiento_linea} para toda cuenta, año y mes con movimiento.
  *
  * @param consistente {@code true} si no se encontró ninguna diferencia
- * @param cantidadCuentasRevisadas cantidad de cuentas de detalle distintas revisadas
+ * @param cantidadCuentasRevisadas cantidad de combinaciones de cuenta, año y mes revisadas (una misma cuenta con
+ *     movimiento en varios meses cuenta una vez por mes; ver el esquema {@code Diagnostico} de la API)
  * @param diferencias las diferencias encontradas, si las hay
  */
 public record DiagnosticoMayorizacion(
@@ -21,7 +22,7 @@ public record DiagnosticoMayorizacion(
     /**
      * Arma el diagnóstico.
      *
-     * @param cantidadCuentasRevisadas cuentas de detalle distintas revisadas
+     * @param cantidadCuentasRevisadas combinaciones de cuenta, año y mes revisadas
      * @param diferencias diferencias encontradas (vacío si todo cuadra)
      * @return el diagnóstico
      */

@@ -59,8 +59,8 @@
        visual sea correcto), lo que rompe la extracción de texto (copiar/buscar, accesibilidad). -->
   <p class="resumen"
      th:text="'Total saldos deudores: ' + ${balanza.totalSaldosDeudores()} + ' · Total saldos acreedores: '
-               + ${balanza.totalSaldosAcreedores()} + ' · Cuadra: ' + ${balanza.cuadra()}">
-    Total saldos deudores: 0.00 · Total saldos acreedores: 0.00 · Cuadra: true
+               + ${balanza.totalSaldosAcreedores()} + ' · Cuadra: ' + (${balanza.cuadra()} ? 'Sí' : 'No')">
+    Total saldos deudores: 0.00 · Total saldos acreedores: 0.00 · Cuadra: Sí
   </p>
 </body>
 </html>

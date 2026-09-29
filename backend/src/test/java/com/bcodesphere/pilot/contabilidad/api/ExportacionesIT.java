@@ -45,13 +45,13 @@ class ExportacionesIT extends BaseContabilidadIT {
     private static final String VENTAS_GRAVADAS = "51010101";
 
     /** Cuenta de Gastos de administración del catálogo base (clase 4, fuera del grupo 44). */
-    private static final String GASTOS_ADMIN = "42020101";
+    private static final String GASTOS_ADMIN = "41020101";
 
     /** Cuenta del grupo 44 (Impuesto sobre la renta). */
     private static final String IMPUESTO_RENTA = "44010101";
 
     /** Cuenta de Proveedores del catálogo base (clase 2, Pasivo). */
-    private static final String PROVEEDORES = "21010101";
+    private static final String PROVEEDORES = "21020101";
 
     /** Cuenta de Capital social del catálogo base (clase 3, Patrimonio). */
     private static final String CAPITAL_SOCIAL = "31010101";
@@ -190,6 +190,8 @@ class ExportacionesIT extends BaseContabilidadIT {
         String textoPdf = extraerTexto(pdf);
         verificarPdf(textoPdf, "Total saldos deudores", totalDeudores);
         verificarPdf(textoPdf, "Total saldos acreedores", totalAcreedores);
+        // F4-07: el booleano de "cuadra" se traduce a Sí/No en el PDF (es un texto para el usuario, no datos)
+        assertThat(textoPdf).contains("Cuadra: Sí").doesNotContain("true");
     }
 
     /**
@@ -276,7 +278,6 @@ class ExportacionesIT extends BaseContabilidadIT {
                         + " ser distintos entre sí")
                 .hasSize(6);
         assertThat((Boolean) leer(json, "$.comprobacion.cuadra")).isTrue();
-
         byte[] csv = exportar(
                 s,
                 "/contabilidad/estados/situacion-financiera/exportacion?formato=csv&" + fecha,
@@ -311,7 +312,8 @@ class ExportacionesIT extends BaseContabilidadIT {
         verificarPdf(textoPdf, "Total patrimonio", patrimonio);
         verificarPdf(textoPdf, "Resultados de ejercicios anteriores", resultadosAnteriores);
         verificarPdf(textoPdf, "Total Pasivo + Patrimonio", totalPasivoPatrimonio);
-        verificarPdf(textoPdf, "Diferencia", diferencia);
+        verificarPdf(textoPdf, "Diferencia", diferencia); // F4-07: booleano de la comprobación traducido a Sí/No
+        assertThat(textoPdf).contains(": Sí — Diferencia:").doesNotContain("true");
     }
 
     /**

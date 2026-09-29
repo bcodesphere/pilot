@@ -31,7 +31,7 @@ class ReportesIT extends BaseContabilidadIT {
     private static final String VENTAS_GRAVADAS = "51010101";
 
     /** Cuenta de Gastos de administración del catálogo base. */
-    private static final String GASTOS_ADMIN = "42020101";
+    private static final String GASTOS_ADMIN = "41020101";
 
     /** Cuenta del grupo 44 (Impuesto sobre la renta), agregada por la migración V15 (ADR-037). */
     private static final String IMPUESTO_RENTA = "44010101";
@@ -268,6 +268,40 @@ class ReportesIT extends BaseContabilidadIT {
                 .andExpect(jsonPath("$.diferencias[0].mes").value(1))
                 .andExpect(jsonPath("$.diferencias[0].saldoDebe").value("150.00"))
                 .andExpect(jsonPath("$.diferencias[0].lineasDebe").value("100.00"));
+    }
+
+    /**
+     * F4-07 (corrección de {@code cantidadCuentasRevisadas}): el contrato dice que es la cantidad de combinaciones
+     * de cuenta, año y mes, no la cantidad de cuentas distintas. Caja tiene movimiento en dos meses (enero y
+     * febrero de 2026) y Ventas gravadas solo en enero: 2 cuentas distintas, pero 3 combinaciones cuenta/año/mes
+     * (Caja-enero, Ventas-enero, Caja-febrero).
+     */
+    @Test
+    void elDiagnosticoCuentaCombinacionesCuentaAnioMesYNoCuentasDistintas() throws Exception {
+        Sesion s = sesionConContabilidad();
+        registrar(
+                s,
+                "k1",
+                LibroDiarioIT.asiento(
+                        "2026-01-15",
+                        null,
+                        LibroDiarioIT.linea(cuentaId(s.empresa(), CAJA), "100.00", "0", false),
+                        LibroDiarioIT.linea(cuentaId(s.empresa(), VENTAS_GRAVADAS), "0", "100.00", false)));
+        // Ambas líneas usan Caja: no agrega Ventas gravadas a febrero, así que Ventas gravadas sigue con una sola
+        // combinación (enero) mientras Caja suma la de febrero.
+        registrar(
+                s,
+                "k2",
+                LibroDiarioIT.asiento(
+                        "2026-02-10",
+                        null,
+                        LibroDiarioIT.linea(cuentaId(s.empresa(), CAJA), "50.00", "0", false),
+                        LibroDiarioIT.linea(cuentaId(s.empresa(), CAJA), "0", "50.00", false)));
+
+        var respuesta = get(s, "/contabilidad/diagnostico/mayorizacion").andExpect(status().isOk());
+        int cantidadCuentasDistintas = 2; // Caja y Ventas gravadas
+        Number cantidadRevisada = leer(respuesta, "$.cantidadCuentasRevisadas");
+        assertThat(cantidadRevisada.intValue()).isEqualTo(3).isNotEqualTo(cantidadCuentasDistintas);
     }
 
     // -------------------------------------------------------------------------------------------------- IVA

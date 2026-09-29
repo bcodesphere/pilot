@@ -82,8 +82,9 @@
        aunque el layout visual sea correcto). -->
   <p class="meta"
      th:text="'Comprobación (Activo = Pasivo + Patrimonio + resultados anteriores + utilidad del ejercicio): '
-               + ${estado.comprobacion().cuadra()} + ' — Diferencia: ' + ${estado.comprobacion().diferencia()}">
-    Comprobación: true — Diferencia: 0.00
+               + (${estado.comprobacion().cuadra()} ? 'Sí' : 'No') + ' — Diferencia: '
+               + ${estado.comprobacion().diferencia()}">
+    Comprobación: Sí — Diferencia: 0.00
   </p>
 
   <p class="leyenda" th:text="${estado.leyenda()}">Leyenda de estado de gestión</p>

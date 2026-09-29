@@ -214,11 +214,15 @@ class ConsultaReportesJdbc implements ConsultaReportes {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
-    public int contarCuentasConMovimiento() {
-        return jdbc.sql("SELECT COUNT(DISTINCT cuenta_id) FROM ("
-                        + "  SELECT cuenta_id FROM saldo_cuenta_mensual WHERE empresa_id = :empresa"
+    public int contarCombinacionesRevisadas() {
+        // UNION (no UNION ALL) descarta duplicados sobre las tres columnas, así que cada fila resultante es una
+        // combinación cuenta/año/mes distinta, aunque saldo_cuenta_mensual y asiento_linea coincidan en varias
+        return jdbc.sql("SELECT COUNT(*) FROM ("
+                        + "  SELECT cuenta_id, anio, mes FROM saldo_cuenta_mensual WHERE empresa_id = :empresa"
                         + "  UNION"
-                        + "  SELECT cuenta_id FROM asiento_linea WHERE empresa_id = :empresa"
+                        + "  SELECT cuenta_id, EXTRACT(YEAR FROM fecha)::smallint AS anio,"
+                        + "         EXTRACT(MONTH FROM fecha)::smallint AS mes"
+                        + "  FROM asiento_linea WHERE empresa_id = :empresa"
                         + ") t")
                 .param("empresa", ContextoEmpresa.empresaRequerida().valor())
                 .query(Integer.class)
