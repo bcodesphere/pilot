@@ -257,28 +257,28 @@ class MigracionesContabilidadIT {
                             + " CASE WHEN clase IN (1, 4) THEN 'DEUDORA' ELSE 'ACREEDORA' END ORDER BY codigo");
             assertThat(excepciones)
                     .containsExactly(
-                            "110301:ACREEDORA",
                             "1103:ACREEDORA",
+                            "110301:ACREEDORA",
                             "110505:ACREEDORA",
+                            "120108:ACREEDORA",
                             "12010801:ACREEDORA",
                             "12010802:ACREEDORA",
                             "12010803:ACREEDORA",
                             "12010804:ACREEDORA",
                             "12010805:ACREEDORA",
                             "12010806:ACREEDORA",
-                            "120108:ACREEDORA",
+                            "120207:ACREEDORA",
                             "12020701:ACREEDORA",
                             "12020702:ACREEDORA",
                             "12020703:ACREEDORA",
                             "12020704:ACREEDORA",
                             "12020705:ACREEDORA",
-                            "120207:ACREEDORA",
+                            "120406:ACREEDORA",
                             "12040601:ACREEDORA",
                             "12040602:ACREEDORA",
                             "12040603:ACREEDORA",
                             "12040604:ACREEDORA",
                             "12040605:ACREEDORA",
-                            "120406:ACREEDORA",
                             "410104:ACREEDORA");
         }
     }
@@ -319,8 +319,8 @@ class MigracionesContabilidadIT {
                 escalarDuenio("SELECT count(*) FROM plantilla_regla_contabilizacion r JOIN plantilla_cuenta c"
                         + " ON c.codigo = r.cuenta_codigo WHERE EXISTS (SELECT 1 FROM plantilla_cuenta h"
                         + " WHERE h.codigo <> c.codigo AND starts_with(h.codigo, c.codigo))");
-        String configConHijas = escalarDuenio(
-                "SELECT count(*) FROM plantilla_configuracion_contable f JOIN plantilla_cuenta c"
+        String configConHijas =
+                escalarDuenio("SELECT count(*) FROM plantilla_configuracion_contable f JOIN plantilla_cuenta c"
                         + " ON c.codigo IN (f.cuenta_iva_debito_codigo, f.cuenta_iva_credito_codigo)"
                         + " WHERE EXISTS (SELECT 1 FROM plantilla_cuenta h"
                         + " WHERE h.codigo <> c.codigo AND starts_with(h.codigo, c.codigo))");

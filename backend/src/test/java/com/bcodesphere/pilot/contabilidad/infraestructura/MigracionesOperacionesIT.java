@@ -197,19 +197,18 @@ class MigracionesOperacionesIT {
                                     + " 'VENTA'",
                             empresaCompleta))
                     .isEqualTo("7");
-            // 2. Cuentas base marcadas como sistema: V17 las marca por coincidencia de código con la plantilla
-            //    ACTUAL (tarea CAT, V19), no con el catálogo con el que se sembró esta empresa a V15; se compara
-            //    contra el número de códigos en común entre su catálogo sembrado y la plantilla actual, no contra
-            //    el total de la plantilla (que ya no es el mismo catálogo que esta empresa recibió).
+            // 2. Cuentas base marcadas como sistema: V17 corre ANTES que V19 en la cadena de Flyway, así que marca
+            //    sistema por coincidencia de código con la plantilla tal como estaba en ese momento (todavía la de
+            //    V10+V15, la misma con la que se sembró esta empresa a V15): las 153 cuentas de esta empresa
+            //    coinciden 1:1 con esa plantilla, así que las 153 quedan sistema = true. V19 solo cambia
+            //    plantilla_cuenta más adelante en la cadena; no vuelve a tocar cuenta_contable de empresas
+            //    existentes (ADR-044, decisión 8), así que el número no depende del catálogo actual.
             assertThat(escalar(
                             c,
                             "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ? AND sistema",
                             empresaCompleta))
-                    .isEqualTo(escalar(
-                            c,
-                            "SELECT count(*) FROM cuenta_contable cc JOIN plantilla_cuenta pc ON pc.codigo ="
-                                    + " cc.codigo WHERE cc.empresa_id = ?",
-                            empresaCompleta));
+                    .isEqualTo(
+                            escalar(c, "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ?", empresaCompleta));
             // 3. La segunda empresa, sin la cuenta 11040104, deja COBRO_CLIENTE/CONTRAPARTIDA/ANTICIPO_IVA inactiva
             //    y sin cuenta (paso 4 del plan B1): la copia no falla el CHECK de una regla activa sin cuenta.
             //    count(*) en vez de comparar el booleano como texto: boolean::text no es portable entre el cast de

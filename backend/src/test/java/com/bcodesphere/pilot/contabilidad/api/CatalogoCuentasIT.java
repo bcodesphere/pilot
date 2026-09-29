@@ -31,7 +31,7 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(455));
         get(s, "/contabilidad/cuentas?soloDetalle=true")
-                .andExpect(jsonPath("$.length()").value(74));
+                .andExpect(jsonPath("$.length()").value(333));
         // La búsqueda por prefijo de código y por nombre, sin distinguir mayúsculas
         get(s, "/contabilidad/cuentas?busqueda=1101010")
                 .andExpect(jsonPath("$[*].codigo").value(org.hamcrest.Matchers.hasItem("11010101")));
@@ -100,22 +100,22 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
     void unaSubcuentaHojaDejaDeAceptarMovimientosAlRecibirSuPrimeraHija() throws Exception {
         Sesion s = sesionConContabilidad();
 
-        post(s, "/contabilidad/cuentas", nueva("110904", "Efectivo en tránsito"))
+        post(s, "/contabilidad/cuentas", nueva("110906", "Efectivo en tránsito"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.aceptaMovimientos").value(true));
 
-        post(s, "/contabilidad/cuentas", nueva("11090401", "Remesas en camino"))
+        post(s, "/contabilidad/cuentas", nueva("11090601", "Remesas en camino"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.aceptaMovimientos").value(true));
 
-        get(s, "/contabilidad/cuentas/" + cuentaId(s.empresa(), "110904"))
+        get(s, "/contabilidad/cuentas/" + cuentaId(s.empresa(), "110906"))
                 .andExpect(jsonPath("$.aceptaMovimientos").value(false))
                 // El padre cambió, así que su versión subió
                 .andExpect(header().string("ETag", "\"1\""));
 
         // Una cuenta de detalle (8 dígitos) no puede tener hijas: no existe un nivel de 10 dígitos; el contrato
         // (máximo 8 caracteres) lo corta antes del dominio con 422 PLT-002
-        post(s, "/contabilidad/cuentas", nueva("1109040101", "Imposible"))
+        post(s, "/contabilidad/cuentas", nueva("1109060101", "Imposible"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("PLT-002"));
     }
@@ -128,7 +128,7 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
     void crearUnaHijaBajoUnaHojaUsadaPorUnaReglaActivaDaCon016() throws Exception {
         Sesion s = sesionConContabilidad();
         UUID hoja = UUID.fromString(leer(
-                post(s, "/contabilidad/cuentas", nueva("110904", "Efectivo en tránsito"))
+                post(s, "/contabilidad/cuentas", nueva("110906", "Efectivo en tránsito"))
                         .andExpect(status().isCreated()),
                 "$.id"));
         // La regla OTRO nace inactiva y sin cuenta: se activa con la hoja
@@ -141,11 +141,11 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
                         "{\"cuentaId\":\"" + hoja + "\",\"activa\":true}")
                 .andExpect(status().isOk());
 
-        post(s, "/contabilidad/cuentas", nueva("11090401", "Remesas en camino"))
+        post(s, "/contabilidad/cuentas", nueva("11090601", "Remesas en camino"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("CON-016"));
         assertThat(contar(
-                        "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ? AND codigo = '11090401'",
+                        "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ? AND codigo = '11090601'",
                         s.empresa()))
                 .isZero();
     }
@@ -161,8 +161,8 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
         post(s, "/contabilidad/cuentas", nueva("110", "Longitud tres"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("CON-015"));
-        // Padre 110103 no existe en el catálogo base
-        post(s, "/contabilidad/cuentas", nueva("11010301", "Sin padre"))
+        // Padre 110199 no existe en el catálogo base (ADR-044)
+        post(s, "/contabilidad/cuentas", nueva("11019999", "Sin padre"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("CON-015"));
         post(s, "/contabilidad/cuentas", nueva("11010101", "Duplicada"))
@@ -178,7 +178,8 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
     @Test
     void unPadreInactivoNoAdmiteHijas() throws Exception {
         Sesion s = sesionConContabilidad();
-        // 110301 (Estimación para cuentas incobrables) no lo usa ninguna regla ni la configuración, pero es padre potencial: se desactiva a mano
+        // 110301 (Estimación para cuentas incobrables) no lo usa ninguna regla ni la configuración, pero es padre
+        // potencial: se desactiva a mano
         duenio.sql("UPDATE cuenta_contable SET activa = false WHERE empresa_id = ? AND codigo = '110301'")
                 .params(s.empresa())
                 .update();

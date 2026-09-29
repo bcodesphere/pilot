@@ -202,7 +202,7 @@ class ExportacionesIgualesF4IT extends BaseAceptacionF4IT {
     @Test
     void elLibroMayorExportadoCoincideConElJsonEnLosTresFormatos() throws Exception {
         Sesion s = sembrarConjuntoDorado().sesion();
-        UUID gastosAdmin = cuentaId(s.empresa(), "42020101");
+        UUID gastosAdmin = cuentaId(s.empresa(), "41020101");
         String rango = "cuentaId=" + gastosAdmin + "&desde=2026-03-01&hasta=2026-03-31";
         ResultActions json = get(s, "/contabilidad/mayor?" + rango).andExpect(status().isOk());
         String saldoInicial = leer(json, "$.saldoInicial.monto");

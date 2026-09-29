@@ -225,9 +225,19 @@ class LibroDiarioIT extends BaseContabilidadIT {
     }
 
     /** Primera cuenta de detalle de la clase 4 (costos y gastos) del catálogo base, para probar compras. */
+    /**
+     * Cuenta de costos que ni la configuración ni ninguna regla activa usan (catálogo ADR-044, tarea CAT: varias
+     * reglas guiadas ahora apuntan a cuentas de clase 4 por defecto, así que ya no basta con "la primera de clase
+     * 4"; se excluyen explícitamente las que están en uso).
+     */
     private String codigoCuentaDeCostos(Sesion s) {
-        return duenio.sql("SELECT codigo FROM cuenta_contable WHERE empresa_id = ? AND acepta_movimientos"
-                        + " AND codigo LIKE '4%' ORDER BY codigo LIMIT 1")
+        return duenio.sql("SELECT c.codigo FROM cuenta_contable c WHERE c.empresa_id = ? AND c.acepta_movimientos"
+                        + " AND c.codigo LIKE '4%'"
+                        + " AND NOT EXISTS (SELECT 1 FROM regla_contabilizacion r"
+                        + "                 WHERE r.empresa_id = c.empresa_id AND r.cuenta_id = c.id AND r.activa)"
+                        + " AND NOT EXISTS (SELECT 1 FROM configuracion_contable f WHERE f.empresa_id = c.empresa_id"
+                        + "                 AND c.id IN (f.cuenta_iva_debito_id, f.cuenta_iva_credito_id))"
+                        + " ORDER BY c.codigo LIMIT 1")
                 .param(s.empresa())
                 .query(String.class)
                 .single();
