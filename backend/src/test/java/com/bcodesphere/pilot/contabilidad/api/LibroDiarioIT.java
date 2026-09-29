@@ -697,7 +697,7 @@ class LibroDiarioIT extends BaseContabilidadIT {
         get(s, "/contabilidad/asientos/" + id)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id))
-                .andExpect(jsonPath("$.lineas[0].cuenta.nombre").value("Caja general"))
+                .andExpect(jsonPath("$.lineas[0].cuenta.nombre").value("Caja General"))
                 .andExpect(jsonPath("$.creadoEn").exists());
         get(otra, "/contabilidad/asientos/" + id)
                 .andExpect(status().isNotFound())

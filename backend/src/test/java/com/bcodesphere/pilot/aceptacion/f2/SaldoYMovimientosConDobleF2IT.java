@@ -25,11 +25,14 @@ class SaldoYMovimientosConDobleF2IT extends BaseAceptacionF2IT {
     @MockitoBean
     private ConsultaMovimientosCuenta movimientos;
 
-    /** Hoja de 8 dígitos de la plantilla que no usan la configuración ni las reglas, con un hermano libre para el cambio de código. */
+    /** Hoja de 8 dígitos de la plantilla que no usan la configuración ni las reglas (catálogo ADR-044, tarea CAT). */
     private static final String HOJA = "11010102";
 
-    /** Cambio de código válido para {@link #HOJA}: misma longitud, mismo padre {@code 110101} y sin uso previo. */
-    private static final String HOJA_CODIGO_NUEVO = "11010199";
+    /** Otra hoja de 8 dígitos, distinta de {@link #HOJA}, a la que se le cambia el código en el paso 2. */
+    private static final String OTRA_HOJA = "11020101";
+
+    /** Cambio de código válido para {@link #OTRA_HOJA}: misma longitud, mismo padre {@code 110201} y sin uso previo. */
+    private static final String HOJA_CODIGO_NUEVO = "11020199";
 
     /** Configura el doble: con o sin movimientos y con el saldo dado (escala 2, como un {@code NUMERIC(19,2)}). */
     private void doble(boolean conMovimientos, String saldo) {
@@ -114,7 +117,7 @@ class SaldoYMovimientosConDobleF2IT extends BaseAceptacionF2IT {
         assertThat(estadoDe(s.empresa(), HOJA, "activa")).isEqualTo("false");
 
         // 2. Cambiar el código de otra hoja de la misma cuenta (versión 0 aún: no se ha editado)
-        UUID otra = cuentaId(s.empresa(), "11010103");
+        UUID otra = cuentaId(s.empresa(), OTRA_HOJA);
         patch(s, "/contabilidad/cuentas/" + otra, "\"0\"", "{\"codigo\":\"" + HOJA_CODIGO_NUEVO + "\"}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.codigo").value(HOJA_CODIGO_NUEVO));

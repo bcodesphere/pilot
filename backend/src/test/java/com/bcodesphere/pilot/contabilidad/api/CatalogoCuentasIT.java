@@ -10,8 +10,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Pruebas de integración del catálogo de cuentas por la API (F2-03). Fuente: CLAUDE.md 10.2 y 13, ADR-035 y el
- * criterio de F2 del plan de trabajo. Los valores del catálogo base son los de V10 + V15 (117 + 36 = 153 cuentas,
- * 56 + 18 = 74 de detalle; ADR-037). Las pruebas de {@code CON-011} y {@code CON-012} con movimientos reales están
+ * criterio de F2 del plan de trabajo. Los valores del catálogo base son los del PDF de la U. Católica (ADR-044,
+ * tarea CAT): 455 cuentas, 333 de detalle. Las pruebas de {@code CON-011} y {@code CON-012} con movimientos reales están
  * en {@code LibroDiarioIT} (F3-03, ADR-035 decisión 5).
  */
 class CatalogoCuentasIT extends BaseContabilidadIT {
@@ -29,7 +29,7 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
 
         get(s, "/contabilidad/cuentas")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(153));
+                .andExpect(jsonPath("$.length()").value(455));
         get(s, "/contabilidad/cuentas?soloDetalle=true")
                 .andExpect(jsonPath("$.length()").value(74));
         // La búsqueda por prefijo de código y por nombre, sin distinguir mayúsculas
@@ -100,22 +100,22 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
     void unaSubcuentaHojaDejaDeAceptarMovimientosAlRecibirSuPrimeraHija() throws Exception {
         Sesion s = sesionConContabilidad();
 
-        post(s, "/contabilidad/cuentas", nueva("110102", "Efectivo en tránsito"))
+        post(s, "/contabilidad/cuentas", nueva("110904", "Efectivo en tránsito"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.aceptaMovimientos").value(true));
 
-        post(s, "/contabilidad/cuentas", nueva("11010201", "Remesas en camino"))
+        post(s, "/contabilidad/cuentas", nueva("11090401", "Remesas en camino"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.aceptaMovimientos").value(true));
 
-        get(s, "/contabilidad/cuentas/" + cuentaId(s.empresa(), "110102"))
+        get(s, "/contabilidad/cuentas/" + cuentaId(s.empresa(), "110904"))
                 .andExpect(jsonPath("$.aceptaMovimientos").value(false))
                 // El padre cambió, así que su versión subió
                 .andExpect(header().string("ETag", "\"1\""));
 
         // Una cuenta de detalle (8 dígitos) no puede tener hijas: no existe un nivel de 10 dígitos; el contrato
         // (máximo 8 caracteres) lo corta antes del dominio con 422 PLT-002
-        post(s, "/contabilidad/cuentas", nueva("1101020101", "Imposible"))
+        post(s, "/contabilidad/cuentas", nueva("1109040101", "Imposible"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("PLT-002"));
     }
@@ -128,7 +128,7 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
     void crearUnaHijaBajoUnaHojaUsadaPorUnaReglaActivaDaCon016() throws Exception {
         Sesion s = sesionConContabilidad();
         UUID hoja = UUID.fromString(leer(
-                post(s, "/contabilidad/cuentas", nueva("110102", "Efectivo en tránsito"))
+                post(s, "/contabilidad/cuentas", nueva("110904", "Efectivo en tránsito"))
                         .andExpect(status().isCreated()),
                 "$.id"));
         // La regla OTRO nace inactiva y sin cuenta: se activa con la hoja
@@ -141,11 +141,11 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
                         "{\"cuentaId\":\"" + hoja + "\",\"activa\":true}")
                 .andExpect(status().isOk());
 
-        post(s, "/contabilidad/cuentas", nueva("11010201", "Remesas en camino"))
+        post(s, "/contabilidad/cuentas", nueva("11090401", "Remesas en camino"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("CON-016"));
         assertThat(contar(
-                        "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ? AND codigo = '11010201'",
+                        "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ? AND codigo = '11090401'",
                         s.empresa()))
                 .isZero();
     }
@@ -171,14 +171,14 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
 
         // Ninguna de las cuatro dejó filas
         assertThat(contar("SELECT count(*) FROM cuenta_contable WHERE empresa_id = ?", s.empresa()))
-                .isEqualTo(153);
+                .isEqualTo(455);
     }
 
     /** Regla: un padre inactivo no admite hijas (CON-015, «existente y activa»). */
     @Test
     void unPadreInactivoNoAdmiteHijas() throws Exception {
         Sesion s = sesionConContabilidad();
-        // 110301 (Mercadería) no lo usa ninguna regla ni la configuración, pero es padre: se desactiva a mano
+        // 110301 (Estimación para cuentas incobrables) no lo usa ninguna regla ni la configuración, pero es padre potencial: se desactiva a mano
         duenio.sql("UPDATE cuenta_contable SET activa = false WHERE empresa_id = ? AND codigo = '110301'")
                 .params(s.empresa())
                 .update();
@@ -212,7 +212,7 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
         // Formato inválido (sin comillas) también es 412
         patch(s, "/contabilidad/cuentas/" + id, "0", "{\"nombre\":\"Caja menor\"}")
                 .andExpect(status().isPreconditionFailed());
-        assertThat(contar("SELECT count(*) FROM cuenta_contable WHERE id = ? AND nombre = 'Caja chica'", id))
+        assertThat(contar("SELECT count(*) FROM cuenta_contable WHERE id = ? AND nombre = 'Caja Chica'", id))
                 .isEqualTo(1);
     }
 
@@ -238,7 +238,7 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
                 .params(s.empresa(), id.toString())
                 .query(String.class)
                 .single();
-        assertThat(anterior).contains("Caja chica");
+        assertThat(anterior).contains("Caja Chica");
         assertThat(nuevo).contains("Caja menor");
         // Reintentar con la versión vieja ya es 412
         patch(s, "/contabilidad/cuentas/" + id, "\"0\"", "{\"nombre\":\"Otra\"}")
@@ -287,7 +287,8 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
         patch(s, "/contabilidad/cuentas/" + caja, "\"0\"", "{\"activa\":false}")
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("CON-016"));
-        // También la de IVA débito, que usa la configuración
+        // También 21020101 (Proveedores nacionales, ADR-044): la usan varias reglas guiadas activas (pago a
+        // crédito y contrapartida de PAGO_PROVEEDOR)
         patch(s, "/contabilidad/cuentas/" + cuentaId(s.empresa(), "21020101"), "\"0\"", "{\"activa\":false}")
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("CON-016"));
@@ -303,7 +304,7 @@ class CatalogoCuentasIT extends BaseContabilidadIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.activa").value(false));
         get(s, "/contabilidad/cuentas?soloActivas=true")
-                .andExpect(jsonPath("$.length()").value(152));
+                .andExpect(jsonPath("$.length()").value(454));
         patch(s, "/contabilidad/cuentas/" + id, "\"1\"", "{\"activa\":true}")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.activa").value(true));
