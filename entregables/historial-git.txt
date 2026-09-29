@@ -1,12 +1,30 @@
 # Historial Git de Pilot 1.0 — generado el 2026-09-28 22:38 (hora de El Salvador)
 
 ## Commits por autor
-    60	Harpin067
+    62	Harpin067
      4	bcodesphere
      4	dependabot[bot]
 
 ## Historial completo (todas las ramas)
-* commit 7bd4dc8ae9526744bd3111ae17f48dd5014ecefb (HEAD -> feat/f4-f5-reportes-n8n)
+* commit 2821fd6451d3e0c7b3c72dff004d821bc77c5c14 (HEAD -> feat/f4-f5-reportes-n8n)
+| Author: Harpin067 <stevenbeltran067@gmail.com>
+| Date:   2026-09-28 22:38:49 -0600
+| 
+|     docs: enlaza el manual de la entrega desde el README
+| 
+|  README.md | 2 +-
+|  1 file changed, 1 insertion(+), 1 deletion(-)
+| 
+* commit 41e635a706f8fd4a6590d8014d8b9ef643f29ef8
+| Author: Harpin067 <stevenbeltran067@gmail.com>
+| Date:   2026-09-28 22:38:30 -0600
+| 
+|     docs(entregables): actualiza el historial Git
+| 
+|  entregables/historial-git.txt | 46 ++++++++++++++++++++++++++++++++++++++---
+|  1 file changed, 43 insertions(+), 3 deletions(-)
+| 
+* commit 7bd4dc8ae9526744bd3111ae17f48dd5014ecefb
 | Author: Harpin067 <stevenbeltran067@gmail.com>
 | Date:   2026-09-28 22:38:30 -0600
 | 
