@@ -43,7 +43,7 @@ En 1.0 está activa la capa II; las capas I y IV tienen su base (ediciones de ap
 
 | Documento | Contenido |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | Guía técnica completa: alcance, reglas, arquitectura, modelo de datos, API y convenciones |
+| [`entregables/README.md`](entregables/README.md) | Manual de instalación, accesos, tabla de roles, base de datos y catálogo de la entrega |
 | [`docs/plan-de-trabajo.md`](docs/plan-de-trabajo.md) | Fases, tareas y criterios de aceptación |
 | [`docs/adr/`](docs/adr/) | Decisiones de arquitectura |
 | [`docs/contabilidad/`](docs/contabilidad/) | Catálogo base y formulario de IVA para el contador |
