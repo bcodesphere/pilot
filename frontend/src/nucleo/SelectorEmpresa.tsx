@@ -1,4 +1,6 @@
 import { useId } from 'react';
+import { Label } from '@/compartido/ui/label';
+import { Select } from '@/compartido/ui/select';
 import { useSesion } from '@/nucleo/sesion/contextoSesion';
 
 /**
@@ -12,21 +14,21 @@ export function SelectorEmpresa() {
 
   return (
     <div className="flex items-center gap-2 text-sm">
-      <label htmlFor={id} className="text-neutral-600">
+      <Label htmlFor={id} className="text-[var(--color-texto-suave)]">
         Empresa
-      </label>
-      <select
+      </Label>
+      <Select
         id={id}
         value={empresaActiva.empresaId}
         onChange={(e) => cambiarEmpresa(e.target.value)}
-        className="rounded-md border border-neutral-300 bg-white px-2 py-1"
+        className="h-8 w-auto"
       >
         {usuario.membresias.map((m) => (
           <option key={m.empresaId} value={m.empresaId}>
             {m.nombreEmpresa}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

@@ -1,41 +1,28 @@
-import { render, screen } from '@testing-library/react';
-import { createMemoryRouter, RouterProvider } from 'react-router-dom';
-import { ContextoAuth } from './auth/contextoAuth';
-import { Layout } from './Layout';
-import { membresia } from './pruebas-arnes';
-import { ContextoSesion } from './sesion/contextoSesion';
+import { screen } from '@testing-library/react';
+import { app, membresia, montarShell } from './pruebas-arnes';
 
-// Caso de negocio: el shell muestra la cabecera de Pilot con el espacio de trabajo activo y el enlace a Apps (ADR-021, ADR-032)
+/**
+ * Desde ADR-043 (F4.5), `Layout` delega en `EstructuraApp` (barra lateral + barra superior +
+ * contenido). La cobertura detallada de la navegación vive en `estructura/*.test.tsx`; esta prueba
+ * es el humo de que el layout compone correctamente dentro del shell real (`montarShell`).
+ */
 describe('Layout del shell', () => {
-  it('muestra el producto, el espacio activo y el enlace a Apps', () => {
-    const m = membresia('e1', 'Espacio de Ana');
-    const router = createMemoryRouter([
-      { path: '/', element: <Layout />, children: [{ index: true, element: <p>contenido</p> }] },
-    ]);
-    render(
-      <ContextoAuth.Provider value={{ cerrarSesion: async () => {} }}>
-        <ContextoSesion.Provider
-          value={{
-            usuario: {
-              id: 'u',
-              correo: 'a@x.sv',
-              nombre: 'Ana',
-              telefono: '+50370000000',
-              recomendacionesCorreo: false,
-              membresias: [m],
-            },
-            empresaActiva: m,
-            cambiarEmpresa: () => {},
-            recargarUsuario: async () => {},
-          }}
-        >
-          <RouterProvider router={router} />
-        </ContextoSesion.Provider>
-      </ContextoAuth.Provider>,
-    );
-    expect(screen.getByRole('link', { name: 'Pilot' })).toBeInTheDocument();
-    expect(screen.getByText('Espacio de Ana')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Apps' })).toHaveAttribute('href', '/apps');
-    expect(screen.getByText('contenido')).toBeInTheDocument();
+  it('monta la barra lateral, la barra superior y el contenido de la ruta activa', async () => {
+    montarShell({
+      membresias: [membresia('e1', 'Espacio de Ana')],
+      apps: [app('contabilidad', 'INSTALADA')],
+      ruta: '/contabilidad/catalogo',
+    });
+
+    // Barra lateral: nombre del producto y navegación principal
+    expect(await screen.findByRole('link', { name: 'Pilot' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('navigation', { name: 'Principal' })).toBeInTheDocument();
+    // Barra superior: migas de pan (nivel "Inicio", junto al de la barra lateral) y menú de usuario
+    const inicio = await screen.findAllByRole('link', { name: 'Inicio' });
+    expect(inicio.length).toBeGreaterThanOrEqual(2);
+    expect(inicio[0]).toHaveAttribute('href', '/');
+    expect(screen.getByRole('button', { name: 'Ana' })).toBeInTheDocument();
+    // Contenido de la ruta activa
+    expect(await screen.findByRole('heading', { name: 'Catálogo de cuentas' })).toBeInTheDocument();
   });
 });

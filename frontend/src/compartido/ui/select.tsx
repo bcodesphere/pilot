@@ -15,7 +15,7 @@ export function Select({
     <select
       ref={ref}
       className={cn(
-        'h-9 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 disabled:opacity-50 aria-[invalid=true]:border-red-600',
+        'h-9 w-full rounded-[var(--radius-control)] border border-[var(--color-borde)] bg-[var(--color-superficie)] px-3 text-sm text-[var(--color-texto)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primario)] disabled:opacity-50 aria-[invalid=true]:border-[var(--color-error)]',
         className,
       )}
       {...props}

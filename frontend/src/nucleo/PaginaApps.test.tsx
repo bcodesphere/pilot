@@ -65,11 +65,14 @@ describe('pantalla Apps (ADR-030)', () => {
     expect(post).toBeDefined();
     // El catálogo se volvió a pedir y ahora la pantalla ofrece "Abrir"
     expect(await screen.findByRole('link', { name: 'Abrir Contabilidad' })).toBeInTheDocument();
-    // Y el lanzador (inicio) la muestra como mosaico
+    // Y la barra lateral (ADR-043) ofrece ya el grupo "Contabilidad", sin recargar la página
     await router.navigate('/');
-    expect(await screen.findByRole('link', { name: /Contabilidad/ })).toHaveAttribute(
+    // U2 (F4.5): BarraLateral ya no agrega ", barra lateral" al nombre accesible (el nav "Principal" ya
+    // distingue el enlace); sin ambigüedad aquí porque en Inicio no está montada la subnavegación propia
+    // de Contabilidad, que repite el mismo texto.
+    expect(await screen.findByRole('link', { name: 'Libro Diario' })).toHaveAttribute(
       'href',
-      '/contabilidad',
+      '/contabilidad/libro-diario',
     );
   });
 
@@ -100,8 +103,8 @@ describe('pantalla Apps (ADR-030)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('edición Enterprise');
   });
 
-  // Regla: un código desconocido no expone detalle interno; se muestra el mensaje genérico
-  it('un error desconocido muestra el mensaje genérico', async () => {
+  // Regla: un código sin mensaje propio de esta pantalla usa el catálogo único (ADR-043) y no expone detalle interno
+  it('un error sin mensaje propio de la pantalla usa el mensaje del catálogo de errores', async () => {
     montarShell({
       ruta: '/apps',
       apps: catalogo(),
@@ -109,9 +112,8 @@ describe('pantalla Apps (ADR-030)', () => {
         url.endsWith('/instalacion') && init.method === 'POST' ? json({ codigo: 'PLT-500' }, 500) : undefined,
     });
     await userEvent.click(await screen.findByRole('button', { name: 'Instalar Contabilidad' }));
-    await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('No pudimos completar la operación'),
-    );
+    // PLT-500 no está en MENSAJES_INSTALACION: cae en catalogoErrores, nunca en el código crudo
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Ocurrió un error inesperado'));
   });
 
   // Regla CLAUDE.md §14.2: solo admin_empresa instala; con otro rol la pantalla es de solo lectura

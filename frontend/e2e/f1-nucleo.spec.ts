@@ -104,8 +104,8 @@ test('registro, correo real, MFA, empresa personal, apps y API keys (criterio 1 
 
   // --------------------------------------------------------------------- 4. token y almacenamiento
   await test.step('Keycloak entrega refresh_token y ningún token queda en el almacenamiento', async () => {
-    // Espera a que el shell cargue (la cabecera con el nombre del espacio de trabajo)
-    await expect(page.getByRole('banner')).toContainText(nombreCompleto);
+    // Espera a que el shell cargue (ADR-043: el nombre del espacio de trabajo vive en la barra lateral, no en la cabecera)
+    await expect(page.getByRole('navigation', { name: 'Principal' })).toContainText(nombreCompleto);
 
     // 1. El primer intercambio del código por tokens trae refresh_token (pendiente de F1-07)
     expect(tokens.access.length, 'no se interceptó ninguna respuesta del endpoint de tokens').toBeGreaterThan(
@@ -120,9 +120,11 @@ test('registro, correo real, MFA, empresa personal, apps y API keys (criterio 1 
 
   // ----------------------------------------------------------------------- 5. empresa personal
   await test.step('La empresa personal ya existe y no aparece el selector de empresa', async () => {
+    // ADR-043: el nombre del espacio de trabajo vive en la barra lateral; el selector (combobox), en la cabecera
+    const barraLateral = page.getByRole('navigation', { name: 'Principal' });
     const cabecera = page.getByRole('banner');
     // 1. El espacio de trabajo lleva el nombre del usuario (ADR-029)
-    await expect(cabecera.locator('span', { hasText: nombreCompleto }).first()).toBeVisible();
+    await expect(barraLateral.locator('span', { hasText: nombreCompleto }).first()).toBeVisible();
     // 2. Con una sola membresía no hay selector (ADR-032)
     await expect(cabecera.getByRole('combobox')).toHaveCount(0);
     await expect(cabecera.getByText('Empresa', { exact: true })).toHaveCount(0);
@@ -169,10 +171,16 @@ test('registro, correo real, MFA, empresa personal, apps y API keys (criterio 1 
     expect(instalacion.status()).toBe(201);
     await expect(page.getByText('Contabilidad instalada')).toBeVisible();
 
-    // 6. Contabilidad aparece en el lanzador (inicio) sin recargar la página
+    // 6. Contabilidad aparece en la barra lateral (ADR-043: el lanzador de apps pasó a Configuración → Apps;
+    //    Inicio ya no lista apps una por una) sin recargar la página
     await page.getByRole('link', { name: 'Pilot', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Tus aplicaciones' })).toBeVisible();
-    await expect(page.getByRole('main').getByRole('link', { name: /Contabilidad/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Inicio', level: 1 })).toBeVisible();
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Principal' })
+        // U2 (F4.5): BarraLateral ya no agrega ", barra lateral" al nombre accesible (el nav "Principal" ya lo distingue)
+        .getByRole('link', { name: 'Libro Diario' }),
+    ).toBeVisible();
     expect(await page.evaluate('window.marcaSinRecarga'), 'la página se recargó').toBe(1);
   });
 
@@ -250,11 +258,16 @@ test('registro, correo real, MFA, empresa personal, apps y API keys (criterio 1 
     await page.fill('#otp', codigoTotp(semillaTotp));
     await page.locator('#kc-login').click();
 
-    // 4. De vuelta en Pilot, Contabilidad sigue instalada en el lanzador
+    // 4. De vuelta en Pilot, Contabilidad sigue instalada (ADR-043: se ve en la barra lateral, no en Inicio)
     await page.waitForURL('http://localhost:5173/**');
-    await expect(page.getByRole('heading', { name: 'Tus aplicaciones' })).toBeVisible();
-    await expect(page.getByRole('main').getByRole('link', { name: /Contabilidad/ })).toBeVisible();
-    await expect(page.getByRole('banner')).toContainText(nombreCompleto);
+    await expect(page.getByRole('heading', { name: 'Inicio', level: 1 })).toBeVisible();
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Principal' })
+        // U2 (F4.5): BarraLateral ya no agrega ", barra lateral" al nombre accesible (el nav "Principal" ya lo distingue)
+        .getByRole('link', { name: 'Libro Diario' }),
+    ).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Principal' })).toContainText(nombreCompleto);
     await verificarSinTokensEnAlmacenamiento();
   });
 
