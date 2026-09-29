@@ -74,7 +74,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     return (
       <div role="alert" className="mx-auto mt-24 max-w-md space-y-4 p-6 text-center">
         <h1 className="text-xl font-semibold">No pudimos cargar tu espacio de trabajo</h1>
-        <p className="text-sm text-neutral-600">Verifica tu conexión e inténtalo de nuevo.</p>
+        <p className="text-sm text-[var(--color-texto-suave)]">Verifica tu conexión e inténtalo de nuevo.</p>
         <Button
           onClick={() => {
             setUsuario(null);
@@ -89,7 +89,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   }
   if (!valor) {
     return (
-      <p role="status" className="mt-24 text-center text-sm text-neutral-600">
+      <p role="status" className="mt-24 text-center text-sm text-[var(--color-texto-suave)]">
         Cargando tu espacio de trabajo…
       </p>
     );

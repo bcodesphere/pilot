@@ -269,7 +269,7 @@ export const getCrearCuentaContableUrl = () => {
 }
 
 /**
- * Crea una cuenta del catálogo. La cuenta padre no se envía: se deduce del código, porque el código del padre es prefijo del de la hija (ADR-035). La clase es el primer dígito del código; la naturaleza por defecto sale de la clase (deudora en 1 y 4, acreedora en 2, 3 y 5) y se puede indicar otra para cuentas complementarias. Rol mínimo: contador.
+ * Crea una cuenta del catálogo. La cuenta padre no se envía: se deduce del código, porque el código del padre es prefijo del de la hija (ADR-035). La clase es el primer dígito del código; la naturaleza no se envía, siempre se deriva de la cuenta padre, o de la clase en el nivel 1 (deudora en 1 y 4, acreedora en 2, 3 y 5, ADR-042). Rol mínimo: contador.
  * @summary Crea una cuenta contable
  */
 export const crearCuentaContable = async (nuevaCuentaContable: NuevaCuentaContable, options?: Parameters<typeof clienteHttp>[1]): Promise<crearCuentaContableResponse> => {
@@ -588,7 +588,7 @@ export const getActualizarCuentaContableUrl = (cuentaId: string,) => {
 }
 
 /**
- * Cambia el código, el nombre, la naturaleza o el estado activa de una cuenta; solo se envían los campos a cambiar. Exige If-Match con el ETag leído (concurrencia optimista) y devuelve el nuevo ETag. El código no puede cambiarse si la cuenta tiene movimientos (CON-011) y una cuenta con saldo distinto de cero no puede desactivarse (CON-012). Si la cuenta está en uso por la configuración contable o por una regla activa, no se puede desactivar ni dejar de ser de detalle (CON-016). Rol mínimo: contador.
+ * Cambia el código, el nombre o el estado activa de una cuenta; solo se envían los campos a cambiar. La naturaleza no se edita: es de solo lectura, derivada de la cuenta padre o de la clase (ADR-042). Exige If-Match con el ETag leído (concurrencia optimista) y devuelve el nuevo ETag. El código no puede cambiarse si la cuenta tiene movimientos (CON-011) y una cuenta con saldo distinto de cero no puede desactivarse (CON-012). Si la cuenta está en uso por la configuración contable o por una regla activa, no se puede desactivar ni dejar de ser de detalle (CON-016). Una cuenta del sistema (catálogo base) no se edita (CON-021, ADR-042). Rol mínimo: contador.
  * @summary Edita una cuenta contable
  */
 export const actualizarCuentaContable = async (cuentaId: string,

@@ -8,7 +8,6 @@ import { Button } from '@/compartido/ui/button';
 import { Dialogo } from '@/compartido/ui/dialog';
 import { Input } from '@/compartido/ui/input';
 import { Label } from '@/compartido/ui/label';
-import { Select } from '@/compartido/ui/select';
 import { esErrorApi } from '@/nucleo/http/errorApi';
 import { campoDeError, mensajeContabilidad } from '../mensajesContabilidad';
 import { deducirPadre, LONGITUDES_CODIGO } from './arbol';
@@ -18,6 +17,8 @@ import { esquemaNuevaCuenta, type ValoresNuevaCuenta } from './esquemaCuenta';
 interface Props {
   /** Catálogo cargado, para la vista previa del padre. */
   cuentas: readonly CuentaContable[];
+  /** Código inicial del campo (p. ej. el de la cuenta padre, desde "Agregar subcuenta"); vacío por defecto. */
+  codigoInicial?: string;
   /** Cierra el diálogo sin guardar. */
   onCerrar: () => void;
   /** Se invoca tras crear la cuenta (con 201). */
@@ -45,22 +46,21 @@ function textoPadre(codigo: string, cuentas: readonly CuentaContable[]): string 
 }
 
 /**
- * Diálogo "Nueva cuenta" (rol contador): código, nombre y naturaleza opcional.
- * `POST /contabilidad/cuentas`; los errores `CON-010`, `CON-011`, `CON-014` y `CON-015` se muestran junto al código.
+ * Diálogo "Nueva cuenta" (rol contador): código y nombre; la naturaleza no se pide (ADR-042: siempre
+ * derivada de la cuenta padre o de la clase). `POST /contabilidad/cuentas`; los errores `CON-010`,
+ * `CON-011`, `CON-014` y `CON-015` se muestran junto al código.
  */
-export function DialogoNuevaCuenta({ cuentas, onCerrar, onCreada }: Props) {
+export function DialogoNuevaCuenta({ cuentas, codigoInicial, onCerrar, onCreada }: Props) {
   const clienteConsultas = useQueryClient();
   const formulario = useForm<ValoresNuevaCuenta>({
     resolver: zodResolver(esquemaNuevaCuenta),
-    defaultValues: { codigo: '', nombre: '', naturaleza: 'SEGUN_CLASE' },
+    defaultValues: { codigo: codigoInicial ?? '', nombre: '' },
   });
   const codigo = useWatch({ control: formulario.control, name: 'codigo' });
 
   const crear = useMutation({
     mutationFn: (v: ValoresNuevaCuenta) => {
-      // La naturaleza solo se envía si la persona la eligió; si no, el backend usa la de la clase
       const cuerpo: NuevaCuentaContable = { codigo: v.codigo, nombre: v.nombre };
-      if (v.naturaleza !== 'SEGUN_CLASE') cuerpo.naturaleza = v.naturaleza;
       return crearCuentaContable(cuerpo);
     },
     onSuccess: async () => {
@@ -90,7 +90,11 @@ export function DialogoNuevaCuenta({ cuentas, onCerrar, onCreada }: Props) {
   const padre = textoPadre(codigo, cuentas);
 
   return (
-    <Dialogo titulo="Nueva cuenta" onCerrar={onCerrar} cerrable={!crear.isPending}>
+    <Dialogo
+      titulo={codigoInicial ? 'Agregar subcuenta' : 'Nueva cuenta'}
+      onCerrar={onCerrar}
+      cerrable={!crear.isPending}
+    >
       <form noValidate className="space-y-3" onSubmit={formulario.handleSubmit((v) => crear.mutate(v))}>
         <div className="space-y-1">
           <Label htmlFor="cuenta-codigo">Código</Label>
@@ -101,10 +105,10 @@ export function DialogoNuevaCuenta({ cuentas, onCerrar, onCreada }: Props) {
             aria-describedby="cuenta-codigo-ayuda cuenta-codigo-error"
             {...formulario.register('codigo')}
           />
-          <p id="cuenta-codigo-ayuda" className="min-h-4 text-xs text-neutral-600">
+          <p id="cuenta-codigo-ayuda" className="min-h-4 text-xs text-[var(--color-texto-suave)]">
             {padre}
           </p>
-          <p id="cuenta-codigo-error" role="alert" className="min-h-4 text-sm text-red-700">
+          <p id="cuenta-codigo-error" role="alert" className="min-h-4 text-sm text-[var(--color-error)]">
             {formulario.formState.errors.codigo?.message}
           </p>
         </div>
@@ -117,18 +121,9 @@ export function DialogoNuevaCuenta({ cuentas, onCerrar, onCreada }: Props) {
             aria-describedby="cuenta-nombre-error"
             {...formulario.register('nombre')}
           />
-          <p id="cuenta-nombre-error" role="alert" className="min-h-4 text-sm text-red-700">
+          <p id="cuenta-nombre-error" role="alert" className="min-h-4 text-sm text-[var(--color-error)]">
             {formulario.formState.errors.nombre?.message}
           </p>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="cuenta-naturaleza">Naturaleza</Label>
-          <Select id="cuenta-naturaleza" {...formulario.register('naturaleza')}>
-            <option value="SEGUN_CLASE">Según la clase</option>
-            <option value="DEUDORA">Deudora</option>
-            <option value="ACREEDORA">Acreedora</option>
-          </Select>
         </div>
 
         {errorGeneral && <Alert variant="error">{errorGeneral}</Alert>}

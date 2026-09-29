@@ -27,17 +27,20 @@ export function LayoutReportes() {
 
   return (
     <div className="space-y-4">
-      <nav aria-label="Reportes de Contabilidad" className="flex flex-wrap gap-1 border-b border-neutral-200">
+      <nav
+        aria-label="Reportes de Contabilidad"
+        className="flex flex-wrap gap-1 border-b border-[var(--color-borde)]"
+      >
         {subsecciones.map((s) => (
           <NavLink
             key={s.ruta}
             to={s.ruta}
             className={({ isActive }) =>
               cn(
-                '-mb-px border-b-2 px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-neutral-900',
+                '-mb-px border-b-2 px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primario)]',
                 isActive
-                  ? 'border-neutral-900 text-neutral-900'
-                  : 'border-transparent text-neutral-600 hover:text-neutral-900',
+                  ? 'border-[var(--color-primario)] text-[var(--color-primario)]'
+                  : 'border-transparent text-[var(--color-texto-suave)] hover:text-[var(--color-texto)]',
               )
             }
           >

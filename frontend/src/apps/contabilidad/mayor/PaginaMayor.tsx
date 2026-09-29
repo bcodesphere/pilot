@@ -2,13 +2,19 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { exportarLibroMayor } from '@/api/exportaciones-contables/exportaciones-contables';
 import { useObtenerLibroMayor } from '@/api/reportes-contables/reportes-contables';
 import type { LibroMayor, MovimientoMayor } from '@/api/modelos';
+import { BarraFiltrosReporte } from '@/compartido/dominio/BarraFiltrosReporte';
+import { CodigoCuenta } from '@/compartido/dominio/CodigoCuenta';
+import { EstadoVacio } from '@/compartido/dominio/EstadoVacio';
+import { EtiquetaSaldo } from '@/compartido/dominio/EtiquetaSaldo';
+import { MenuExportar } from '@/compartido/dominio/MenuExportar';
+import { Monto } from '@/compartido/dominio/Monto';
+import { TablaContable, type ColumnaContable } from '@/compartido/dominio/TablaContable';
 import type { RangoFechas } from '@/compartido/formato/rangoPeriodo';
-import { formatearMoneda } from '@/compartido/dinero';
 import { Alert } from '@/compartido/ui/alert';
 import { Label } from '@/compartido/ui/label';
-import { BotonesExportacion } from '../compartido/BotonesExportacion';
-import { FiltroPeriodo } from '../compartido/FiltroPeriodo';
-import { TextoSaldo } from '../compartido/PresentacionSaldo';
+import { TableCell, TableRow } from '@/compartido/ui/table';
+import { EncabezadoInforme } from '../compartido/EncabezadoInforme';
+import { descargarExportacion } from '../compartido/exportarReporte';
 import { useCuentas } from '../compartido/useCuentas';
 import { numeroAsiento } from '../libro-diario/etiquetas';
 import { validarRangoPeriodo } from '../mensajesContabilidad';
@@ -65,17 +71,27 @@ export function PaginaMayor() {
           />
         </div>
       </div>
-      <FiltroPeriodo
-        idPrefijo="mayor"
-        desde={desde}
-        hasta={hasta}
-        onCambiar={cambiarPeriodo}
+      <BarraFiltrosReporte
+        periodo={{ desde, hasta }}
+        onPeriodo={cambiarPeriodo}
         error={errorPeriodo}
+        exportar={
+          <MenuExportar
+            deshabilitado={!listoParaConsultar}
+            onExportar={(formato) =>
+              descargarExportacion(
+                () => exportarLibroMayor({ formato, cuentaId, desde, hasta }),
+                'mayor',
+                formato,
+              )
+            }
+          />
+        }
       />
 
       {consultaCuentas.isError && <Alert variant="error">No pudimos cargar el catálogo de cuentas.</Alert>}
       {!listoParaConsultar && (
-        <p role="status" className="text-sm text-neutral-600">
+        <p role="status" className="text-sm text-[var(--color-texto-suave)]">
           Elige una cuenta y un período para ver el Mayor.
         </p>
       )}
@@ -93,115 +109,90 @@ export function PaginaMayor() {
   );
 }
 
+/** Columnas del Mayor sobre un movimiento (el saldo inicial y el final van en el pie, no como fila). */
+const columnas: ColumnaContable<MovimientoMayor>[] = [
+  { clave: 'fecha', encabezado: 'Fecha', celda: (m) => m.fecha },
+  {
+    clave: 'asiento',
+    encabezado: 'Asiento',
+    celda: (m) => (
+      <Link to={`/contabilidad/libro-diario/${m.asientoId}`} className="hover:underline">
+        {numeroAsiento(m)}
+      </Link>
+    ),
+  },
+  {
+    clave: 'cuenta',
+    encabezado: 'Cuenta',
+    celda: (m) => <CodigoCuenta codigo={m.cuenta.codigo} nombre={m.cuenta.nombre} />,
+  },
+  { clave: 'concepto', encabezado: 'Concepto', celda: (m) => m.descripcion ?? m.concepto },
+  { clave: 'debe', encabezado: 'Debe', alineacion: 'derecha', celda: (m) => <Monto valor={m.debe} /> },
+  { clave: 'haber', encabezado: 'Haber', alineacion: 'derecha', celda: (m) => <Monto valor={m.haber} /> },
+  {
+    clave: 'saldo',
+    encabezado: 'Saldo',
+    alineacion: 'derecha',
+    celda: (m) => <EtiquetaSaldo saldo={m.saldo} />,
+  },
+];
+
 /** Cuerpo del Mayor: pide el reporte y dibuja la tabla, o el estado de carga/error. */
 function ContenidoMayor({ cuentaId, desde, hasta }: { cuentaId: string; desde: string; hasta: string }) {
   const consulta = useObtenerLibroMayor({ cuentaId, desde, hasta });
   const mayor = consulta.data?.data as LibroMayor | undefined;
 
-  if (consulta.isPending) {
-    return (
-      <p role="status" className="text-neutral-600">
-        Cargando…
-      </p>
-    );
-  }
-  if (consulta.isError || !mayor) {
+  if (consulta.isError) {
     return <Alert variant="error">No pudimos cargar el Libro Mayor.</Alert>;
   }
 
   return (
     <div className="space-y-4">
-      <BotonesExportacion
-        nombreArchivo={`mayor-${mayor.cuenta.codigo}`}
-        filtrosCompletos
-        exportar={(formato) => exportarLibroMayor({ formato, cuentaId, desde, hasta })}
+      {mayor && <EncabezadoInforme periodo={`Del ${mayor.desde} al ${mayor.hasta}`} />}
+      {mayor && (
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="text-base font-semibold text-[var(--color-texto)]">
+            <CodigoCuenta codigo={mayor.cuenta.codigo} nombre={mayor.cuenta.nombre} />
+          </h3>
+          <p className="text-sm text-[var(--color-texto-suave)]">
+            Saldo inicial: <EtiquetaSaldo saldo={mayor.saldoInicial} />
+          </p>
+        </div>
+      )}
+      <TablaContable
+        columnas={columnas}
+        filas={mayor?.movimientos ?? []}
+        cargando={consulta.isPending}
+        obtenerClave={(m, i) => `${m.asientoId}-${i}`}
+        vacio={
+          <EstadoVacio
+            titulo="Sin movimientos en este período"
+            descripcion="Ajusta el rango de fechas o elige otra cuenta."
+          />
+        }
+        totales={
+          mayor && (
+            <>
+              <TableRow>
+                <TableCell colSpan={4}>Totales</TableCell>
+                <TableCell className="text-right">
+                  <Monto valor={mayor.totalDebe} />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Monto valor={mayor.totalHaber} />
+                </TableCell>
+                <TableCell />
+              </TableRow>
+              <TableRow>
+                <TableCell colSpan={6}>Saldo final</TableCell>
+                <TableCell className="text-right">
+                  <EtiquetaSaldo saldo={mayor.saldoFinal} />
+                </TableCell>
+              </TableRow>
+            </>
+          )
+        }
       />
-      <div className="overflow-x-auto">
-        <table
-          aria-label={`Movimientos de ${mayor.cuenta.codigo} — ${mayor.cuenta.nombre}`}
-          className="w-full text-sm"
-        >
-          <thead>
-            <tr className="border-b border-neutral-300 text-left">
-              <th scope="col" className="py-1 pr-2">
-                Fecha
-              </th>
-              <th scope="col" className="px-2 py-1">
-                Asiento
-              </th>
-              <th scope="col" className="px-2 py-1">
-                Cuenta
-              </th>
-              <th scope="col" className="px-2 py-1">
-                Concepto
-              </th>
-              <th scope="col" className="px-2 py-1 text-right">
-                Debe
-              </th>
-              <th scope="col" className="px-2 py-1 text-right">
-                Haber
-              </th>
-              <th scope="col" className="py-1 pl-2 text-right">
-                Saldo
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-neutral-200 bg-neutral-50 font-medium">
-              <td colSpan={6} className="py-1 pr-2">
-                Saldo inicial
-              </td>
-              <td className="py-1 pl-2 text-right">
-                <TextoSaldo saldo={mayor.saldoInicial} />
-              </td>
-            </tr>
-            {mayor.movimientos.length === 0 && (
-              <tr>
-                <td colSpan={7} className="py-3">
-                  <p role="status" className="text-neutral-600">
-                    No hay movimientos en este período.
-                  </p>
-                </td>
-              </tr>
-            )}
-            {mayor.movimientos.map((m: MovimientoMayor, i: number) => (
-              <tr key={`${m.asientoId}-${i}`} className="border-b border-neutral-100">
-                <td className="py-1 pr-2">{m.fecha}</td>
-                <td className="px-2 py-1">
-                  <Link to={`/contabilidad/libro-diario/${m.asientoId}`} className="underline">
-                    {numeroAsiento(m)}
-                  </Link>
-                </td>
-                <td className="px-2 py-1">
-                  <span className="font-mono">{m.cuenta.codigo}</span> — {m.cuenta.nombre}
-                </td>
-                <td className="px-2 py-1">{m.descripcion ?? m.concepto}</td>
-                <td className="px-2 py-1 text-right tabular-nums">{formatearMoneda(m.debe)}</td>
-                <td className="px-2 py-1 text-right tabular-nums">{formatearMoneda(m.haber)}</td>
-                <td className="py-1 pl-2 text-right">
-                  <TextoSaldo saldo={m.saldo} />
-                </td>
-              </tr>
-            ))}
-            <tr className="border-t-2 border-neutral-400 font-medium">
-              <td colSpan={4} className="py-1 pr-2">
-                Totales
-              </td>
-              <td className="px-2 py-1 text-right tabular-nums">{formatearMoneda(mayor.totalDebe)}</td>
-              <td className="px-2 py-1 text-right tabular-nums">{formatearMoneda(mayor.totalHaber)}</td>
-              <td className="py-1 pl-2 text-right" />
-            </tr>
-            <tr className="bg-neutral-50 font-medium">
-              <td colSpan={6} className="py-1 pr-2">
-                Saldo final
-              </td>
-              <td className="py-1 pl-2 text-right">
-                <TextoSaldo saldo={mayor.saldoFinal} />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

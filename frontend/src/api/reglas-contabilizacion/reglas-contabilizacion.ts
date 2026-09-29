@@ -117,7 +117,7 @@ export const getListarReglasContabilizacionUrl = (params?: ListarReglasContabili
 }
 
 /**
- * Devuelve las reglas de contabilización de la empresa, sin paginar, ordenadas por tipo de operación, categoría y código. El filtro tipoOperacion es opcional. Cada regla trae su version, que es el valor que se envía entre comillas como If-Match al editarla. Rol mínimo: auditor.
+ * Devuelve las reglas de contabilización de la empresa, sin paginar, ordenadas por tipo de operación, categoría y código. El filtro tipoOperacion acepta los diez tipos guiados y CIERRE_INGRESOS_DIARIO (ADR-041) y es opcional. Cada regla trae su version, que es el valor que se envía entre comillas como If-Match al editarla, y su prefijoPermitido de solo lectura (ADR-042). Rol mínimo: auditor.
  * @summary Lista las reglas de contabilización
  */
 export const listarReglasContabilizacion = async (params?: ListarReglasContabilizacionParams, options?: Parameters<typeof clienteHttp>[1]): Promise<listarReglasContabilizacionResponse> => {
@@ -277,7 +277,7 @@ export const getActualizarReglaContabilizacionUrl = (reglaId: string,) => {
 }
 
 /**
- * Reemplaza la cuenta y el estado de una regla; el tipo de operación, la categoría y el código no cambian. No existe GET individual, así que If-Match es la version de la regla (leída del listado) entre comillas, con el mismo formato del ETag; la respuesta devuelve el nuevo ETag. Una regla activa exige una cuenta (PLT-002 si activa es true y cuentaId es nulo, ADR-035); la cuenta debe existir, estar activa y ser de detalle (CON-006). Rol mínimo: contador.
+ * Reemplaza la cuenta y el estado de una regla; el tipo de operación, la categoría, el código y el prefijoPermitido no cambian. No existe GET individual, así que If-Match es la version de la regla (leída del listado) entre comillas, con el mismo formato del ETag; la respuesta devuelve el nuevo ETag. Una regla activa exige una cuenta (PLT-002 si activa es true y cuentaId es nulo, ADR-035); la cuenta debe existir, estar activa, ser de detalle (CON-006) y tener un código que empiece por el prefijoPermitido de la regla (CON-022, ADR-042). Rol mínimo: contador.
  * @summary Reemplaza una regla de contabilización
  */
 export const actualizarReglaContabilizacion = async (reglaId: string,

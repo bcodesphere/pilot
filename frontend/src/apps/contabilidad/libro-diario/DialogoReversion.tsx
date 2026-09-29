@@ -76,7 +76,7 @@ export function DialogoReversion({ asiento, onCerrar }: Props) {
       onCerrar={onCerrar}
       cerrable={!revertir.isPending}
     >
-      <p className="text-sm text-neutral-600">
+      <p className="text-sm text-[var(--color-texto-suave)]">
         Se creará un asiento con el Debe y el Haber intercambiados. El asiento original no se modifica salvo
         por pasar a «Revertido».
       </p>
@@ -93,7 +93,7 @@ export function DialogoReversion({ asiento, onCerrar }: Props) {
           onChange={(e) => setFecha(e.target.value)}
         />
         {errorLocal && (
-          <p id="error-reversion-fecha" className="text-sm text-red-700">
+          <p id="error-reversion-fecha" className="text-sm text-[var(--color-error)]">
             {errorLocal}
           </p>
         )}

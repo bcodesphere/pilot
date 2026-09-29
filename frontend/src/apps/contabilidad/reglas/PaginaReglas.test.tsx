@@ -30,7 +30,7 @@ const base =
 /** Fila (elemento de lista) de una regla, por su etiqueta. */
 const fila = async (etiqueta: string) => (await screen.findByText(etiqueta)).closest('li')!;
 
-describe('pantalla Reglas', () => {
+describe('pestaña Reglas de Configuración', () => {
   // Regla ADR-020: dos grupos con etiquetas en español, la cuenta o "Sin cuenta" y el estado
   it('lista los grupos "Conceptos de ingreso" y "Formas de pago" con su cuenta y estado', async () => {
     montarContabilidad('/contabilidad/reglas', 'contador', base());
@@ -165,7 +165,7 @@ describe('pantalla Reglas', () => {
   });
 });
 
-describe('pantalla Reglas: estado vacío', () => {
+describe('pestaña Reglas de Configuración: estado vacío', () => {
   // Caso: consulta exitosa sin reglas; se avisa y no se dibujan grupos vacíos ni el aviso de OTRO
   it('con cero reglas muestra el estado vacío, sin grupos ni aviso de "Otro"', async () => {
     montarContabilidad(

@@ -67,7 +67,8 @@ describe('Estado de Situación Financiera', () => {
       return undefined;
     });
     await screen.findByText(LEYENDA_ESTADO_GESTION);
-    await userEvent.click(screen.getByRole('button', { name: 'PDF' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'PDF' }));
     // Corrección 1 (F4-05): se comprueban TODOS los filtros vigentes (fechaCorte, nivel e incluirCeros)
     const exportaciones = llamadas(
       fetchMock,

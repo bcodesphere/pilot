@@ -1,24 +1,30 @@
-import { useState } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useListarAsientos } from '@/api/asientos/asientos';
+import { useListarAsientos, useObtenerAsiento } from '@/api/asientos/asientos';
 import { exportarLibroDiario } from '@/api/exportaciones-contables/exportaciones-contables';
 import type {
+  Asiento,
   EstadoAsiento,
   ListarAsientosParams,
   OrigenAsiento,
   PaginaAsientos,
   ResumenAsiento,
 } from '@/api/modelos';
-import { formatearMoneda } from '@/compartido/dinero';
-import { Alert } from '@/compartido/ui/alert';
+import { BarraFiltrosReporte } from '@/compartido/dominio/BarraFiltrosReporte';
+import { EstadoVacio } from '@/compartido/dominio/EstadoVacio';
+import { MenuExportar } from '@/compartido/dominio/MenuExportar';
+import { Monto } from '@/compartido/dominio/Monto';
 import { Button } from '@/compartido/ui/button';
-import { Input } from '@/compartido/ui/input';
 import { Label } from '@/compartido/ui/label';
 import { Select } from '@/compartido/ui/select';
-import { BotonesExportacion } from '../compartido/BotonesExportacion';
+import { Skeleton } from '@/compartido/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/compartido/ui/table';
+import { EncabezadoInforme } from '../compartido/EncabezadoInforme';
+import { descargarExportacion } from '../compartido/exportarReporte';
 import { usePermisosContabilidad } from '../usePermisosContabilidad';
-import { ETIQUETA_ESTADO, ETIQUETA_ORIGEN, numeroAsiento } from './etiquetas';
-import { InsigniaEstado } from './presentacion';
+import { ETIQUETA_ESTADO, ETIQUETA_ORIGEN, filasDeAsiento, numeroAsiento } from './etiquetas';
+import { InsigniaEstado, TablaLineas } from './presentacion';
 
 /** Asientos pedidos por página (paginación por cursor, CLAUDE.md §13). */
 const TAMANO_PAGINA = 50;
@@ -35,6 +41,10 @@ interface Filtros {
  * Pantalla "Libro Diario" (`/contabilidad/libro-diario`): listado de asientos con filtros por fecha, origen y
  * estado y paginación por cursor con "Cargar más". El `auditor` la ve en solo lectura; el contador además
  * puede abrir el formulario de "Nuevo asiento" (CLAUDE.md §10.5, §13).
+ *
+ * La lista usa las tablas del sistema de diseño (`compartido/ui/table`, ADR-043) con filas expandibles a
+ * las líneas del asiento; no usa `TablaContable` (que exige un arreglo `filas` plano) porque la paginación
+ * por cursor acumula páginas independientes — ver la nota en `Listado` más abajo.
  */
 export function PaginaLibroDiario() {
   const { puedeEscribir } = usePermisosContabilidad();
@@ -52,6 +62,7 @@ export function PaginaLibroDiario() {
     ...(filtros.origen ? { origen: filtros.origen } : {}),
     ...(filtros.estado ? { estado: filtros.estado } : {}),
   };
+  const filtrosCompletos = !!filtros.desde && !!filtros.hasta;
 
   return (
     <section aria-labelledby="titulo-libro-diario" className="space-y-4">
@@ -60,116 +71,119 @@ export function PaginaLibroDiario() {
           Libro Diario
         </h2>
         {puedeEscribir && (
-          <Link
-            to="/contabilidad/libro-diario/nuevo"
-            className="inline-flex h-9 items-center rounded-md bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-800"
-          >
-            Nuevo asiento
-          </Link>
+          <Button asChild>
+            <Link to="/contabilidad/libro-diario/nuevo">Nuevo asiento</Link>
+          </Button>
         )}
       </div>
 
-      {/* Filtros: fecha contable (ambos extremos incluidos), origen y estado */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="filtro-desde">Desde</Label>
-          <Input
-            id="filtro-desde"
-            type="date"
-            value={filtros.desde}
-            onChange={(e) => cambiar('desde', e.target.value)}
+      <BarraFiltrosReporte
+        periodo={{ desde: filtros.desde, hasta: filtros.hasta }}
+        onPeriodo={(rango) => setFiltros((p) => ({ ...p, ...rango }))}
+        extras={
+          <>
+            <div className="space-y-1">
+              <Label htmlFor="filtro-origen">Origen</Label>
+              <Select
+                id="filtro-origen"
+                value={filtros.origen}
+                onChange={(e) => cambiar('origen', e.target.value as Filtros['origen'])}
+              >
+                <option value="">Todos</option>
+                {/* "Operación" (asientos del motor de operaciones guiadas, ADR-041) se agrega cuando el
+                    contrato de C1 publique ese origen en OrigenAsiento; hasta entonces no se ofrece un
+                    valor que la API todavía no acepta. */}
+                {(Object.keys(ETIQUETA_ORIGEN) as OrigenAsiento[]).map((o) => (
+                  <option key={o} value={o}>
+                    {ETIQUETA_ORIGEN[o]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="filtro-estado">Estado</Label>
+              <Select
+                id="filtro-estado"
+                value={filtros.estado}
+                onChange={(e) => cambiar('estado', e.target.value as Filtros['estado'])}
+              >
+                <option value="">Todos</option>
+                {(Object.keys(ETIQUETA_ESTADO) as EstadoAsiento[]).map((e) => (
+                  <option key={e} value={e}>
+                    {ETIQUETA_ESTADO[e]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </>
+        }
+        exportar={
+          // La exportación exige desde/hasta aunque el listado en pantalla no los requiera (ADR-038)
+          <MenuExportar
+            deshabilitado={!filtrosCompletos}
+            onExportar={(formato) =>
+              descargarExportacion(
+                () =>
+                  exportarLibroDiario({
+                    formato,
+                    desde: filtros.desde,
+                    hasta: filtros.hasta,
+                    ...(filtros.origen ? { origen: filtros.origen } : {}),
+                    ...(filtros.estado ? { estado: filtros.estado } : {}),
+                  }),
+                'libro-diario',
+                formato,
+              )
+            }
           />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="filtro-hasta">Hasta</Label>
-          <Input
-            id="filtro-hasta"
-            type="date"
-            value={filtros.hasta}
-            onChange={(e) => cambiar('hasta', e.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="filtro-origen">Origen</Label>
-          <Select
-            id="filtro-origen"
-            value={filtros.origen}
-            onChange={(e) => cambiar('origen', e.target.value as Filtros['origen'])}
-          >
-            <option value="">Todos</option>
-            {(Object.keys(ETIQUETA_ORIGEN) as OrigenAsiento[]).map((o) => (
-              <option key={o} value={o}>
-                {ETIQUETA_ORIGEN[o]}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="filtro-estado">Estado</Label>
-          <Select
-            id="filtro-estado"
-            value={filtros.estado}
-            onChange={(e) => cambiar('estado', e.target.value as Filtros['estado'])}
-          >
-            <option value="">Todos</option>
-            {(Object.keys(ETIQUETA_ESTADO) as EstadoAsiento[]).map((e) => (
-              <option key={e} value={e}>
-                {ETIQUETA_ESTADO[e]}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </div>
-
-      {/* La exportación exige desde/hasta aunque el listado en pantalla no los requiera (ADR-038) */}
-      <BotonesExportacion
-        nombreArchivo="libro-diario"
-        filtrosCompletos={!!filtros.desde && !!filtros.hasta}
-        exportar={(formato) =>
-          exportarLibroDiario({
-            formato,
-            desde: filtros.desde,
-            hasta: filtros.hasta,
-            ...(filtros.origen ? { origen: filtros.origen } : {}),
-            ...(filtros.estado ? { estado: filtros.estado } : {}),
-          })
         }
       />
+      {filtrosCompletos && <EncabezadoInforme periodo={`Del ${filtros.desde} al ${filtros.hasta}`} />}
 
-      <div className="overflow-x-auto">
-        <table aria-label="Asientos del Libro Diario" className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-neutral-300 text-left">
-              <th scope="col" className="py-1 pr-2">
-                N.º
-              </th>
-              <th scope="col" className="px-2 py-1">
-                Fecha
-              </th>
-              <th scope="col" className="px-2 py-1">
-                Concepto
-              </th>
-              <th scope="col" className="px-2 py-1">
-                Origen
-              </th>
-              <th scope="col" className="px-2 py-1">
-                Estado
-              </th>
-              <th scope="col" className="px-2 py-1 text-right">
-                Total Debe
-              </th>
-              <th scope="col" className="py-1 pl-2 text-right">
-                Total Haber
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* La clave con los filtros reinicia la paginación cuando cambian */}
-            <TramoAsientos key={JSON.stringify(base)} params={base} primero />
-          </tbody>
-        </table>
-      </div>
+      {/* La clave con los filtros reinicia la paginación (y las líneas expandidas) cuando cambian */}
+      <Listado key={JSON.stringify(base)} base={base} />
     </section>
+  );
+}
+
+/**
+ * Acumula las páginas ya pedidas del listado. Cada página se pide con su propio cursor; no se usa
+ * `TablaContable` (pensada para un arreglo `filas` ya completo) porque aquí las páginas se acumulan de
+ * forma incremental con "Cargar más", conservando las filas expandidas de las páginas anteriores.
+ */
+function Listado({ base }: { base: ListarAsientosParams }) {
+  const [cursoresExtra, setCursoresExtra] = useState<string[]>([]);
+  const cursores = [undefined, ...cursoresExtra];
+
+  return (
+    <div className="overflow-x-auto">
+      <Table aria-label="Asientos del Libro Diario">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-8" />
+            <TableHead>N.º</TableHead>
+            <TableHead>Fecha</TableHead>
+            <TableHead>Concepto</TableHead>
+            <TableHead>Origen</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead className="text-right">Total Debe</TableHead>
+            <TableHead className="text-right">Total Haber</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {cursores.map((cursor, i) => (
+            <TramoAsientos
+              key={cursor ?? 'primera'}
+              params={base}
+              cursor={cursor}
+              primero={i === 0}
+              ultimo={i === cursores.length - 1}
+              onCargarMas={(siguienteCursor) => setCursoresExtra((previo) => [...previo, siguienteCursor])}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
 
@@ -181,84 +195,154 @@ interface PropsTramo {
   cursor?: string;
   /** `true` en la primera página: solo ella muestra el estado de carga, de error y el vacío. */
   primero?: boolean;
+  /** `true` en la última página ya pedida: solo ella ofrece "Cargar más" si hay una página siguiente. */
+  ultimo?: boolean;
+  /** Pide la página siguiente cuando el usuario pulsa "Cargar más". */
+  onCargarMas: (cursor: string) => void;
 }
 
 /**
- * Una página del listado: pide sus asientos con su cursor y dibuja sus filas. Si hay más resultados ofrece
- * "Cargar más", que monta el tramo siguiente debajo (las páginas ya cargadas se conservan).
+ * Una página del listado: pide sus asientos con su cursor y dibuja sus filas, cada una expandible a sus
+ * líneas. Si es la última página cargada y hay más resultados, ofrece "Cargar más".
  */
-function TramoAsientos({ params, cursor, primero }: PropsTramo) {
-  const [verMas, setVerMas] = useState(false);
+function TramoAsientos({ params, cursor, primero, ultimo, onCargarMas }: PropsTramo) {
   const consulta = useListarAsientos({ ...params, ...(cursor ? { cursor } : {}) });
   const pagina = consulta.data?.data as PaginaAsientos | undefined;
 
   if (consulta.isPending) {
+    if (!primero) return null;
     return (
-      <tr>
-        <td colSpan={7} className="py-3">
-          <p role="status" className="text-neutral-600">
-            Cargando…
-          </p>
-        </td>
-      </tr>
+      <TableRow>
+        <TableCell colSpan={8} className="py-3">
+          <span role="status" className="flex flex-col gap-2">
+            <span className="sr-only">Cargando…</span>
+            <Skeleton className="h-5 w-full" />
+            <Skeleton className="h-5 w-2/3" />
+          </span>
+        </TableCell>
+      </TableRow>
     );
   }
   if (consulta.isError || !pagina) {
+    if (!primero) return null;
     return (
-      <tr>
-        <td colSpan={7} className="py-3">
-          <Alert variant="error">No pudimos cargar el Libro Diario.</Alert>
-        </td>
-      </tr>
+      <TableRow>
+        <TableCell colSpan={8} className="py-3">
+          No pudimos cargar el Libro Diario.
+        </TableCell>
+      </TableRow>
     );
   }
   // Estado vacío de la primera página: ningún asiento cumple los filtros
   if (primero && pagina.elementos.length === 0) {
     return (
-      <tr>
-        <td colSpan={7} className="py-3">
-          <p role="status" className="text-neutral-600">
-            No hay asientos que coincidan con los filtros.
-          </p>
-        </td>
-      </tr>
+      <TableRow>
+        <TableCell colSpan={8} className="py-3">
+          <div role="status">
+            <EstadoVacio
+              titulo="Sin asientos que coincidan"
+              descripcion="No hay asientos que coincidan con los filtros."
+            />
+          </div>
+        </TableCell>
+      </TableRow>
     );
   }
 
   return (
     <>
       {pagina.elementos.map((a: ResumenAsiento) => (
-        <tr key={a.id} className="border-b border-neutral-100">
-          <td className="py-1 pr-2">
-            <Link
-              to={`/contabilidad/libro-diario/${a.id}`}
-              className="font-medium underline"
-              aria-label={`Asiento ${numeroAsiento(a)}`}
-            >
-              {numeroAsiento(a)}
-            </Link>
-          </td>
-          <td className="px-2 py-1">{a.fecha}</td>
-          <td className="px-2 py-1">{a.concepto}</td>
-          <td className="px-2 py-1">{ETIQUETA_ORIGEN[a.origenTipo]}</td>
-          <td className="px-2 py-1">
-            <InsigniaEstado estado={a.estado} />
-          </td>
-          <td className="px-2 py-1 text-right tabular-nums">{formatearMoneda(a.totalDebe)}</td>
-          <td className="py-1 pl-2 text-right tabular-nums">{formatearMoneda(a.totalHaber)}</td>
-        </tr>
+        <FilaAsiento key={a.id} asiento={a} />
       ))}
-      {/* "Cargar más" solo si el backend indica otra página y aún no se pidió */}
-      {pagina.siguienteCursor && !verMas && (
-        <tr>
-          <td colSpan={7} className="py-2">
-            <Button variant="outline" size="sm" onClick={() => setVerMas(true)}>
+      {/* "Cargar más" solo en la última página cargada, y solo si el backend indica otra página */}
+      {ultimo && pagina.siguienteCursor && (
+        <TableRow>
+          <TableCell colSpan={8} className="py-2">
+            <Button variant="outline" size="sm" onClick={() => onCargarMas(pagina.siguienteCursor!)}>
               Cargar más
             </Button>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
-      {pagina.siguienteCursor && verMas && <TramoAsientos params={params} cursor={pagina.siguienteCursor} />}
     </>
+  );
+}
+
+/** Fila de un asiento del listado, expandible a sus líneas (se piden solo al expandir). */
+function FilaAsiento({ asiento: a }: { asiento: ResumenAsiento }) {
+  const [abierta, setAbierta] = useState(false);
+  return (
+    <Fragment>
+      <TableRow data-selected={abierta || undefined}>
+        <TableCell>
+          <button
+            type="button"
+            aria-expanded={abierta}
+            aria-label={
+              abierta
+                ? `Ocultar las líneas del asiento ${numeroAsiento(a)}`
+                : `Ver las líneas del asiento ${numeroAsiento(a)}`
+            }
+            onClick={() => setAbierta((v) => !v)}
+            className="flex size-6 items-center justify-center rounded-[var(--radius-control)] text-[var(--color-texto-suave)] hover:bg-[var(--color-lienzo)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primario)]"
+          >
+            <ChevronRight aria-hidden="true" className={abierta ? 'size-4 rotate-90' : 'size-4'} />
+          </button>
+        </TableCell>
+        <TableCell>
+          <Link
+            to={`/contabilidad/libro-diario/${a.id}`}
+            className="font-medium hover:underline"
+            aria-label={`Asiento ${numeroAsiento(a)}`}
+          >
+            {numeroAsiento(a)}
+          </Link>
+        </TableCell>
+        <TableCell>{a.fecha}</TableCell>
+        <TableCell>{a.concepto}</TableCell>
+        <TableCell>{ETIQUETA_ORIGEN[a.origenTipo]}</TableCell>
+        <TableCell>
+          <InsigniaEstado estado={a.estado} />
+        </TableCell>
+        <TableCell className="text-right">
+          <Monto valor={a.totalDebe} />
+        </TableCell>
+        <TableCell className="text-right">
+          <Monto valor={a.totalHaber} />
+        </TableCell>
+      </TableRow>
+      {abierta && (
+        <TableRow>
+          <TableCell colSpan={8} className="bg-[var(--color-lienzo)]">
+            <DetalleLineasAsiento asientoId={a.id} />
+          </TableCell>
+        </TableRow>
+      )}
+    </Fragment>
+  );
+}
+
+/** Líneas de un asiento, pedidas solo mientras su fila está expandida. */
+function DetalleLineasAsiento({ asientoId }: { asientoId: string }) {
+  const consulta = useObtenerAsiento(asientoId);
+  const asientoCompleto = consulta.data?.data as Asiento | undefined;
+
+  if (consulta.isPending) {
+    return (
+      <span role="status" className="text-sm text-[var(--color-texto-suave)]">
+        Cargando las líneas…
+      </span>
+    );
+  }
+  if (consulta.isError || !asientoCompleto) {
+    return (
+      <span className="text-sm text-[var(--color-error)]">No pudimos cargar las líneas del asiento.</span>
+    );
+  }
+  return (
+    <TablaLineas
+      leyenda={`Líneas del asiento ${numeroAsiento(asientoCompleto)}`}
+      filas={filasDeAsiento(asientoCompleto)}
+    />
   );
 }

@@ -72,13 +72,13 @@ export function PaginaApiKeys() {
       </Alert>
 
       {lista.isPending && (
-        <p role="status" className="text-sm text-neutral-600">
+        <p role="status" className="text-sm text-[var(--color-texto-suave)]">
           Cargando API keys…
         </p>
       )}
       {lista.isError && <Alert variant="error">No pudimos cargar las API keys.</Alert>}
       {!lista.isPending && !lista.isError && claves.length === 0 && (
-        <p className="text-neutral-600">Aún no has creado ninguna API key.</p>
+        <p className="text-[var(--color-texto-suave)]">Aún no has creado ninguna API key.</p>
       )}
 
       {claves.length > 0 && (

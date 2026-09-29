@@ -264,7 +264,7 @@ export const getActualizarConfiguracionContableUrl = () => {
 }
 
 /**
- * Reemplaza la configuración completa (modo de precio y ambas cuentas de IVA). Exige If-Match con el ETag leído y devuelve el nuevo ETag. Cada cuenta debe existir en la empresa, estar activa y ser de detalle (CON-006). El cambio queda en la auditoría y aplica solo a los asientos futuros (CLAUDE.md §11.3). Rol mínimo: contador.
+ * Reemplaza el modo de precio por defecto. Las cuentas de IVA débito y crédito fiscal son fijas, desde la plantilla (21020101 y 11040101), y no se pueden cambiar por la API (ADR-042); la respuesta las sigue devolviendo, de solo lectura. Exige If-Match con el ETag leído y devuelve el nuevo ETag. El cambio queda en la auditoría y aplica solo a los asientos futuros (CLAUDE.md §11.3). Rol mínimo: contador.
  * @summary Reemplaza la configuración contable
  */
 export const actualizarConfiguracionContable = async (actualizacionConfiguracionContable: ActualizacionConfiguracionContable, options?: Parameters<typeof clienteHttp>[1]): Promise<actualizarConfiguracionContableResponse> => {

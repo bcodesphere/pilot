@@ -9,7 +9,7 @@ import type { TipoOperacionFiltroParameter } from './tipoOperacionFiltroParamete
 
 export type ListarReglasContabilizacionParams = {
 /**
- * Tipo de operación externa contabilizable; en 1.0 solo el cierre de ingresos diarios (ADR-017).
+ * Tipo de operación que contabiliza el motor único ContabilizarOperacion (ADR-041 §5.2): los diez tipos guiados más CIERRE_INGRESOS_DIARIO, que llega por el webhook de n8n y usa el mismo motor. Se usa en las reglas de contabilización, en el registro y en la consulta de operaciones guiadas.
  */
 tipoOperacion?: TipoOperacionFiltroParameter;
 };

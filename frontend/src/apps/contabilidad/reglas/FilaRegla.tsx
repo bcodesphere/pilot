@@ -102,7 +102,7 @@ export function FilaRegla({ regla, cuentas, puedeEscribir, onRecargar }: Props) 
               permitirQuitar
             />
           ) : (
-            <span className="text-sm text-neutral-600">Cargando cuentas…</span>
+            <span className="text-sm text-[var(--color-texto-suave)]">Cargando cuentas…</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -125,7 +125,7 @@ export function FilaRegla({ regla, cuentas, puedeEscribir, onRecargar }: Props) 
           {guardar.isPending ? 'Guardando…' : 'Guardar'}
         </Button>
       </div>
-      <p id={`${idBase}-error`} role="alert" className="min-h-4 text-sm text-red-700">
+      <p id={`${idBase}-error`} role="alert" className="min-h-4 text-sm text-[var(--color-error)]">
         {errorCuenta}
       </p>
       {conflicto && (

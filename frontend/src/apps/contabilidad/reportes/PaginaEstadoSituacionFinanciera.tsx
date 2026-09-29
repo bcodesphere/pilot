@@ -2,12 +2,14 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { exportarEstadoSituacionFinanciera } from '@/api/exportaciones-contables/exportaciones-contables';
 import type { EstadoSituacionFinanciera } from '@/api/modelos';
 import { useObtenerEstadoSituacionFinanciera } from '@/api/reportes-contables/reportes-contables';
-import { formatearMonedaConSigno } from '@/compartido/dinero';
+import { MenuExportar } from '@/compartido/dominio/MenuExportar';
+import { Monto } from '@/compartido/dominio/Monto';
 import { hoyElSalvador } from '@/compartido/formato/fecha';
 import { Alert } from '@/compartido/ui/alert';
 import { Input } from '@/compartido/ui/input';
 import { Label } from '@/compartido/ui/label';
-import { BotonesExportacion } from '../compartido/BotonesExportacion';
+import { EncabezadoInforme } from '../compartido/EncabezadoInforme';
+import { descargarExportacion } from '../compartido/exportarReporte';
 import { FiltroNivelCeros } from '../compartido/FiltroNivelCeros';
 import { TablaRubro } from './TablaRubro';
 
@@ -23,6 +25,9 @@ const DESDE_ORIGEN_MAYOR = '2000-01-01';
  * Pantalla "Estado de Situación Financiera" (`/contabilidad/reportes/situacion-financiera`): Activo,
  * Pasivo, Patrimonio, resultados de ejercicios anteriores y utilidad del ejercicio a una fecha de corte,
  * con la comprobación Activo = Pasivo + Patrimonio + resultados anteriores + utilidad (ADR-016, ADR-037).
+ *
+ * Es una fecha de corte, no un rango: no usa `BarraFiltrosReporte` (pensada para `desde`/`hasta`), pero
+ * comparte con el resto de los reportes el `MenuExportar` y el `EncabezadoInforme`.
  */
 export function PaginaEstadoSituacionFinanciera() {
   const [parametros, fijarParametros] = useSearchParams();
@@ -51,7 +56,7 @@ export function PaginaEstadoSituacionFinanciera() {
       <h2 id="titulo-esf" className="text-xl font-semibold">
         Estado de Situación Financiera
       </h2>
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-end gap-3 border-b border-[var(--color-borde)] pb-3">
         <div className="space-y-1">
           <Label htmlFor="esf-fecha-corte">Fecha de corte</Label>
           <Input
@@ -61,14 +66,25 @@ export function PaginaEstadoSituacionFinanciera() {
             onChange={(e) => cambiarFechaCorte(e.target.value)}
           />
         </div>
+        <FiltroNivelCeros
+          idPrefijo="esf"
+          nivel={nivel}
+          onCambiarNivel={cambiarNivel}
+          incluirCeros={incluirCeros}
+          onCambiarIncluirCeros={cambiarIncluirCeros}
+        />
+        <div className="ml-auto">
+          <MenuExportar
+            onExportar={(formato) =>
+              descargarExportacion(
+                () => exportarEstadoSituacionFinanciera({ formato, fechaCorte, nivel, incluirCeros }),
+                'situacion-financiera',
+                formato,
+              )
+            }
+          />
+        </div>
       </div>
-      <FiltroNivelCeros
-        idPrefijo="esf"
-        nivel={nivel}
-        onCambiarNivel={cambiarNivel}
-        incluirCeros={incluirCeros}
-        onCambiarIncluirCeros={cambiarIncluirCeros}
-      />
       <ContenidoEstadoSituacionFinanciera
         key={`${fechaCorte}-${nivel}-${incluirCeros}`}
         fechaCorte={fechaCorte}
@@ -94,7 +110,7 @@ function ContenidoEstadoSituacionFinanciera({
 
   if (consulta.isPending) {
     return (
-      <p role="status" className="text-neutral-600">
+      <p role="status" className="text-[var(--color-texto-suave)]">
         Cargando…
       </p>
     );
@@ -107,39 +123,44 @@ function ContenidoEstadoSituacionFinanciera({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-neutral-600">{estado.leyenda}</p>
+      <EncabezadoInforme periodo={`Corte al ${estado.fechaCorte}`} />
+      <p className="text-sm text-[var(--color-texto-suave)]">{estado.leyenda}</p>
       {!estado.comprobacion.cuadra && (
         <Alert variant="error">
           El Activo no coincide con Pasivo + Patrimonio + resultados anteriores + utilidad del ejercicio.
-          Diferencia: {formatearMonedaConSigno(estado.comprobacion.diferencia)}. Revisa el{' '}
+          Diferencia: <Monto valor={estado.comprobacion.diferencia} />. Revisa el{' '}
           <Link to="/contabilidad/reportes/diagnostico" className="underline">
             diagnóstico de mayorización
           </Link>
           .
         </Alert>
       )}
-      <BotonesExportacion
-        nombreArchivo="situacion-financiera"
-        filtrosCompletos
-        exportar={(formato) =>
-          exportarEstadoSituacionFinanciera({ formato, fechaCorte, nivel, incluirCeros })
-        }
-      />
-      <TablaRubro rubro={estado.activo} parametrosMayor={parametrosMayor} />
-      <TablaRubro rubro={estado.pasivo} parametrosMayor={parametrosMayor} />
-      <TablaRubro rubro={estado.patrimonio} parametrosMayor={parametrosMayor} />
-      <dl className="space-y-1 border-t border-neutral-300 pt-2 text-sm">
+      {/* Escritorio ancho (spec F4.5 §8): Activo en una columna y Pasivo + Patrimonio en la otra, desde 1280 px */}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <TablaRubro rubro={estado.activo} parametrosMayor={parametrosMayor} />
+        <div className="space-y-4">
+          <TablaRubro rubro={estado.pasivo} parametrosMayor={parametrosMayor} />
+          <TablaRubro rubro={estado.patrimonio} parametrosMayor={parametrosMayor} />
+        </div>
+      </div>
+      <dl className="space-y-1 border-t border-[var(--color-borde)] pt-2 text-sm">
         <div className="flex justify-between">
           <dt>Resultados de ejercicios anteriores</dt>
-          <dd className="tabular-nums">{formatearMonedaConSigno(estado.resultadosEjerciciosAnteriores)}</dd>
+          <dd>
+            <Monto valor={estado.resultadosEjerciciosAnteriores} />
+          </dd>
         </div>
         <div className="flex justify-between">
           <dt>Utilidad del ejercicio</dt>
-          <dd className="tabular-nums">{formatearMonedaConSigno(estado.utilidadEjercicio)}</dd>
+          <dd>
+            <Monto valor={estado.utilidadEjercicio} />
+          </dd>
         </div>
         <div className="flex justify-between font-medium">
           <dt>Total Pasivo + Patrimonio</dt>
-          <dd className="tabular-nums">{formatearMonedaConSigno(estado.totalPasivoPatrimonio)}</dd>
+          <dd>
+            <Monto valor={estado.totalPasivoPatrimonio} />
+          </dd>
         </div>
       </dl>
     </div>

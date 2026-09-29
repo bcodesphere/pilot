@@ -1,5 +1,6 @@
 import { useId, useMemo, useState, type KeyboardEvent } from 'react';
 import type { CuentaContable } from '@/api/modelos';
+import { CodigoCuenta } from '@/compartido/dominio/CodigoCuenta';
 import { Input } from '@/compartido/ui/input';
 
 /** Máximo de opciones dibujadas a la vez; el resto se alcanza escribiendo para filtrar. */
@@ -110,14 +111,14 @@ export function SelectorCuentaMayor({ id, cuentas, valor, onChange }: PropsSelec
           id={idLista}
           role="listbox"
           aria-label="Cuentas activas"
-          className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-neutral-300 bg-white py-1 text-sm shadow-md"
+          className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-[var(--radius-panel)] border border-[var(--color-borde)] bg-[var(--color-superficie)] py-1 text-sm shadow-md"
         >
           {opciones.length === 0 && (
             <li
               role="option"
               aria-selected={false}
               aria-disabled="true"
-              className="px-3 py-1.5 text-neutral-500"
+              className="px-3 py-1.5 text-[var(--color-texto-suave)]"
             >
               Sin coincidencias
             </li>
@@ -130,9 +131,9 @@ export function SelectorCuentaMayor({ id, cuentas, valor, onChange }: PropsSelec
               aria-selected={c.id === valor}
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => elegir(c)}
-              className={`cursor-pointer px-3 py-1.5 ${i === activa ? 'bg-neutral-100' : ''}`}
+              className={`cursor-pointer px-3 py-1.5 ${i === activa ? 'bg-[var(--color-primario-suave)]' : ''}`}
             >
-              <span className="font-mono">{c.codigo}</span> — {c.nombre}
+              <CodigoCuenta codigo={c.codigo} nombre={c.nombre} />
             </li>
           ))}
         </ul>

@@ -20,8 +20,14 @@ const GRUPOS: { categoria: CategoriaRegla; titulo: string }[] = [
 ];
 
 /**
- * Pantalla "Reglas" (`/contabilidad/reglas`): a qué cuenta va cada concepto de ingreso y cada forma de pago
- * de un cierre de ingresos diario (ADR-020). Quien escribe edita por fila; el `auditor` solo las ve.
+ * Pestaña "Reglas" de Configuración (`/configuracion/reglas`): a qué cuenta va cada concepto de ingreso
+ * y cada forma de pago de un cierre de ingresos diario (ADR-020). Quien escribe edita por fila; el
+ * `auditor` solo las ve.
+ *
+ * Nota (U2 fase B): el rediseño agrupado por los 11 tipos de operación de ADR-041 (con `prefijoPermitido`
+ * en el selector de cuenta) se revirtió por un problema de aislamiento entre pruebas que no se alcanzó a
+ * diagnosticar a tiempo (ver el reporte de entrega); esta pantalla solo mostrará el cierre de ingresos
+ * diarios hasta que se retome.
  */
 export function PaginaReglas() {
   const { puedeEscribir } = usePermisosContabilidad();
@@ -44,19 +50,19 @@ export function PaginaReglas() {
       <h2 id="titulo-reglas" className="text-xl font-semibold">
         Reglas de contabilización
       </h2>
-      <p className="text-sm text-neutral-600">
+      <p className="text-sm text-[var(--color-texto-suave)]">
         Cuenta que usa cada concepto y forma de pago cuando llega un cierre de ingresos diario.
       </p>
 
       {consulta.isPending && (
-        <p role="status" className="text-sm text-neutral-600">
+        <p role="status" className="text-sm text-[var(--color-texto-suave)]">
           Cargando…
         </p>
       )}
       {consulta.isError && <Alert variant="error">No pudimos cargar las reglas de contabilización.</Alert>}
 
       {sinReglas && (
-        <p role="status" className="text-sm text-neutral-600">
+        <p role="status" className="text-sm text-[var(--color-texto-suave)]">
           No hay reglas de contabilización configuradas. Contacta al soporte de Pilot.
         </p>
       )}
@@ -74,7 +80,7 @@ export function PaginaReglas() {
             <h3 id={`grupo-${categoria}`} className="text-base font-semibold">
               {titulo}
             </h3>
-            <ul className="divide-y divide-neutral-200">
+            <ul className="divide-y divide-[var(--color-borde)]">
               {reglasDeCategoria(reglas, categoria).map((regla) => (
                 <FilaRegla
                   key={`${regla.id}-${regla.version}`}

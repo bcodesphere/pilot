@@ -5,10 +5,9 @@
  * API REST de Pilot, ERP multiempresa para PYMES de El Salvador. Incluye el núcleo (usuarios y empresas) y la app Contabilidad. Los montos viajan como cadena decimal con 2 decimales (ADR-013) y los errores siguen RFC 9457 (Problem Details).
  * OpenAPI spec version: 1.0.0
  */
-import type { NaturalezaCuenta } from './naturalezaCuenta';
 
 /**
- * Campos editables de una cuenta; solo se envían los que cambian y debe venir al menos uno.
+ * Campos editables de una cuenta; solo se envían los que cambian y debe venir al menos uno. La naturaleza no se envía: es de solo lectura, derivada de la cuenta padre o de la clase (ADR-042).
  */
 export interface ActualizacionCuentaContable {
   /**
@@ -22,8 +21,6 @@ export interface ActualizacionCuentaContable {
      * @maxLength 200
      */
   nombre?: string;
-  /** Nueva naturaleza, para cuentas complementarias. */
-  naturaleza?: NaturalezaCuenta;
   /** false desactiva la cuenta (CON-012 si tiene saldo, CON-016 si está en uso); true la reactiva. */
   activa?: boolean;
 }

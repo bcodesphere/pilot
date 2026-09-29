@@ -474,3 +474,73 @@ describe('formulario del Libro Diario: guardado e idempotencia', () => {
     expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument();
   });
 });
+
+// U2 (F4.5, paso 4): "Asiento manual (avanzado)" — atajos de teclado y cuentas recientes
+describe('Asiento manual (avanzado): atajos y cuentas recientes', () => {
+  // Ficha "Asiento manual (avanzado)": Enter en el Debe o el Haber de la última línea agrega una línea
+  it('Enter en el Debe o el Haber de la última línea agrega una línea nueva', async () => {
+    montarContabilidad('/contabilidad/libro-diario/nuevo', 'contador', base());
+    await screen.findByLabelText('Cuenta de la línea 1');
+    expect(screen.queryByLabelText('Cuenta de la línea 3')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Haber de la línea 2'), '{Enter}');
+    expect(await screen.findByLabelText('Cuenta de la línea 3')).toBeInTheDocument();
+
+    // También desde el Debe de la línea que ahora es la última
+    await userEvent.type(screen.getByLabelText('Debe de la línea 3'), '{Enter}');
+    expect(await screen.findByLabelText('Cuenta de la línea 4')).toBeInTheDocument();
+  });
+
+  // Enter en una línea que NO es la última no agrega una línea (evita agregar de más al corregir un monto anterior)
+  it('Enter en una línea que no es la última no agrega ninguna línea', async () => {
+    montarContabilidad('/contabilidad/libro-diario/nuevo', 'contador', base());
+    await screen.findByLabelText('Cuenta de la línea 1');
+    await userEvent.type(screen.getByLabelText('Debe de la línea 1'), '{Enter}');
+    expect(screen.queryByLabelText('Cuenta de la línea 3')).not.toBeInTheDocument();
+  });
+
+  // Ficha "Asiento manual (avanzado)": "Cuadrar con esta línea" pone la diferencia en una línea en blanco
+  it('"Cuadrar con esta línea" completa una línea en blanco con la diferencia exacta', async () => {
+    montarContabilidad('/contabilidad/libro-diario/nuevo', 'contador', base());
+    await elegirCuenta(1, '11010101');
+    await elegirCuenta(2, '51010101');
+    await escribir('Debe', 1, '113.00');
+    await escribir('Haber', 2, '100.00');
+    await userEvent.type(screen.getByLabelText('Concepto'), 'Venta con vuelto a bancos');
+    expect(screen.getByText('Diferencia').nextElementSibling).toHaveTextContent('$13.00');
+
+    // Las líneas 1 y 2 ya tienen su cuenta y su lado decididos: "Cuadrar" solo tiene sentido en una línea
+    // en blanco, agregada para absorber la diferencia (aquí, la línea 3)
+    expect(screen.getAllByRole('button', { name: 'Cuadrar con esta línea' })[0]).toBeDisabled();
+    expect(screen.getAllByRole('button', { name: 'Cuadrar con esta línea' })[1]).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar línea' }));
+    await elegirCuenta(3, '11010103');
+    const botonLinea3 = screen.getAllByRole('button', { name: 'Cuadrar con esta línea' })[2]!;
+    expect(botonLinea3).toBeEnabled();
+    await userEvent.click(botonLinea3);
+
+    // Σ Debe 113.00 > Σ Haber 100.00: la diferencia (13.00) se completa en el Haber de la línea en blanco
+    expect(screen.getByLabelText('Haber de la línea 3')).toHaveValue('13.00');
+    await waitFor(() => expect(screen.getByText('Diferencia').nextElementSibling).toHaveTextContent('$0.00'));
+    await waitFor(() => expect(guardar()).toBeEnabled());
+  });
+
+  // El botón se deshabilita cuando el asiento ya cuadra: no hay diferencia que repartir
+  it('"Cuadrar con esta línea" se deshabilita cuando el asiento ya cuadra', async () => {
+    montarContabilidad('/contabilidad/libro-diario/nuevo', 'contador', base());
+    await llenarAsientoCuadrado();
+    expect(screen.getAllByRole('button', { name: 'Cuadrar con esta línea' })[0]).toBeDisabled();
+  });
+
+  // Ficha "Asiento manual (avanzado)": la cuenta recién usada aparece primero la próxima vez que se abre el selector
+  it('recuerda la última cuenta usada y la ofrece primero en la siguiente línea', async () => {
+    montarContabilidad('/contabilidad/libro-diario/nuevo', 'contador', base());
+    await elegirCuenta(1, '11010101');
+
+    // Al abrir el selector de otra línea sin escribir nada, la cuenta recién usada encabeza la lista
+    const campoLinea2 = await screen.findByLabelText('Cuenta de la línea 2');
+    await userEvent.click(campoLinea2);
+    const opciones = await screen.findAllByRole('option');
+    expect(opciones[0]).toHaveTextContent('11010101');
+  });
+});

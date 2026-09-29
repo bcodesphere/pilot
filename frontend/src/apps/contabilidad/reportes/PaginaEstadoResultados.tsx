@@ -2,12 +2,14 @@ import { useSearchParams } from 'react-router-dom';
 import { exportarEstadoResultados } from '@/api/exportaciones-contables/exportaciones-contables';
 import type { EstadoResultados } from '@/api/modelos';
 import { useObtenerEstadoResultados } from '@/api/reportes-contables/reportes-contables';
-import { formatearMonedaConSigno } from '@/compartido/dinero';
+import { BarraFiltrosReporte } from '@/compartido/dominio/BarraFiltrosReporte';
+import { Monto } from '@/compartido/dominio/Monto';
+import { MenuExportar } from '@/compartido/dominio/MenuExportar';
 import type { RangoFechas } from '@/compartido/formato/rangoPeriodo';
 import { Alert } from '@/compartido/ui/alert';
-import { BotonesExportacion } from '../compartido/BotonesExportacion';
+import { EncabezadoInforme } from '../compartido/EncabezadoInforme';
+import { descargarExportacion } from '../compartido/exportarReporte';
 import { FiltroNivelCeros } from '../compartido/FiltroNivelCeros';
-import { FiltroPeriodo } from '../compartido/FiltroPeriodo';
 import { validarRangoPeriodo } from '../mensajesContabilidad';
 import { TablaRubro } from './TablaRubro';
 
@@ -50,23 +52,35 @@ export function PaginaEstadoResultados() {
       <h2 id="titulo-resultados" className="text-xl font-semibold">
         Estado de Resultados
       </h2>
-      <FiltroPeriodo
-        idPrefijo="resultados"
-        desde={desde}
-        hasta={hasta}
-        onCambiar={cambiarPeriodo}
+      <BarraFiltrosReporte
+        periodo={{ desde, hasta }}
+        onPeriodo={cambiarPeriodo}
         error={errorPeriodo}
-      />
-      <FiltroNivelCeros
-        idPrefijo="resultados"
-        nivel={nivel}
-        onCambiarNivel={cambiarNivel}
-        incluirCeros={incluirCeros}
-        onCambiarIncluirCeros={cambiarIncluirCeros}
+        extras={
+          <FiltroNivelCeros
+            idPrefijo="resultados"
+            nivel={nivel}
+            onCambiarNivel={cambiarNivel}
+            incluirCeros={incluirCeros}
+            onCambiarIncluirCeros={cambiarIncluirCeros}
+          />
+        }
+        exportar={
+          <MenuExportar
+            deshabilitado={!listo}
+            onExportar={(formato) =>
+              descargarExportacion(
+                () => exportarEstadoResultados({ formato, desde, hasta, nivel, incluirCeros }),
+                'estado-resultados',
+                formato,
+              )
+            }
+          />
+        }
       />
 
       {!listo && (
-        <p role="status" className="text-neutral-600">
+        <p role="status" className="text-[var(--color-texto-suave)]">
           Elige un período para ver el Estado de Resultados.
         </p>
       )}
@@ -100,7 +114,7 @@ function ContenidoEstadoResultados({
 
   if (consulta.isPending) {
     return (
-      <p role="status" className="text-neutral-600">
+      <p role="status" className="text-[var(--color-texto-suave)]">
         Cargando…
       </p>
     );
@@ -113,25 +127,25 @@ function ContenidoEstadoResultados({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-neutral-600">{estado.leyenda}</p>
-      <BotonesExportacion
-        nombreArchivo="estado-resultados"
-        filtrosCompletos
-        exportar={(formato) => exportarEstadoResultados({ formato, desde, hasta, nivel, incluirCeros })}
-      />
+      <EncabezadoInforme periodo={`Del ${estado.desde} al ${estado.hasta}`} />
+      <p className="text-sm text-[var(--color-texto-suave)]">{estado.leyenda}</p>
       <TablaRubro rubro={estado.ingresos} parametrosMayor={parametrosMayor} />
       <TablaRubro rubro={estado.costosGastos} parametrosMayor={parametrosMayor} />
-      <dl className="space-y-1 border-t border-neutral-300 pt-2 text-sm">
+      <dl className="space-y-1 border-t border-[var(--color-borde)] pt-2 text-sm">
         <div className="flex justify-between font-medium">
           <dt>Utilidad antes de impuesto</dt>
-          <dd className="tabular-nums">{formatearMonedaConSigno(estado.utilidadAntesImpuesto)}</dd>
+          <dd>
+            <Monto valor={estado.utilidadAntesImpuesto} />
+          </dd>
         </div>
       </dl>
       <TablaRubro rubro={estado.impuestoSobreRenta} parametrosMayor={parametrosMayor} />
-      <dl className="space-y-1 border-t border-neutral-300 pt-2 text-sm">
+      <dl className="space-y-1 border-t border-[var(--color-borde)] pt-2 text-sm">
         <div className="flex justify-between font-semibold">
           <dt>Utilidad (pérdida) del ejercicio</dt>
-          <dd className="tabular-nums">{formatearMonedaConSigno(estado.utilidadEjercicio)}</dd>
+          <dd>
+            <Monto valor={estado.utilidadEjercicio} />
+          </dd>
         </div>
       </dl>
     </div>

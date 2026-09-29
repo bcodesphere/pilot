@@ -7,17 +7,17 @@
  */
 import type { CategoriaRegla } from './categoriaRegla';
 import type { ResumenCuenta } from './resumenCuenta';
-import type { TipoOperacionContable } from './tipoOperacionContable';
+import type { TipoOperacion } from './tipoOperacion';
 import type { Uuid } from './uuid';
 
 /**
- * Regla que asigna una cuenta a un código de una operación externa; su versión es el valor de If-Match.
+ * Regla que asigna una cuenta a un código de una operación (ADR-020, ADR-041); su versión es el valor de If-Match.
  */
 export interface ReglaContabilizacion {
   id: Uuid;
-  tipoOperacion: TipoOperacionContable;
+  tipoOperacion: TipoOperacion;
   categoria: CategoriaRegla;
-  /** Código del concepto de ingreso o de la forma de pago, p. ej. VENTAS_GRAVADAS o EFECTIVO. */
+  /** Código del concepto, forma de cobro o pago, destino o categoría, p. ej. VENTAS_GRAVADAS o EFECTIVO. */
   codigo: string;
   /** Cuenta de detalle que usa la regla; nula solo si la regla está inactiva (ADR-035). */
   cuenta: ResumenCuenta | null;
@@ -25,4 +25,9 @@ export interface ReglaContabilizacion {
   activa: boolean;
   /** Versión para concurrencia optimista; se envía entre comillas como If-Match (CLAUDE.md §8.3). */
   version: number;
+  /**
+     * Prefijo de código que debe tener la cuenta de esta regla (p. ej. "1101"); de solo lectura. Asignarle una cuenta fuera de este grupo responde 422 CON-022 (ADR-042).
+     * @nullable
+     */
+  readonly prefijoPermitido: string | null;
 }

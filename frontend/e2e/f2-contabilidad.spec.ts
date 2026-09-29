@@ -76,11 +76,13 @@ test('catálogo, configuración y reglas de Contabilidad (criterios 1, 2 y 4 de 
     ]);
     expect(instalacion.status()).toBe(201);
 
-    // 3. Desde el lanzador se entra a Contabilidad, que abre en el catálogo
+    // 3. Contabilidad ya aparece en la barra lateral (ADR-043: el lanzador de "Tus aplicaciones" en Inicio
+    //    desapareció); desde ahí se entra directo al Catálogo
     await page.getByRole('link', { name: 'Pilot', exact: true }).click();
     await page
-      .getByRole('main')
-      .getByRole('link', { name: /Contabilidad/ })
+      .getByRole('navigation', { name: 'Principal' })
+      // U2 (F4.5): BarraLateral ya no agrega ", barra lateral" al nombre accesible (el nav "Principal" ya lo distingue)
+      .getByRole('link', { name: 'Catálogo' })
       .click();
     await expect(page).toHaveURL(/\/contabilidad\/catalogo$/);
   });

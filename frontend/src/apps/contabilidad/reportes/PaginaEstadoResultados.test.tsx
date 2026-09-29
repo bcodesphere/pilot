@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { json } from '@/nucleo/pruebas-arnes';
 import { estadoResultados, LEYENDA_ESTADO_GESTION } from '../compartido/datosPrueba';
-import { llamadas, montarContabilidad, respuestaArchivo } from '../compartido/montarContabilidad';
+import { llamadas, montarContabilidad, problema, respuestaArchivo } from '../compartido/montarContabilidad';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -36,6 +36,14 @@ describe('Estado de Resultados', () => {
     expect(urlConsulta).toContain('incluirCeros=true');
   });
 
+  // Estado de error: la consulta falla y se avisa sin dejar la pantalla en el esqueleto de carga
+  it('muestra un error si el Estado de Resultados no carga', async () => {
+    montarContabilidad(RUTA, 'auditor', (url) =>
+      url.includes('/contabilidad/estados/resultados?') ? problema(500, 'PLT-500') : undefined,
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar el Estado de Resultados.');
+  });
+
   // Regla: exportar exige desde/hasta y pide el archivo con el formato y TODOS los filtros vigentes
   // (corrección 1, F4-05: antes solo se comprobaba el formato)
   it('exporta con el formato y los filtros vigentes', async () => {
@@ -47,7 +55,8 @@ describe('Estado de Resultados', () => {
       return undefined;
     });
     await screen.findByText(LEYENDA_ESTADO_GESTION);
-    await userEvent.click(screen.getByRole('button', { name: 'CSV' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'CSV' }));
     const exportaciones = llamadas(fetchMock, 'GET', '/contabilidad/estados/resultados/exportacion');
     expect(exportaciones).toHaveLength(1);
     const url = String(exportaciones[0]![0]);

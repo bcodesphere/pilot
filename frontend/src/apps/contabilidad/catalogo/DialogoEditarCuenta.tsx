@@ -11,11 +11,13 @@ import { Button } from '@/compartido/ui/button';
 import { Dialogo } from '@/compartido/ui/dialog';
 import { Input } from '@/compartido/ui/input';
 import { Label } from '@/compartido/ui/label';
-import { Select } from '@/compartido/ui/select';
 import { esErrorApi } from '@/nucleo/http/errorApi';
 import { AvisoConflicto } from '../compartido/AvisoConflicto';
 import { campoDeError, mensajeContabilidad } from '../mensajesContabilidad';
 import { esquemaEditarCuenta, type ValoresEditarCuenta } from './esquemaCuenta';
+
+/** Texto de la naturaleza derivada (ADR-042: nunca se captura ni se edita). */
+const ETIQUETA_NATURALEZA = { DEUDORA: 'Deudora', ACREEDORA: 'Acreedora' } as const;
 
 /** Propiedades del diálogo "Editar cuenta". */
 interface Props {
@@ -41,7 +43,7 @@ export function DialogoEditarCuenta({ cuentaId, onCerrar, onGuardada }: Props) {
   return (
     <Dialogo titulo="Editar cuenta" onCerrar={onCerrar}>
       {consulta.isPending && (
-        <p role="status" className="text-sm text-neutral-600">
+        <p role="status" className="text-sm text-[var(--color-texto-suave)]">
           Cargando…
         </p>
       )}
@@ -81,7 +83,6 @@ function FormularioEditar({
     defaultValues: {
       codigo: cuenta.codigo,
       nombre: cuenta.nombre,
-      naturaleza: cuenta.naturaleza,
       activa: cuenta.activa,
     },
   });
@@ -108,7 +109,8 @@ function FormularioEditar({
     const cambios: ActualizacionCuentaContable = {};
     if (v.nombre !== cuenta.nombre) cambios.nombre = v.nombre;
     if (v.codigo !== cuenta.codigo) cambios.codigo = v.codigo;
-    if (v.naturaleza !== cuenta.naturaleza) cambios.naturaleza = v.naturaleza;
+    // La naturaleza ya no se envía (paso 0 de U2 fase B): el contrato de C1 la quitó de
+    // `ActualizacionCuentaContable` (ADR-042: siempre derivada, nunca editable)
     if (v.activa !== cuenta.activa) cambios.activa = v.activa;
     // 2. El contrato exige al menos un campo
     if (Object.keys(cambios).length === 0) {
@@ -135,7 +137,7 @@ function FormularioEditar({
           aria-describedby="editar-codigo-error"
           {...formulario.register('codigo')}
         />
-        <p id="editar-codigo-error" role="alert" className="min-h-4 text-sm text-red-700">
+        <p id="editar-codigo-error" role="alert" className="min-h-4 text-sm text-[var(--color-error)]">
           {formulario.formState.errors.codigo?.message}
         </p>
       </div>
@@ -148,17 +150,15 @@ function FormularioEditar({
           aria-describedby="editar-nombre-error"
           {...formulario.register('nombre')}
         />
-        <p id="editar-nombre-error" role="alert" className="min-h-4 text-sm text-red-700">
+        <p id="editar-nombre-error" role="alert" className="min-h-4 text-sm text-[var(--color-error)]">
           {formulario.formState.errors.nombre?.message}
         </p>
       </div>
 
-      <div className="space-y-1">
-        <Label htmlFor="editar-naturaleza">Naturaleza</Label>
-        <Select id="editar-naturaleza" {...formulario.register('naturaleza')}>
-          <option value="DEUDORA">Deudora</option>
-          <option value="ACREEDORA">Acreedora</option>
-        </Select>
+      {/* La naturaleza no se pide: siempre derivada de la cuenta padre o de la clase (ADR-042) */}
+      <div className="space-y-1 text-sm">
+        <span className="font-medium text-[var(--color-texto)]">Naturaleza: </span>
+        <span className="text-[var(--color-texto-suave)]">{ETIQUETA_NATURALEZA[cuenta.naturaleza]}</span>
       </div>
 
       <div className="space-y-1">
@@ -166,7 +166,7 @@ function FormularioEditar({
           <input id="editar-activa" type="checkbox" className="h-4 w-4" {...formulario.register('activa')} />
           <Label htmlFor="editar-activa">Cuenta activa</Label>
         </div>
-        <p id="editar-activa-error" role="alert" className="min-h-4 text-sm text-red-700">
+        <p id="editar-activa-error" role="alert" className="min-h-4 text-sm text-[var(--color-error)]">
           {formulario.formState.errors.activa?.message}
         </p>
       </div>

@@ -11,23 +11,24 @@ const nombreSchema = z
   .max(200, 'El nombre admite máximo 200 caracteres');
 
 /**
- * Esquema del diálogo "Nueva cuenta". `SEGUN_CLASE` es solo un valor del formulario: en ese caso no se
- * envía naturaleza y el backend usa la de la clase (CLAUDE.md §10.2).
+ * Esquema del diálogo "Nueva cuenta". La naturaleza ya no se pide: el backend siempre la deriva de la
+ * cuenta padre, o de la clase en el nivel 1 (ADR-042); el contrato de C1 la quitó de `NuevaCuentaContable`.
  */
 export const esquemaNuevaCuenta = z.object({
   codigo: codigoSchema,
   nombre: nombreSchema,
-  naturaleza: z.enum(['SEGUN_CLASE', 'DEUDORA', 'ACREEDORA']),
 });
 
 /** Valores del formulario de nueva cuenta. */
 export type ValoresNuevaCuenta = z.infer<typeof esquemaNuevaCuenta>;
 
-/** Esquema del diálogo "Editar cuenta": los cuatro campos editables del contrato `ActualizacionCuentaContable`. */
+/**
+ * Esquema del diálogo "Editar cuenta": código, nombre y estado (`ActualizacionCuentaContable`, ADR-042).
+ * La naturaleza tampoco se envía aquí: se muestra derivada, como texto de solo lectura.
+ */
 export const esquemaEditarCuenta = z.object({
   codigo: codigoSchema,
   nombre: nombreSchema,
-  naturaleza: z.enum(['DEUDORA', 'ACREEDORA']),
   activa: z.boolean(),
 });
 

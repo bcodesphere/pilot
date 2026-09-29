@@ -6,15 +6,10 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ModoPrecio } from './modoPrecio';
-import type { Uuid } from './uuid';
 
 /**
- * Configuración completa que reemplaza a la actual (PUT completo); todos los campos son obligatorios.
+ * Configuración que reemplaza a la actual (PUT completo). Las cuentas de IVA débito y crédito fiscal son fijas, desde la plantilla (21020101 y 11040101) y no se envían aquí; ConfiguracionContable las sigue devolviendo, de solo lectura (ADR-042).
  */
 export interface ActualizacionConfiguracionContable {
   modoPrecioDefecto: ModoPrecio;
-  /** Cuenta de detalle activa para el IVA débito fiscal (CON-006). */
-  cuentaIvaDebitoId: Uuid;
-  /** Cuenta de detalle activa para el IVA crédito fiscal (CON-006). */
-  cuentaIvaCreditoId: Uuid;
 }

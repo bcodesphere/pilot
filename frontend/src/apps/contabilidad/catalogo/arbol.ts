@@ -84,6 +84,41 @@ export function buscarEnArbol(raices: readonly NodoCuenta[], texto: string): Res
   return { visibles, coincidencias };
 }
 
+/** Filtros del árbol del catálogo (ficha "Catálogo", paso 3 de U2 fase B). */
+export interface FiltrosArbol {
+  /** Solo cuentas que aceptan movimientos (cuentas de detalle); `aceptaMovimientos` es lo único que el
+   * contrato expone hasta que exista un campo de "tiene movimientos" (no hay tal endpoint en 1.0). */
+  conMovimiento: boolean;
+  /** Solo cuentas activas. */
+  soloActivas: boolean;
+}
+
+/**
+ * Ids visibles con los filtros de la pantalla: una cuenta que no cumple el filtro sigue visible si
+ * alguna descendiente sí lo cumple (para no perder la jerarquía), igual que la búsqueda.
+ * @param raices árbol devuelto por {@link construirArbol}
+ * @param filtros filtros activos; ambos en `false` no filtra nada (`null`)
+ */
+export function filtrarArbol(
+  raices: readonly NodoCuenta[],
+  filtros: FiltrosArbol,
+): ReadonlySet<string> | null {
+  if (!filtros.conMovimiento && !filtros.soloActivas) return null;
+  const visibles = new Set<string>();
+
+  const cumple = (c: CuentaContable) =>
+    (!filtros.conMovimiento || c.aceptaMovimientos) && (!filtros.soloActivas || c.activa);
+
+  const recorrer = (nodo: NodoCuenta): boolean => {
+    const propia = cumple(nodo.cuenta);
+    const enHijos = nodo.hijos.map(recorrer).some(Boolean);
+    if (propia || enHijos) visibles.add(nodo.cuenta.id);
+    return propia || enHijos;
+  };
+  raices.forEach(recorrer);
+  return visibles;
+}
+
 /**
  * Deduce, solo a modo informativo, la cuenta padre que tendría un código nuevo: la cuenta existente
  * cuyo código es el prefijo del código con la longitud del nivel anterior (ADR-035).

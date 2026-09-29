@@ -7,7 +7,7 @@
  */
 
 /**
- * Categoría de la regla; INGRESO es un concepto de venta y COBRO una forma de pago (ADR-020).
+ * Categoría de la regla de contabilización (ADR-020, ampliada por ADR-041 §5.3-§5.5): INGRESO un concepto de venta, COBRO una forma de cobro, PAGO una forma de pago, GASTO un destino de compra o gasto, CONTRAPARTIDA la cuenta de la contraparte de un cobro, pago, aporte o préstamo, ACTIVO una categoría de activo fijo y DEPRECIACION su cuenta de depreciación acumulada o de gasto.
  */
 export type CategoriaRegla = typeof CategoriaRegla[keyof typeof CategoriaRegla];
 
@@ -15,4 +15,9 @@ export type CategoriaRegla = typeof CategoriaRegla[keyof typeof CategoriaRegla];
 export const CategoriaRegla = {
   INGRESO: 'INGRESO',
   COBRO: 'COBRO',
+  PAGO: 'PAGO',
+  GASTO: 'GASTO',
+  CONTRAPARTIDA: 'CONTRAPARTIDA',
+  ACTIVO: 'ACTIVO',
+  DEPRECIACION: 'DEPRECIACION',
 } as const;

@@ -5,10 +5,9 @@
  * API REST de Pilot, ERP multiempresa para PYMES de El Salvador. Incluye el núcleo (usuarios y empresas) y la app Contabilidad. Los montos viajan como cadena decimal con 2 decimales (ADR-013) y los errores siguen RFC 9457 (Problem Details).
  * OpenAPI spec version: 1.0.0
  */
-import type { NaturalezaCuenta } from './naturalezaCuenta';
 
 /**
- * Datos para crear una cuenta. La cuenta padre no se envía porque se deduce del código (ADR-035). El patrón del código no exige la clase para que la regla de negocio responda CON-010 y CON-015.
+ * Datos para crear una cuenta. La cuenta padre no se envía porque se deduce del código (ADR-035). El patrón del código no exige la clase para que la regla de negocio responda CON-010 y CON-015. La naturaleza no se envía: siempre se deriva de la cuenta padre, o de la clase en el nivel 1 (ADR-042).
  */
 export interface NuevaCuentaContable {
   /**
@@ -22,6 +21,4 @@ export interface NuevaCuentaContable {
      * @maxLength 200
      */
   nombre: string;
-  /** Naturaleza de la cuenta; si se omite se usa la de su clase. */
-  naturaleza?: NaturalezaCuenta;
 }

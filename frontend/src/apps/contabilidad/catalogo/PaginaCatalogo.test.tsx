@@ -35,15 +35,15 @@ describe('pantalla Catálogo: árbol y búsqueda', () => {
     expect(screen.getByText('Caja')).toBeInTheDocument();
   });
 
-  // Regla: cada fila informa naturaleza, si acepta movimientos y si está inactiva
-  it('cada fila muestra naturaleza, "Acepta movimientos" e insignia "Inactiva"', async () => {
+  // Regla: cada fila informa naturaleza (letra D/A neutra, spec F4.5 §7.2), si acepta movimientos y si está inactiva
+  it('cada fila muestra la naturaleza D/A, "Acepta movimientos" e insignia "Inactiva"', async () => {
     montarContabilidad('/contabilidad/catalogo', 'contador', conCatalogo());
     await screen.findByText('Activo corriente');
     // Con la búsqueda se despliegan todas las ramas
     await userEvent.type(screen.getByLabelText('Buscar por código o nombre'), '110101');
     const inactiva = (await screen.findByText('Caja chica antigua')).closest('li')!;
     expect(within(inactiva).getByText('Inactiva')).toBeInTheDocument();
-    expect(within(inactiva).getByText('Deudora')).toBeInTheDocument();
+    expect(within(inactiva).getByText('D')).toHaveAttribute('aria-label', 'Deudora');
     expect(within(inactiva).getByText('Acepta movimientos')).toBeInTheDocument();
   });
 
@@ -115,8 +115,10 @@ describe('pantalla Catálogo: nueva cuenta (contador)', () => {
     expect(await within(dialogo).findByText('Cuenta padre: 110101 — Caja')).toBeInTheDocument();
   });
 
-  // Regla: POST con el cuerpo correcto; con 201 se invalida el catálogo y se avisa
-  it('envía POST con código, nombre y naturaleza elegida; con 201 recarga el catálogo y avisa', async () => {
+  // Regla (paso 0 de U2 fase B): POST con el cuerpo correcto; con 201 se invalida el catálogo y se avisa.
+  // El contrato de C1 quitó `naturaleza` de `NuevaCuentaContable` (ADR-042: siempre derivada); el
+  // formulario deja de pedirla como parte del rediseño del catálogo de esta misma tarea.
+  it('envía POST con código y nombre; con 201 recarga el catálogo y avisa', async () => {
     let creada = false;
     const { fetchMock } = montarContabilidad(
       '/contabilidad/catalogo',
@@ -134,7 +136,6 @@ describe('pantalla Catálogo: nueva cuenta (contador)', () => {
     const dialogo = await abrir();
     await userEvent.type(within(dialogo).getByLabelText('Código'), '11010104');
     await userEvent.type(within(dialogo).getByLabelText('Nombre'), '  Caja nueva ');
-    await userEvent.selectOptions(within(dialogo).getByLabelText('Naturaleza'), 'ACREEDORA');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Crear cuenta' }));
 
     expect(await screen.findByText('Cuenta creada')).toBeInTheDocument();
@@ -143,33 +144,12 @@ describe('pantalla Catálogo: nueva cuenta (contador)', () => {
     expect(JSON.parse(String((post[1] as RequestInit).body))).toEqual({
       codigo: '11010104',
       nombre: 'Caja nueva',
-      naturaleza: 'ACREEDORA',
     });
     // Se vuelve a leer el catálogo (invalidación)
     await waitFor(() =>
       expect(llamadas(fetchMock, 'GET', '/contabilidad/cuentas').length).toBeGreaterThan(1),
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
-  // Regla: con "Según la clase" no se envía naturaleza
-  it('con "Según la clase" no envía naturaleza', async () => {
-    const { fetchMock } = montarContabilidad(
-      '/contabilidad/catalogo',
-      'contador',
-      conCatalogo((url, init) =>
-        url.endsWith('/contabilidad/cuentas') && init.method === 'POST'
-          ? conEtag(cuenta('11010104', 'X'), 1, 201)
-          : undefined,
-      ),
-    );
-    const dialogo = await abrir();
-    await userEvent.type(within(dialogo).getByLabelText('Código'), '11010104');
-    await userEvent.type(within(dialogo).getByLabelText('Nombre'), 'X');
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Crear cuenta' }));
-    await screen.findByText('Cuenta creada');
-    const post = llamadas(fetchMock, 'POST', '/contabilidad/cuentas')[0]!;
-    expect(JSON.parse(String((post[1] as RequestInit).body))).toEqual({ codigo: '11010104', nombre: 'X' });
   });
 
   // Regla CLAUDE.md §10.2: 409 CON-014 (código repetido) se muestra en el campo código
@@ -349,7 +329,7 @@ describe('pantalla Catálogo: estado vacío', () => {
   // Caso: empresa con Contabilidad instalada y sin precarga; quien escribe recibe la indicación de crear cuentas
   it('con catálogo vacío y permiso de escritura explica que está vacío y cómo crear cuentas', async () => {
     montarContabilidad('/contabilidad/catalogo', 'contador', vacio);
-    const estado = await screen.findByText('El catálogo de cuentas está vacío.');
+    const estado = await screen.findByText('El catálogo de cuentas está vacío');
     expect(estado.closest('[role="status"]')).toBeInTheDocument();
     expect(screen.getByText('Crea las cuentas de clase (1 a 5) con «Nueva cuenta».')).toBeInTheDocument();
   });
@@ -357,16 +337,70 @@ describe('pantalla Catálogo: estado vacío', () => {
   // Caso: el auditor no puede crear cuentas, así que no se le indica hacerlo
   it('con catálogo vacío y sin permiso de escritura no sugiere crear cuentas', async () => {
     montarContabilidad('/contabilidad/catalogo', 'auditor', vacio);
-    expect(await screen.findByText('El catálogo de cuentas está vacío.')).toBeInTheDocument();
+    expect(await screen.findByText('El catálogo de cuentas está vacío')).toBeInTheDocument();
     expect(screen.queryByText(/Crea las cuentas de clase/)).not.toBeInTheDocument();
   });
 
   // Caso (menor de F2-06): con el catálogo vacío, escribir en la búsqueda no debe dejar la pantalla sin mensaje
   it('con catálogo vacío y texto en la búsqueda dice que ninguna cuenta coincide', async () => {
     montarContabilidad('/contabilidad/catalogo', 'contador', vacio);
-    await screen.findByText('El catálogo de cuentas está vacío.');
+    await screen.findByText('El catálogo de cuentas está vacío');
     await userEvent.type(screen.getByLabelText('Buscar por código o nombre'), 'caja');
-    expect(await screen.findByText('Ninguna cuenta coincide con la búsqueda.')).toBeInTheDocument();
-    expect(screen.queryByText('El catálogo de cuentas está vacío.')).not.toBeInTheDocument();
+    expect(await screen.findByText('Ninguna cuenta coincide')).toBeInTheDocument();
+    expect(screen.queryByText('El catálogo de cuentas está vacío')).not.toBeInTheDocument();
+  });
+});
+
+describe('pantalla Catálogo: cuentas del sistema y filtros (U2 fase B, paso 3)', () => {
+  // "Caja" (110101, 6 dígitos: admite subcuenta) marcada como del sistema, para probar ambos casos a la vez
+  const conSistema = () =>
+    conCatalogo((url, init) =>
+      url.endsWith('/contabilidad/cuentas') && (init.method ?? 'GET') === 'GET'
+        ? json(CATALOGO.map((c) => (c.codigo === '110101' ? { ...c, sistema: true } : c)))
+        : undefined,
+    );
+
+  // ADR-042/CON-021: código, nombre y estado de una cuenta del sistema no son un campo editable
+  it('una cuenta del sistema se ve con candado y sin botón "Editar"', async () => {
+    montarContabilidad('/contabilidad/catalogo', 'contador', conSistema());
+    await userEvent.type(await screen.findByLabelText('Buscar por código o nombre'), '110101');
+    await screen.findByText('Caja', { exact: true });
+    // "Caja" (110101) es del sistema: nunca tiene su propio botón "Editar cuenta 110101" (a diferencia
+    // de sus hijas, que sí lo tienen: por eso no se acota por `within(fila)`, que las incluiría)
+    expect(screen.queryByRole('button', { name: 'Editar cuenta 110101' })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Cuenta del catálogo base: agrega una subcuenta propia si necesitas más detalle',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  // Una cuenta del sistema con menos de 8 dígitos igual permite agregar una subcuenta propia
+  it('"Agregar subcuenta" abre "Nueva cuenta" con el código del padre precargado', async () => {
+    montarContabilidad('/contabilidad/catalogo', 'contador', conSistema());
+    await userEvent.type(await screen.findByLabelText('Buscar por código o nombre'), '110101');
+    const fila = (await screen.findByText('Caja', { exact: true })).closest('li')!;
+    await userEvent.click(within(fila).getByRole('button', { name: /Agregar subcuenta/ }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Agregar subcuenta' });
+    expect(within(dialogo).getByLabelText('Código')).toHaveValue('110101');
+  });
+
+  // Filtro "Activas": oculta las inactivas (y sus ancestros, si ninguna otra hija cumple)
+  it('el filtro "Activas" oculta las cuentas inactivas', async () => {
+    montarContabilidad('/contabilidad/catalogo', 'contador', conCatalogo());
+    await screen.findByText('Activo corriente');
+    await userEvent.click(screen.getByLabelText('Activas'));
+    expect(await screen.findByText('Caja general', { exact: false })).toBeInTheDocument();
+    expect(screen.queryByText('Caja chica antigua')).not.toBeInTheDocument();
+  });
+
+  // Filtro "Con movimiento": solo cuentas de detalle (`aceptaMovimientos`)
+  it('el filtro "Con movimiento" solo muestra cuentas que aceptan movimientos', async () => {
+    montarContabilidad('/contabilidad/catalogo', 'contador', conCatalogo());
+    await screen.findByText('Activo corriente');
+    await userEvent.click(screen.getByLabelText('Con movimiento'));
+    expect(await screen.findByText('Caja general', { exact: false })).toBeInTheDocument();
+    // "Activo corriente" (grupo, no de detalle) desaparece de las filas propias, aunque siga como ancestro visible
+    expect(screen.queryByText('Bancos', { exact: false })).toBeInTheDocument();
   });
 });

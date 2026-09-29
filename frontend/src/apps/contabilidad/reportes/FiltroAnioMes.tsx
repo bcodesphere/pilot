@@ -1,3 +1,4 @@
+import { Input } from '@/compartido/ui/input';
 import { Label } from '@/compartido/ui/label';
 import { Select } from '@/compartido/ui/select';
 
@@ -33,14 +34,14 @@ export function FiltroAnioMes({ anio, mes, onCambiar }: PropsFiltroAnioMes) {
     <div className="flex flex-wrap items-end gap-3">
       <div className="space-y-1">
         <Label htmlFor="iva-anio">Año</Label>
-        <input
+        <Input
           id="iva-anio"
           type="number"
           min={2000}
           max={9999}
           value={anio}
           onChange={(e) => onCambiar({ anio: Number(e.target.value), mes })}
-          className="h-9 w-24 rounded-md border border-neutral-300 bg-white px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900"
+          className="w-24"
         />
       </div>
       <div className="space-y-1">

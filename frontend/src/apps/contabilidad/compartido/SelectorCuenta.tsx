@@ -28,6 +28,16 @@ export interface PropsSelectorCuenta {
   placeholder?: string;
   /** Muestra un botón "Quitar cuenta" (las reglas inactivas pueden quedar sin cuenta, ADR-035). */
   permitirQuitar?: boolean;
+  /**
+   * Ids de cuenta a mostrar primero, en este orden, antes del resto por código (spec F4.5 §8, ficha
+   * "Asiento manual (avanzado)": "cuentas recientes primero"). Ausente o vacío: solo se ordena por código.
+   */
+  ordenPreferido?: readonly string[];
+  /**
+   * Prefijo de código al que se restringen las cuentas ofrecidas (`regla_contabilizacion.prefijo_permitido`,
+   * ADR-042); asignar una cuenta fuera de este grupo responde 422 `CON-022`. `null` o ausente: sin restricción.
+   */
+  prefijoPermitido?: string | null;
 }
 
 /**
@@ -47,20 +57,28 @@ export function SelectorCuenta({
   disabled,
   placeholder = 'Busca por código o nombre',
   permitirQuitar,
+  ordenPreferido,
+  prefijoPermitido,
 }: PropsSelectorCuenta) {
   const idLista = useId();
   const [abierto, setAbierto] = useState(false);
   const [consulta, setConsulta] = useState('');
   const [indice, setIndice] = useState(0);
 
-  // 1. Solo las cuentas de detalle y activas aceptan movimientos; se ordenan por código
-  const elegibles = useMemo(
-    () =>
-      cuentas
-        .filter((c) => c.aceptaMovimientos && c.activa)
-        .sort((a, b) => (a.codigo < b.codigo ? -1 : a.codigo > b.codigo ? 1 : 0)),
-    [cuentas],
-  );
+  // 1. Solo las cuentas de detalle, activas y (si aplica) dentro del prefijo permitido (ADR-042, CON-022);
+  //    se ordenan por código, salvo las de `ordenPreferido` (cuentas recientes), que van primero
+  const elegibles = useMemo(() => {
+    const activas = cuentas.filter(
+      (c) => c.aceptaMovimientos && c.activa && (!prefijoPermitido || c.codigo.startsWith(prefijoPermitido)),
+    );
+    const porCodigo = [...activas].sort((a, b) => (a.codigo < b.codigo ? -1 : a.codigo > b.codigo ? 1 : 0));
+    if (!ordenPreferido?.length) return porCodigo;
+    const preferidas = ordenPreferido
+      .map((id) => activas.find((c) => c.id === id))
+      .filter((c): c is CuentaContable => c !== undefined);
+    const idsPreferidos = new Set(preferidas.map((c) => c.id));
+    return [...preferidas, ...porCodigo.filter((c) => !idsPreferidos.has(c.id))];
+  }, [cuentas, ordenPreferido, prefijoPermitido]);
 
   // 2. Filtro local por código o nombre, sin distinguir mayúsculas
   const opciones = useMemo(() => {
@@ -139,14 +157,14 @@ export function SelectorCuenta({
             id={idLista}
             role="listbox"
             aria-label="Cuentas de detalle activas"
-            className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border border-neutral-300 bg-white py-1 text-sm shadow-md"
+            className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-[var(--radius-panel)] border border-[var(--color-borde)] bg-[var(--color-superficie)] py-1 text-sm shadow-md"
           >
             {opciones.length === 0 && (
               <li
                 role="option"
                 aria-selected={false}
                 aria-disabled="true"
-                className="px-3 py-1.5 text-neutral-500"
+                className="px-3 py-1.5 text-[var(--color-texto-suave)]"
               >
                 Sin coincidencias
               </li>
@@ -160,9 +178,12 @@ export function SelectorCuenta({
                 // mousedown no debe quitar el foco al input, o la lista se cerraría antes del clic
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => elegir(c)}
-                className={`cursor-pointer px-3 py-1.5 ${i === activa ? 'bg-neutral-100' : ''}`}
+                className={`cursor-pointer px-3 py-1.5 ${i === activa ? 'bg-[var(--color-primario-suave)]' : ''}`}
               >
-                <span className="font-mono">{c.codigo}</span> — {c.nombre}
+                {/* "código — nombre" (no el componente CodigoCuenta, sin separador): lo consumen catalogo/
+                    configuracion/reglas (fuera de esta tarea) con pruebas que fijan este texto exacto */}
+                <span className="codigo-cuenta cifra text-[var(--color-texto-suave)]">{c.codigo}</span> —{' '}
+                {c.nombre}
               </li>
             ))}
           </ul>

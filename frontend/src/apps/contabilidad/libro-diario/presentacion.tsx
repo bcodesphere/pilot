@@ -1,10 +1,13 @@
 import type { EstadoAsiento } from '@/api/modelos';
-import { esCero, formatearMoneda } from '@/compartido/dinero';
+import { CodigoCuenta } from '@/compartido/dominio/CodigoCuenta';
+import { Monto } from '@/compartido/dominio/Monto';
+import { esCero } from '@/compartido/dinero';
 import { Badge } from '@/compartido/ui/badge';
 import { ETIQUETA_ESTADO, type FilaLinea } from './etiquetas';
 
 /**
- * Insignia del estado de un asiento: verde si está vigente, ámbar si fue revertido.
+ * Insignia del estado de un asiento: verde si está vigente, ámbar si fue revertido. Se usa en las filas
+ * del listado; el detalle de un asiento usa la barra de estado completa (`EstadoDocumento`, ADR-043).
  * @param props.estado estado del asiento
  */
 export function InsigniaEstado({ estado }: { estado: EstadoAsiento }) {
@@ -20,13 +23,11 @@ export function InsigniaEstado({ estado }: { estado: EstadoAsiento }) {
  * @param props.leyenda nombre accesible de la tabla
  */
 export function TablaLineas({ filas, leyenda }: { filas: readonly FilaLinea[]; leyenda: string }) {
-  /** Muestra un monto como moneda, o nada si es cero. */
-  const monto = (m: string) => (esCero(m) ? '' : formatearMoneda(m));
   return (
     <div className="overflow-x-auto">
       <table aria-label={leyenda} className="w-full text-sm">
         <thead>
-          <tr className="border-b border-neutral-300 text-left">
+          <tr className="border-b border-[var(--color-borde)] text-left">
             <th scope="col" className="py-1 pr-2">
               N.º
             </th>
@@ -46,19 +47,22 @@ export function TablaLineas({ filas, leyenda }: { filas: readonly FilaLinea[]; l
         </thead>
         <tbody>
           {filas.map((f) => (
-            <tr key={f.numero} className={`border-b border-neutral-100 ${f.esIva ? 'bg-neutral-50' : ''}`}>
+            <tr
+              key={f.numero}
+              className={`border-b border-[var(--color-borde)] ${f.esIva ? 'bg-[var(--color-lienzo)]' : ''}`}
+            >
               <td className="py-1 pr-2">{f.numero}</td>
               <td className="px-2 py-1">
-                <span className="font-mono">{f.cuenta.codigo}</span> — {f.cuenta.nombre}
+                <CodigoCuenta codigo={f.cuenta.codigo} nombre={f.cuenta.nombre} />
                 {f.esIva && (
                   <Badge variant="default" className="ml-2">
                     IVA calculado{f.deLinea !== null ? ` · de la línea ${f.deLinea}` : ''}
                   </Badge>
                 )}
               </td>
-              <td className="px-2 py-1 text-neutral-600">{f.descripcion ?? ''}</td>
-              <td className="px-2 py-1 text-right tabular-nums">{monto(f.debe)}</td>
-              <td className="py-1 pl-2 text-right tabular-nums">{monto(f.haber)}</td>
+              <td className="px-2 py-1 text-[var(--color-texto-suave)]">{f.descripcion ?? ''}</td>
+              <td className="px-2 py-1 text-right">{esCero(f.debe) ? '' : <Monto valor={f.debe} />}</td>
+              <td className="py-1 pl-2 text-right">{esCero(f.haber) ? '' : <Monto valor={f.haber} />}</td>
             </tr>
           ))}
         </tbody>

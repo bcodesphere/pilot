@@ -104,14 +104,15 @@ describe('listado del Libro Diario', () => {
       return undefined;
     });
     await screen.findByRole('link', { name: 'Asiento 1/2026' });
-    expect(screen.getByRole('button', { name: 'CSV' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeDisabled();
 
     await userEvent.type(screen.getByLabelText('Desde'), '2026-09-01');
     await userEvent.type(screen.getByLabelText('Hasta'), '2026-09-30');
     await userEvent.selectOptions(screen.getByLabelText('Origen'), 'N8N');
     await userEvent.selectOptions(screen.getByLabelText('Estado'), 'REVERTIDO');
-    expect(screen.getByRole('button', { name: 'CSV' })).toBeEnabled();
-    await userEvent.click(screen.getByRole('button', { name: 'CSV' }));
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Exportar' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'CSV' }));
 
     // Corrección 1 (F4-05): la exportación debe llevar TODOS los filtros vigentes en pantalla, no solo
     // desde/hasta; una mutación que solo probara formato/desde/hasta no detectaría un origen/estado mal
@@ -157,7 +158,8 @@ describe('detalle de un asiento', () => {
     const vista = montarContabilidad('/contabilidad/libro-diario/a-1', 'contador', sirve(revertido));
     await screen.findByRole('heading', { name: 'Asiento N.º 7/2026' });
     expect(screen.queryByRole('button', { name: 'Revertir' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'ver la reversión' })).toHaveAttribute(
+    // "Ver la reversión" (mayúscula inicial): texto fijo de EtiquetaDocumento/EstadoDocumento (U1, ADR-043)
+    expect(screen.getByRole('link', { name: 'Ver la reversión' })).toHaveAttribute(
       'href',
       '/contabilidad/libro-diario/a-2',
     );

@@ -34,6 +34,7 @@ export interface CuentaContable {
      * @nullable
      */
   cuentaPadreId: string | null;
+  /** Naturaleza de la cuenta; de solo lectura, derivada de la cuenta padre o de la clase en el nivel 1 (ADR-042). Ya no se envía al crear ni al editar una cuenta. */
   naturaleza: NaturalezaCuenta;
   /** true solo en las cuentas de detalle, sin hijas; únicas que aceptan movimientos. */
   aceptaMovimientos: boolean;
@@ -41,4 +42,6 @@ export interface CuentaContable {
   activa: boolean;
   /** Versión para concurrencia optimista; también viaja como ETag (CLAUDE.md §8.3). */
   version: number;
+  /** true si la cuenta viene del catálogo base: su código, nombre, naturaleza y estado no se editan (422 CON-021, ADR-042). El usuario agrega subcuentas propias bajo las cuentas base que no son de detalle, y esas sí las edita. */
+  readonly sistema: boolean;
 }

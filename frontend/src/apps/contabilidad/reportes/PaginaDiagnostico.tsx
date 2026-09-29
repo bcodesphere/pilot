@@ -2,7 +2,8 @@ import { useMutation } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { diagnosticarMayorizacion } from '@/api/reportes-contables/reportes-contables';
 import type { DiagnosticoMayorizacion } from '@/api/modelos';
-import { formatearMoneda } from '@/compartido/dinero';
+import { CodigoCuenta } from '@/compartido/dominio/CodigoCuenta';
+import { Monto } from '@/compartido/dominio/Monto';
 import { Alert } from '@/compartido/ui/alert';
 import { Button } from '@/compartido/ui/button';
 import { mensajeContabilidad } from '../mensajesContabilidad';
@@ -26,7 +27,7 @@ export function PaginaDiagnostico() {
       <h2 id="titulo-diagnostico" className="text-xl font-semibold">
         Diagnóstico de mayorización
       </h2>
-      <p className="text-sm text-neutral-600">
+      <p className="text-sm text-[var(--color-texto-suave)]">
         Verifica que el saldo mensual guardado de cada cuenta sea igual a la suma de sus líneas del Libro
         Diario (ADR-018). Con la partida doble garantizada, una diferencia solo puede deberse a un error de
         datos.
@@ -48,12 +49,12 @@ export function PaginaDiagnostico() {
         <div className="space-y-2">
           <Alert variant="error">
             Se encontraron {resultado.diferencias.length} diferencias de {resultado.cantidadCuentasRevisadas}{' '}
-            combinaciones revisadas.
+            combinaciones de cuenta, año y mes revisadas.
           </Alert>
           <div className="overflow-x-auto">
             <table aria-label="Diferencias de mayorización" className="w-full text-sm">
               <thead>
-                <tr className="border-b border-neutral-300 text-left">
+                <tr className="border-b border-[var(--color-borde)] text-left">
                   <th scope="col" className="py-1 pr-2">
                     Cuenta
                   </th>
@@ -79,16 +80,27 @@ export function PaginaDiagnostico() {
               </thead>
               <tbody>
                 {resultado.diferencias.map((d, i) => (
-                  <tr key={`${d.cuenta.id}-${d.anio}-${d.mes}-${i}`} className="border-b border-neutral-100">
+                  <tr
+                    key={`${d.cuenta.id}-${d.anio}-${d.mes}-${i}`}
+                    className="border-b border-[var(--color-borde)]"
+                  >
                     <td className="py-1 pr-2">
-                      <span className="font-mono">{d.cuenta.codigo}</span> — {d.cuenta.nombre}
+                      <CodigoCuenta codigo={d.cuenta.codigo} nombre={d.cuenta.nombre} />
                     </td>
                     <td className="px-2 py-1">{d.anio}</td>
                     <td className="px-2 py-1">{d.mes}</td>
-                    <td className="px-2 py-1 text-right tabular-nums">{formatearMoneda(d.saldoDebe)}</td>
-                    <td className="px-2 py-1 text-right tabular-nums">{formatearMoneda(d.saldoHaber)}</td>
-                    <td className="px-2 py-1 text-right tabular-nums">{formatearMoneda(d.lineasDebe)}</td>
-                    <td className="py-1 pl-2 text-right tabular-nums">{formatearMoneda(d.lineasHaber)}</td>
+                    <td className="px-2 py-1 text-right">
+                      <Monto valor={d.saldoDebe} />
+                    </td>
+                    <td className="px-2 py-1 text-right">
+                      <Monto valor={d.saldoHaber} />
+                    </td>
+                    <td className="px-2 py-1 text-right">
+                      <Monto valor={d.lineasDebe} />
+                    </td>
+                    <td className="py-1 pl-2 text-right">
+                      <Monto valor={d.lineasHaber} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

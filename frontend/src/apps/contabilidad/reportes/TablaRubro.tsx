@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom';
 import type { RubroEstado } from '@/api/modelos';
-import { formatearMonedaConSigno } from '@/compartido/dinero';
+import { CodigoCuenta } from '@/compartido/dominio/CodigoCuenta';
+import { EstadoVacio } from '@/compartido/dominio/EstadoVacio';
+import { Monto } from '@/compartido/dominio/Monto';
+import { TablaContable, type ColumnaContable } from '@/compartido/dominio/TablaContable';
+import { TableCell, TableRow } from '@/compartido/ui/table';
 
 /** Propiedades de la tabla de un rubro de un estado financiero. */
 export interface PropsTablaRubro {
@@ -16,45 +20,52 @@ export interface PropsTablaRubro {
  * @param props ver {@link PropsTablaRubro}
  */
 export function TablaRubro({ rubro, parametrosMayor }: PropsTablaRubro) {
+  const columnas: ColumnaContable<RubroEstado['filas'][number]>[] = [
+    {
+      clave: 'cuenta',
+      encabezado: 'Cuenta',
+      celda: (fila) => (
+        <span className="inline-block" style={{ paddingLeft: `${(fila.nivel - 1) * 1}rem` }}>
+          <Link
+            to={`/contabilidad/mayor?cuentaId=${fila.cuenta.id}&${parametrosMayor(fila.cuenta.id)}`}
+            className="hover:underline"
+          >
+            <CodigoCuenta codigo={fila.cuenta.codigo} nombre={fila.cuenta.nombre} />
+          </Link>
+        </span>
+      ),
+    },
+    {
+      clave: 'monto',
+      encabezado: 'Monto',
+      alineacion: 'derecha',
+      celda: (fila) => <Monto valor={fila.monto} />,
+    },
+  ];
+
   return (
-    <table aria-label={rubro.nombre} className="w-full text-sm">
-      <caption className="mb-1 text-left text-base font-semibold">{rubro.nombre}</caption>
-      <thead>
-        <tr className="border-b border-neutral-300 text-left">
-          <th scope="col" className="py-1 pr-2">
-            Cuenta
-          </th>
-          <th scope="col" className="py-1 pl-2 text-right">
-            Monto
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {rubro.filas.length === 0 && (
-          <tr>
-            <td colSpan={2} className="py-2 text-neutral-600">
-              Sin cuentas con movimiento en este rubro.
-            </td>
-          </tr>
-        )}
-        {rubro.filas.map((fila) => (
-          <tr key={fila.cuenta.id} className="border-b border-neutral-100">
-            <td className="py-1 pr-2" style={{ paddingLeft: `${(fila.nivel - 1) * 1}rem` }}>
-              <Link
-                to={`/contabilidad/mayor?cuentaId=${fila.cuenta.id}&${parametrosMayor(fila.cuenta.id)}`}
-                className="underline"
-              >
-                <span className="font-mono">{fila.cuenta.codigo}</span> — {fila.cuenta.nombre}
-              </Link>
-            </td>
-            <td className="py-1 pl-2 text-right tabular-nums">{formatearMonedaConSigno(fila.monto)}</td>
-          </tr>
-        ))}
-        <tr className="border-t-2 border-neutral-400 font-medium">
-          <td className="py-1 pr-2">Total {rubro.nombre.toLowerCase()}</td>
-          <td className="py-1 pl-2 text-right tabular-nums">{formatearMonedaConSigno(rubro.total)}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div className="space-y-1">
+      <h3 className="text-base font-semibold text-[var(--color-texto)]">{rubro.nombre}</h3>
+      <TablaContable
+        columnas={columnas}
+        filas={rubro.filas}
+        cargando={false}
+        obtenerClave={(fila) => fila.cuenta.id}
+        vacio={
+          <EstadoVacio
+            titulo="Sin cuentas con movimiento"
+            descripcion={`Ninguna cuenta de «${rubro.nombre.toLowerCase()}» tuvo movimiento en este período.`}
+          />
+        }
+        totales={
+          <TableRow>
+            <TableCell>Total {rubro.nombre.toLowerCase()}</TableCell>
+            <TableCell className="text-right">
+              <Monto valor={rubro.total} />
+            </TableCell>
+          </TableRow>
+        }
+      />
+    </div>
   );
 }

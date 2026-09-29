@@ -1,12 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { registrarAsiento } from '@/api/asientos/asientos';
 import { useObtenerConfiguracionContable } from '@/api/configuracion-contable/configuracion-contable';
 import type { Asiento, ConfiguracionContable, CuentaContable, NuevoAsiento } from '@/api/modelos';
-import { formatearMoneda, formatearMonedaConSigno, sonIguales } from '@/compartido/dinero';
+import {
+  esCero,
+  formatearMoneda,
+  formatearMonedaConSigno,
+  normalizarMonto,
+  sonIguales,
+} from '@/compartido/dinero';
 import { hoyElSalvador } from '@/compartido/formato/fecha';
 import { Alert } from '@/compartido/ui/alert';
 import { Button } from '@/compartido/ui/button';
@@ -15,6 +21,7 @@ import { Label } from '@/compartido/ui/label';
 import { Select } from '@/compartido/ui/select';
 import { SelectorCuenta } from '../compartido/SelectorCuenta';
 import { useCuentas } from '../compartido/useCuentas';
+import { useCuentasRecientes } from '../compartido/useCuentasRecientes';
 import { usePermisosContabilidad } from '../usePermisosContabilidad';
 import { distribuirError } from './erroresAsiento';
 import {
@@ -46,7 +53,7 @@ export function PaginaNuevoAsiento() {
     return <Alert variant="error">No pudimos cargar el catálogo de cuentas.</Alert>;
   if (!cuentas || consultaConfiguracion.isPending) {
     return (
-      <p role="status" className="text-sm text-neutral-600">
+      <p role="status" className="text-sm text-[var(--color-texto-suave)]">
         Cargando…
       </p>
     );
@@ -115,6 +122,8 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
   });
   const { fields, append, remove } = useFieldArray({ control: formulario.control, name: 'lineas' });
   const errores = formulario.formState.errors;
+  // Cuentas recientes primero en el selector de cada línea (preferencia local, spec F4.5 §8)
+  const { recientes, marcarUsada } = useCuentasRecientes();
 
   // 1. Valores en vivo del formulario y su análisis con el mismo esquema Zod que usa el resolver
   const valores = useWatch({ control: formulario.control }) as ValoresAsiento;
@@ -186,6 +195,36 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
     motivos.push('Elige la cuenta de cada línea.');
   }
 
+  /**
+   * Una línea "en blanco" (ni Debe ni Haber) es la única donde tiene sentido "Cuadrar con esta línea": una
+   * línea que ya tiene un lado con monto es una cuenta ya decidida (Caja, Ventas…) y llenarle el otro lado
+   * violaría CON-002 (solo Debe o solo Haber). Se usa para la línea que se agrega solo para balancear.
+   */
+  const lineaEnBlanco = (indice: number) => {
+    const linea = valores.lineas[indice];
+    return !!linea && esCero(normalizarMonto(linea.debe)) && esCero(normalizarMonto(linea.haber));
+  };
+
+  /**
+   * "Cuadrar con esta línea" (spec F4.5, ficha "Asiento manual (avanzado)"): pone la diferencia completa en
+   * el lado que corresponde de una línea en blanco, según el signo de la diferencia. Solo es una comodidad
+   * de captura con `decimal.js`: no calcula IVA ni decide nada contable (ADR-006); la partida doble la sigue
+   * validando el esquema, igual que si el monto se hubiera escrito a mano.
+   */
+  const cuadrarLinea = (indice: number) => {
+    if (!totales || sonIguales(totales.debe, totales.haber) || !lineaEnBlanco(indice)) return;
+    const lado = totales.diferencia.startsWith('-') ? 'debe' : 'haber';
+    const magnitud = totales.diferencia.startsWith('-') ? totales.diferencia.slice(1) : totales.diferencia;
+    formulario.setValue(`lineas.${indice}.${lado}`, magnitud, { shouldValidate: true, shouldDirty: true });
+  };
+
+  /** `Enter` en el Debe o el Haber de la última línea agrega una línea nueva (spec F4.5 §8). */
+  const alPulsarUltimaLinea = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (fields.length < MAX_LINEAS) append({ ...LINEA_VACIA });
+  };
+
   return (
     <form onSubmit={alEnviar} noValidate className="space-y-4">
       {/* Cabecera: fecha, concepto y modo de precio (este último solo si alguna línea lleva IVA) */}
@@ -201,7 +240,7 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
             {...formulario.register('fecha')}
           />
           {errores.fecha && (
-            <p id="error-fecha" className="text-sm text-red-700">
+            <p id="error-fecha" className="text-sm text-[var(--color-error)]">
               {errores.fecha.message}
             </p>
           )}
@@ -216,7 +255,7 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
             {...formulario.register('concepto')}
           />
           {errores.concepto && (
-            <p id="error-concepto" className="text-sm text-red-700">
+            <p id="error-concepto" className="text-sm text-[var(--color-error)]">
               {errores.concepto.message}
             </p>
           )}
@@ -240,7 +279,7 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
           const errorBackend = deBackend.porLinea.get(i);
           const idError = `error-linea-${i}`;
           return (
-            <div key={campo.id} className="rounded-md border border-neutral-200 p-2">
+            <div key={campo.id} className="rounded-md border border-[var(--color-borde)] p-2">
               <div className="grid items-start gap-2 md:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_7rem_7rem_auto_auto]">
                 <Controller
                   control={formulario.control}
@@ -254,9 +293,13 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
                         id={`linea-${i}-cuenta`}
                         cuentas={cuentas}
                         valor={field.value || null}
-                        onChange={(id) => field.onChange(id ?? '')}
+                        onChange={(id) => {
+                          field.onChange(id ?? '');
+                          if (id) marcarUsada(id);
+                        }}
                         invalido={Boolean(errorBackend)}
                         describedBy={errorBackend ? idError : undefined}
+                        ordenPreferido={recientes}
                       />
                     </div>
                   )}
@@ -283,6 +326,7 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
                     className="text-right tabular-nums"
                     aria-invalid={errorEsquema ? true : undefined}
                     {...formulario.register(`lineas.${i}.debe`)}
+                    onKeyDown={i === fields.length - 1 ? alPulsarUltimaLinea : undefined}
                   />
                 </div>
                 <div>
@@ -296,6 +340,7 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
                     className="text-right tabular-nums"
                     aria-invalid={errorEsquema ? true : undefined}
                     {...formulario.register(`lineas.${i}.haber`)}
+                    onKeyDown={i === fields.length - 1 ? alPulsarUltimaLinea : undefined}
                   />
                 </div>
                 <label className="flex h-9 items-center gap-1 text-sm">
@@ -304,19 +349,30 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
                     Lleva IVA<span className="sr-only"> de la línea {i + 1}</span>
                   </span>
                 </label>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  aria-label={`Quitar la línea ${i + 1}`}
-                  disabled={fields.length <= 2}
-                  onClick={() => remove(i)}
-                >
-                  Quitar
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={!totales || sonIguales(totales.debe, totales.haber) || !lineaEnBlanco(i)}
+                    onClick={() => cuadrarLinea(i)}
+                  >
+                    Cuadrar con esta línea
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Quitar la línea ${i + 1}`}
+                    disabled={fields.length <= 2}
+                    onClick={() => remove(i)}
+                  >
+                    Quitar
+                  </Button>
+                </div>
               </div>
               {/* Errores de la línea: los del esquema (CON-002, CON-003, CON-013) y los del backend (CON-006…) */}
               {(errorBackend ?? errorEsquema) && (
-                <p id={idError} className="mt-1 text-sm text-red-700">
+                <p id={idError} className="mt-1 text-sm text-[var(--color-error)]">
                   {errorBackend ?? errorEsquema}
                 </p>
               )}
@@ -338,12 +394,12 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Vista previa con IVA</h3>
           {previa.pendiente && (
-            <p role="status" className="text-sm text-neutral-600">
+            <p role="status" className="text-sm text-[var(--color-texto-suave)]">
               Calculando el IVA…
             </p>
           )}
           {!previa.pendiente && !cuerpoVistaPrevia && (
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-[var(--color-texto-suave)]">
               Completa las líneas para ver el asiento con el IVA calculado.
             </p>
           )}
@@ -356,8 +412,14 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
         </div>
       )}
 
-      {/* Totales en vivo y diferencia; se anuncian a lectores de pantalla al cambiar */}
-      <div aria-live="polite" className="space-y-1 rounded-md bg-neutral-50 p-3 text-sm">
+      {deBackend.general && <Alert variant="error">{deBackend.general}</Alert>}
+
+      {/* Pie fijo (spec F4.5 §8): totales en vivo, la etiqueta Cuadra y Guardar/Cancelar siempre visibles,
+          aunque el asiento tenga muchas líneas. Los totales se anuncian a lectores de pantalla al cambiar. */}
+      <div
+        aria-live="polite"
+        className="sticky bottom-0 -mx-4 space-y-1 border-t border-[var(--color-borde)] bg-[var(--color-superficie)] px-4 py-3 text-sm"
+      >
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 sm:grid-cols-[auto_auto_auto_auto_auto_auto] sm:justify-start">
           <dt>Total Debe</dt>
           <dd className="tabular-nums">{totales ? formatearMoneda(totales.debe) : '—'}</dd>
@@ -365,6 +427,14 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
           <dd className="tabular-nums">{totales ? formatearMoneda(totales.haber) : '—'}</dd>
           <dt>Diferencia</dt>
           <dd className="tabular-nums">{totales ? formatearMonedaConSigno(totales.diferencia) : '—'}</dd>
+          <dt>Estado</dt>
+          <dd>
+            {cuadra ? (
+              <span className="text-[var(--color-exito)]">Cuadra</span>
+            ) : (
+              <span className="text-[var(--color-texto-suave)]">No cuadra</span>
+            )}
+          </dd>
         </dl>
         {/* El mensaje de descuadre solo tiene sentido con Debe distinto de Haber: con ambos totales en cero
             (formulario vacío) la diferencia también es cero, `cuadra` ya es falso por CON-004 ("los totales
@@ -372,26 +442,23 @@ function FormularioAsiento({ cuentas, modoDefecto, idsCuentasIva }: PropsFormula
             es $0.00" sería falso. `sonIguales` (no `esCero`) porque `totales.diferencia` puede ser negativo
             (Debe − Haber) y el patrón de monto de `esCero` no admite signo. */}
         {totales && !cuadra && !previa.pendiente && !sonIguales(totales.debe, totales.haber) && (
-          <p className="text-red-700">
+          <p className="text-[var(--color-error)]">
             El asiento no cuadra: la diferencia es {formatearMonedaConSigno(totales.diferencia)}.
           </p>
         )}
         {motivos.map((m) => (
-          <p key={m} className="text-red-700">
+          <p key={m} className="text-[var(--color-error)]">
             {m}
           </p>
         ))}
-      </div>
-
-      {deBackend.general && <Alert variant="error">{deBackend.general}</Alert>}
-
-      <div className="flex gap-2">
-        <Button type="submit" disabled={!puedeGuardar}>
-          {guardar.isPending ? 'Guardando…' : 'Guardar'}
-        </Button>
-        <Button variant="outline" onClick={() => navegar('/contabilidad/libro-diario')}>
-          Cancelar
-        </Button>
+        <div className="flex gap-2 pt-1">
+          <Button type="submit" disabled={!puedeGuardar}>
+            {guardar.isPending ? 'Guardando…' : 'Guardar'}
+          </Button>
+          <Button variant="outline" onClick={() => navegar('/contabilidad/libro-diario')}>
+            Cancelar
+          </Button>
+        </div>
       </div>
     </form>
   );

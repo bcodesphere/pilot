@@ -72,13 +72,12 @@ test('Libro Diario: IVA, descuadre, reversión y catálogo con movimientos reale
     ]);
     expect(instalacion.status()).toBe(201);
 
+    // ADR-043: el lanzador de "Tus aplicaciones" en Inicio desapareció; la barra lateral ya lista
+    // Contabilidad y entra directo al Libro Diario, sin pasar por la subnavegación interna
     await page.getByRole('link', { name: 'Pilot', exact: true }).click();
     await page
-      .getByRole('main')
-      .getByRole('link', { name: /Contabilidad/ })
-      .click();
-    await page
-      .getByRole('navigation', { name: 'Secciones de Contabilidad' })
+      .getByRole('navigation', { name: 'Principal' })
+      // U2 (F4.5): BarraLateral ya no agrega ", barra lateral" al nombre accesible (el nav "Principal" ya lo distingue)
       .getByRole('link', { name: 'Libro Diario' })
       .click();
     await expect(page).toHaveURL(/\/contabilidad\/libro-diario$/);

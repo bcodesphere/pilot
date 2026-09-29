@@ -5,6 +5,6 @@
  * API REST de Pilot, ERP multiempresa para PYMES de El Salvador. Incluye el núcleo (usuarios y empresas) y la app Contabilidad. Los montos viajan como cadena decimal con 2 decimales (ADR-013) y los errores siguen RFC 9457 (Problem Details).
  * OpenAPI spec version: 1.0.0
  */
-import type { TipoOperacionContable } from './tipoOperacionContable';
+import type { TipoOperacion } from './tipoOperacion';
 
-export type TipoOperacionFiltroParameter = TipoOperacionContable;
+export type TipoOperacionFiltroParameter = TipoOperacion;

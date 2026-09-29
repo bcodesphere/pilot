@@ -75,12 +75,12 @@ export function PaginaEspacio() {
       <h1 id="titulo-espacio" className="text-2xl font-bold">
         Espacio de trabajo
       </h1>
-      <p className="text-sm text-neutral-600">
+      <p className="text-sm text-[var(--color-texto-suave)]">
         En la versión abierta de Pilot solo se edita el nombre de tu espacio de trabajo.
       </p>
 
       {consulta.isPending && (
-        <p role="status" className="text-sm text-neutral-600">
+        <p role="status" className="text-sm text-[var(--color-texto-suave)]">
           Cargando…
         </p>
       )}

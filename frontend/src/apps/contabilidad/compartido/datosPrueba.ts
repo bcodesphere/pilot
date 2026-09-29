@@ -38,6 +38,8 @@ export function cuenta(codigo: string, nombre: string, extra: Partial<CuentaCont
     aceptaMovimientos: nivel === 5,
     activa: true,
     version: 1,
+    // Hasta B3 el backend responde siempre `sistema: false` (ADR-042 aún sin implementar)
+    sistema: false,
     ...extra,
   };
 }
@@ -80,6 +82,8 @@ export function regla(
     cuenta: c ? { id: c.id, codigo: c.codigo, nombre: c.nombre } : null,
     activa: c !== undefined,
     version: 2,
+    // Hasta B3 el backend responde siempre `prefijoPermitido: null` (ADR-042 aún sin implementar)
+    prefijoPermitido: null,
     ...extra,
   };
 }

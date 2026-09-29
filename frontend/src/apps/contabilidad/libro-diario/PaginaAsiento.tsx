@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useObtenerAsiento } from '@/api/asientos/asientos';
 import type { Asiento } from '@/api/modelos';
-import { formatearMoneda } from '@/compartido/dinero';
+import { EstadoDocumento } from '@/compartido/dominio/EstadoDocumento';
+import { Monto } from '@/compartido/dominio/Monto';
 import { formatearFechaHora } from '@/compartido/formato/fecha';
 import { Alert } from '@/compartido/ui/alert';
 import { Button } from '@/compartido/ui/button';
@@ -10,7 +11,7 @@ import { esErrorApi } from '@/nucleo/http/errorApi';
 import { usePermisosContabilidad } from '../usePermisosContabilidad';
 import { DialogoReversion } from './DialogoReversion';
 import { ETIQUETA_ORIGEN, filasDeAsiento, numeroAsiento } from './etiquetas';
-import { InsigniaEstado, TablaLineas } from './presentacion';
+import { TablaLineas } from './presentacion';
 
 /** Texto del modo de precio con que se separó el IVA (ADR-015). */
 const ETIQUETA_MODO = { CON_IVA: 'Precios con IVA incluido', SIN_IVA: 'Precios más IVA' } as const;
@@ -34,10 +35,11 @@ interface PropsDetalleAsiento {
 }
 
 /**
- * Detalle de un asiento: cabecera, líneas (las de IVA marcadas), totales y enlaces al asiento revertido o a su
- * reversión. El contador ve "Revertir" si el asiento está `CONTABILIZADO` y no es una reversión (una reversión
- * no se revierte: CON-009; un revertido tampoco: CON-008). Muestra el aviso que dejó la pantalla anterior
- * (p. ej. "Asiento N.º 3/2026 registrado").
+ * Detalle de un asiento (patrón "Documento" del sistema de diseño, spec F4.5 §6.3): `EstadoDocumento`
+ * arriba, los datos capturados y el asiento generado, y al final el Historial con la acción "Revertir".
+ * El contador ve "Revertir" si el asiento está `CONTABILIZADO` y no es una reversión (una reversión no se
+ * revierte: CON-009; un revertido tampoco: CON-008). Muestra el aviso que dejó la pantalla anterior (p. ej.
+ * "Asiento N.º 3/2026 registrado").
  */
 function DetalleAsiento({ asientoId }: PropsDetalleAsiento) {
   const { puedeEscribir } = usePermisosContabilidad();
@@ -49,7 +51,7 @@ function DetalleAsiento({ asientoId }: PropsDetalleAsiento) {
 
   if (consulta.isPending) {
     return (
-      <p role="status" className="text-sm text-neutral-600">
+      <p role="status" className="text-sm text-[var(--color-texto-suave)]">
         Cargando…
       </p>
     );
@@ -75,15 +77,19 @@ function DetalleAsiento({ asientoId }: PropsDetalleAsiento) {
         <h2 id="titulo-asiento" className="text-xl font-semibold">
           Asiento N.º {numeroAsiento(asiento)}
         </h2>
-        <div className="flex items-center gap-2">
-          <InsigniaEstado estado={asiento.estado} />
-          {puedeRevertir && <Button onClick={() => setRevirtiendo(true)}>Revertir</Button>}
-        </div>
+        <EstadoDocumento
+          estado={asiento.estado}
+          enlaceReversion={
+            asiento.asientoReversionId
+              ? `/contabilidad/libro-diario/${asiento.asientoReversionId}`
+              : undefined
+          }
+        />
       </div>
 
       {aviso && <Alert variant="success">{aviso}</Alert>}
 
-      {/* Cabecera del asiento */}
+      {/* Cabecera del asiento: los datos que se capturaron al registrarlo */}
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
         <dt className="font-medium">Fecha</dt>
         <dd>{asiento.fecha}</dd>
@@ -97,19 +103,9 @@ function DetalleAsiento({ asientoId }: PropsDetalleAsiento) {
             <dd>{ETIQUETA_MODO[asiento.modoPrecio]}</dd>
           </>
         )}
-        <dt className="font-medium">Registrado</dt>
-        <dd>{formatearFechaHora(asiento.creadoEn)}</dd>
       </dl>
 
-      {/* Enlaces entre un asiento y su reversión */}
-      {asiento.asientoReversionId && (
-        <p className="text-sm">
-          Este asiento fue revertido:{' '}
-          <Link className="underline" to={`/contabilidad/libro-diario/${asiento.asientoReversionId}`}>
-            ver la reversión
-          </Link>
-        </p>
-      )}
+      {/* Este asiento es la reversión de otro (la relación inversa la anuncia EstadoDocumento arriba) */}
       {asiento.asientoRevertidoId && (
         <p className="text-sm">
           Este asiento revierte a otro:{' '}
@@ -121,16 +117,31 @@ function DetalleAsiento({ asientoId }: PropsDetalleAsiento) {
 
       <TablaLineas leyenda="Líneas del asiento" filas={filasDeAsiento(asiento)} />
 
-      <dl className="flex gap-6 rounded-md bg-neutral-50 p-3 text-sm">
+      <dl className="flex gap-6 rounded-[var(--radius-panel)] bg-[var(--color-lienzo)] p-3 text-sm">
         <div className="flex gap-2">
           <dt>Total Debe</dt>
-          <dd className="tabular-nums">{formatearMoneda(asiento.totalDebe)}</dd>
+          <dd>
+            <Monto valor={asiento.totalDebe} />
+          </dd>
         </div>
         <div className="flex gap-2">
           <dt>Total Haber</dt>
-          <dd className="tabular-nums">{formatearMoneda(asiento.totalHaber)}</dd>
+          <dd>
+            <Monto valor={asiento.totalHaber} />
+          </dd>
         </div>
       </dl>
+
+      {/* Historial (spec F4.5 §6.3): auditoría de quién y cuándo, y la acción "Revertir" al final. Sin
+          un endpoint de auditoría del asiento (CLAUDE.md §9.2 `auditoria` no se expone por asiento en 1.0),
+          solo se muestra `creadoEn`; `creadoPor` no está en el contrato (ver "Solicitudes" del reporte). */}
+      <div className="space-y-2 border-t border-[var(--color-borde)] pt-3">
+        <h3 className="text-sm font-medium">Historial</h3>
+        <p className="text-sm text-[var(--color-texto-suave)]">
+          Registrado el {formatearFechaHora(asiento.creadoEn)}
+        </p>
+        {puedeRevertir && <Button onClick={() => setRevirtiendo(true)}>Revertir</Button>}
+      </div>
 
       <Link className="text-sm underline" to="/contabilidad/libro-diario">
         Volver al Libro Diario
