@@ -36,11 +36,15 @@ class ControladorConfiguracionContable implements ConfiguracionContableApi {
     @Override
     public ResponseEntity<ConfiguracionContable> actualizarConfiguracionContable(
             UUID xEmpresaId, String ifMatch, ActualizacionConfiguracionContable actualizacion, String xRequestId) {
+        // B3: el contrato ya no envía las cuentas de IVA, fijas desde la plantilla (ADR-042). Mientras
+        // GestionarConfiguracionContable siga exigiéndolas, se reenvían las cuentas ya configuradas (sin cambio),
+        // hasta que B3 retire esos dos parámetros del caso de uso.
+        var actual = configuracion.obtener();
         return respuesta(configuracion.actualizar(
                 ifMatch,
                 ModoPrecio.valueOf(actualizacion.getModoPrecioDefecto().getValue()),
-                actualizacion.getCuentaIvaDebitoId(),
-                actualizacion.getCuentaIvaCreditoId()));
+                actual.cuentaIvaDebito().id(),
+                actual.cuentaIvaCredito().id()));
     }
 
     /** Arma la respuesta 200 con el DTO y el ETag de la versión. */

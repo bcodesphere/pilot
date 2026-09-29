@@ -48,10 +48,8 @@ class ControladorCuentas implements CuentasContablesApi {
     @Override
     public ResponseEntity<CuentaContable> crearCuentaContable(
             UUID xEmpresaId, NuevaCuentaContable nuevaCuentaContable, String xRequestId) {
-        Cuenta creada = catalogo.crear(
-                nuevaCuentaContable.getCodigo(),
-                nuevaCuentaContable.getNombre(),
-                MapeadorContabilidad.aDominio(nuevaCuentaContable.getNaturaleza()));
+        // B3: naturaleza ya no se envía, se deriva del padre o de la clase (ADR-042); null hasta que B3 lo aplique.
+        Cuenta creada = catalogo.crear(nuevaCuentaContable.getCodigo(), nuevaCuentaContable.getNombre(), null);
         return respuesta(HttpStatus.CREATED, creada);
     }
 
@@ -62,12 +60,13 @@ class ControladorCuentas implements CuentasContablesApi {
             String ifMatch,
             ActualizacionCuentaContable actualizacion,
             String xRequestId) {
+        // B3: el contrato ya no envía naturaleza (ADR-042); se pasa null hasta que B3 la retire del caso de uso.
         Cuenta actualizada = catalogo.actualizar(
                 cuentaId,
                 ifMatch,
                 actualizacion.getCodigo(),
                 actualizacion.getNombre(),
-                MapeadorContabilidad.aDominio(actualizacion.getNaturaleza()),
+                null,
                 actualizacion.getActiva());
         return respuesta(HttpStatus.OK, actualizada);
     }

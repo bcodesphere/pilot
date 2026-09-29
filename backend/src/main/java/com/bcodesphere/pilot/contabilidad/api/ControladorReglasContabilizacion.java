@@ -4,7 +4,7 @@ import com.bcodesphere.pilot.compartido.VersionEtag;
 import com.bcodesphere.pilot.compartido.api.contrato.ActualizacionReglaContabilizacion;
 import com.bcodesphere.pilot.compartido.api.contrato.ReglaContabilizacion;
 import com.bcodesphere.pilot.compartido.api.contrato.ReglasContabilizacionApi;
-import com.bcodesphere.pilot.compartido.api.contrato.TipoOperacionContable;
+import com.bcodesphere.pilot.compartido.api.contrato.TipoOperacion;
 import com.bcodesphere.pilot.contabilidad.aplicacion.GestionarReglas;
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +31,9 @@ class ControladorReglasContabilizacion implements ReglasContabilizacionApi {
 
     @Override
     public ResponseEntity<List<ReglaContabilizacion>> listarReglasContabilizacion(
-            UUID xEmpresaId, String xRequestId, TipoOperacionContable tipoOperacion) {
+            UUID xEmpresaId, String xRequestId, TipoOperacion tipoOperacion) {
+        // B1/B3: el dominio (com.bcodesphere.pilot.contabilidad.dominio.reglas.TipoOperacionContable) todavía solo
+        // conoce CIERRE_INGRESOS_DIARIO; filtrar por un tipo guiado nuevo aquí es responsabilidad de B1/B3.
         var tipo = tipoOperacion == null
                 ? null
                 : com.bcodesphere.pilot.contabilidad.dominio.reglas.TipoOperacionContable.valueOf(

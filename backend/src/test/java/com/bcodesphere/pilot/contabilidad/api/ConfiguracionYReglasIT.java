@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.UUID;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -42,17 +43,17 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
                 .andExpect(header().string("ETag", "\"0\""))
                 .andExpect(jsonPath("$.modoPrecioDefecto").value("CON_IVA"))
                 .andExpect(jsonPath("$.cuentaIvaDebito.id")
-                        .value(cuentaId(s.empresa(), "21020101").toString()))
+                        .value(cuentaId(s.empresa(), "21080101").toString()))
                 .andExpect(jsonPath("$.cuentaIvaCredito.id")
-                        .value(cuentaId(s.empresa(), "11040101").toString()));
+                        .value(cuentaId(s.empresa(), "110901").toString()));
     }
 
     /** Regla (F2): pasar a SIN_IVA da 200, sube la versión y queda auditado con el modo anterior y el nuevo. */
     @Test
     void cambiarElModoDePrecioQuedaAuditado() throws Exception {
         Sesion s = sesionConContabilidad();
-        UUID debito = cuentaId(s.empresa(), "21020101");
-        UUID credito = cuentaId(s.empresa(), "11040101");
+        UUID debito = cuentaId(s.empresa(), "21080101");
+        UUID credito = cuentaId(s.empresa(), "110901");
 
         put(s, "/contabilidad/configuracion", "\"0\"", configuracion("SIN_IVA", debito, credito))
                 .andExpect(status().isOk())
@@ -77,8 +78,8 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
     @Test
     void unPutSinCambiosNoSubeLaVersionYSinIfMatchDa428() throws Exception {
         Sesion s = sesionConContabilidad();
-        UUID debito = cuentaId(s.empresa(), "21020101");
-        UUID credito = cuentaId(s.empresa(), "11040101");
+        UUID debito = cuentaId(s.empresa(), "21080101");
+        UUID credito = cuentaId(s.empresa(), "110901");
 
         put(s, "/contabilidad/configuracion", "\"0\"", configuracion("CON_IVA", debito, credito))
                 .andExpect(status().isOk())
@@ -97,11 +98,13 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
 
     /** Regla (CON-006): una cuenta que no es de detalle, está inactiva o es de otra empresa no sirve para el IVA. */
     @Test
+    @Disabled(
+            "B3: cuentas de IVA fijas desde la plantilla, ya no se envían en PUT /contabilidad/configuracion (ADR-042)")
     void lasCuentasDeIvaDebenSerDeDetalleActivasYDeLaEmpresa() throws Exception {
         Sesion s = sesionConContabilidad();
         Sesion otra = sesionConContabilidad();
-        UUID debito = cuentaId(s.empresa(), "21020101");
-        UUID credito = cuentaId(s.empresa(), "11040101");
+        UUID debito = cuentaId(s.empresa(), "21080101");
+        UUID credito = cuentaId(s.empresa(), "110901");
 
         // 1. Cuenta padre (110401 no acepta movimientos)
         put(
@@ -112,15 +115,15 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("CON-006"))
                 .andExpect(jsonPath("$.errores[0].campo").value("cuentaIvaCreditoId"));
-        // 2. Cuenta inactiva (se desactiva a mano: 11040102 no la usa nada)
-        duenio.sql("UPDATE cuenta_contable SET activa = false WHERE empresa_id = ? AND codigo = '11040102'")
+        // 2. Cuenta inactiva (se desactiva a mano: 110905 no la usa nada)
+        duenio.sql("UPDATE cuenta_contable SET activa = false WHERE empresa_id = ? AND codigo = '110905'")
                 .params(s.empresa())
                 .update();
         put(
                         s,
                         "/contabilidad/configuracion",
                         "\"0\"",
-                        configuracion("CON_IVA", debito, cuentaId(s.empresa(), "11040102")))
+                        configuracion("CON_IVA", debito, cuentaId(s.empresa(), "110905")))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("CON-006"))
                 .andExpect(jsonPath("$.errores[0].campo").value("cuentaIvaCreditoId"));
@@ -129,7 +132,7 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
                         s,
                         "/contabilidad/configuracion",
                         "\"0\"",
-                        configuracion("CON_IVA", cuentaId(otra.empresa(), "21020101"), credito))
+                        configuracion("CON_IVA", cuentaId(otra.empresa(), "21080101"), credito))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("CON-006"))
                 .andExpect(jsonPath("$.errores[0].campo").value("cuentaIvaDebitoId"));
@@ -142,6 +145,8 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
 
     /** Regla (F2-04): si las dos cuentas de IVA fallan, CON-006 lleva ambos campos para marcar los dos selectores. */
     @Test
+    @Disabled(
+            "B3: cuentas de IVA fijas desde la plantilla, ya no se envían en PUT /contabilidad/configuracion (ADR-042)")
     void siFallanLasDosCuentasDeIvaElErrorTraeAmbosCampos() throws Exception {
         Sesion s = sesionConContabilidad();
 
@@ -160,7 +165,7 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
         Sesion auditor = sembrarMiembro(admin, "auditor");
         Sesion contador = sembrarMiembro(admin, "contador");
         String cuerpo =
-                configuracion("SIN_IVA", cuentaId(admin.empresa(), "21020101"), cuentaId(admin.empresa(), "11040101"));
+                configuracion("SIN_IVA", cuentaId(admin.empresa(), "21080101"), cuentaId(admin.empresa(), "110901"));
 
         get(auditor, "/contabilidad/configuracion").andExpect(status().isOk());
         put(auditor, "/contabilidad/configuracion", "\"0\"", cuerpo)
@@ -171,13 +176,16 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
 
     // -------------------------------------------------------------------------------------------- reglas
 
-    /** Regla (ADR-035): 9 reglas precargadas; el filtro por tipo de operación devuelve las mismas 9. */
+    /**
+     * Regla (ADR-035, ampliada por B1/ADR-041): 64 reglas precargadas (9 de CIERRE_INGRESOS_DIARIO, V10, + 55 de
+     * los diez tipos guiados, V16); el filtro por tipo de operación devuelve solo las 9 de CIERRE_INGRESOS_DIARIO.
+     */
     @Test
     void lasReglasPrecargadasSeListan() throws Exception {
         Sesion s = sesionConContabilidad();
 
         get(s, "/contabilidad/reglas-contabilizacion")
-                .andExpect(jsonPath("$.length()").value(9));
+                .andExpect(jsonPath("$.length()").value(64));
         get(s, "/contabilidad/reglas-contabilizacion?tipoOperacion=CIERRE_INGRESOS_DIARIO")
                 .andExpect(jsonPath("$.length()").value(9))
                 .andExpect(jsonPath("$[0].version").value(0));
@@ -188,13 +196,13 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
     void activarOtroConUnaCuentaDa200() throws Exception {
         Sesion s = sesionConContabilidad();
         UUID otro = reglaId(s, "OTRO");
-        UUID banco = cuentaId(s.empresa(), "11010103");
+        UUID banco = cuentaId(s.empresa(), "11010201");
 
         put(s, "/contabilidad/reglas-contabilizacion/" + otro, "\"0\"", regla(banco, true))
                 .andExpect(status().isOk())
                 .andExpect(header().string("ETag", "\"1\""))
                 .andExpect(jsonPath("$.activa").value(true))
-                .andExpect(jsonPath("$.cuenta.codigo").value("11010103"));
+                .andExpect(jsonPath("$.cuenta.codigo").value("11010201"));
         assertThat(contar(
                         "SELECT count(*) FROM auditoria WHERE empresa_id = ? AND entidad = 'regla_contabilizacion'"
                                 + " AND entidad_id = ?",
@@ -257,18 +265,27 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
                 .andExpect(jsonPath("$.errores[0].campo").value("cuentaId"));
     }
 
-    /** Regla: desactivar una regla con cuenta es válido; la regla conserva su cuenta y la cuenta queda libre (CON-016). */
+    /**
+     * Regla: desactivar una regla con cuenta es válido; si esa cuenta queda sin ninguna regla activa, se puede
+     * desactivar (CON-016). Usa una cuenta nueva y exclusiva de esta regla: desde V16 (B1/ADR-041) varias reglas de
+     * distintos tipos comparten por defecto la misma cuenta (p. ej. 11010101), así que reasignar y desactivar solo
+     * una de ellas ya no basta para dejar libre esa cuenta compartida.
+     */
     @Test
     void desactivarUnaReglaLiberaSuCuentaParaDesactivarla() throws Exception {
         Sesion s = sesionConContabilidad();
         UUID efectivo = reglaId(s, "EFECTIVO");
-        UUID caja = cuentaId(s.empresa(), "11010101");
+        UUID cuentaExclusiva = UUID.fromString(leer(
+                post(s, "/contabilidad/cuentas", "{\"codigo\":\"11010104\",\"nombre\":\"Caja de pruebas\"}")
+                        .andExpect(status().isCreated()),
+                "$.id"));
 
-        put(s, "/contabilidad/reglas-contabilizacion/" + efectivo, "\"0\"", regla(caja, false))
+        put(s, "/contabilidad/reglas-contabilizacion/" + efectivo, "\"0\"", regla(cuentaExclusiva, false))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.activa").value(false));
-        // Con la regla inactiva la caja ya no está en uso: se puede desactivar
-        patch(s, "/contabilidad/cuentas/" + caja, "\"0\"", "{\"activa\":false}").andExpect(status().isOk());
+        // Con la regla inactiva, y sin ninguna otra regla apuntando a esta cuenta nueva, se puede desactivar
+        patch(s, "/contabilidad/cuentas/" + cuentaExclusiva, "\"0\"", "{\"activa\":false}")
+                .andExpect(status().isOk());
     }
 
     /** Regla (PLT-015 y PLT-016): la edición de una regla exige If-Match con la versión actual. */
@@ -276,7 +293,7 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
     void editarUnaReglaExigeIfMatch() throws Exception {
         Sesion s = sesionConContabilidad();
         UUID efectivo = reglaId(s, "EFECTIVO");
-        UUID banco = cuentaId(s.empresa(), "11010103");
+        UUID banco = cuentaId(s.empresa(), "11010201");
 
         put(s, "/contabilidad/reglas-contabilizacion/" + efectivo, null, regla(banco, true))
                 .andExpect(status().isPreconditionRequired())
@@ -293,7 +310,7 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
         Sesion auditor = sembrarMiembro(admin, "auditor");
         Sesion contador = sembrarMiembro(admin, "contador");
         UUID otro = reglaId(admin, "OTRO");
-        String cuerpo = regla(cuentaId(admin.empresa(), "11010103"), true);
+        String cuerpo = regla(cuentaId(admin.empresa(), "11010201"), true);
 
         get(auditor, "/contabilidad/reglas-contabilizacion").andExpect(status().isOk());
         put(auditor, "/contabilidad/reglas-contabilizacion/" + otro, "\"0\"", cuerpo)
@@ -314,7 +331,7 @@ class ConfiguracionYReglasIT extends BaseContabilidadIT {
                         a,
                         "/contabilidad/reglas-contabilizacion/" + reglaDeB,
                         "\"0\"",
-                        regla(cuentaId(a.empresa(), "11010103"), true))
+                        regla(cuentaId(a.empresa(), "11010201"), true))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.codigo").value("PLT-017"));
     }

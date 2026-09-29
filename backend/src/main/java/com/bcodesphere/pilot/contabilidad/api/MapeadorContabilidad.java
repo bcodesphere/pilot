@@ -11,7 +11,6 @@ import com.bcodesphere.pilot.contabilidad.dominio.asiento.Asiento;
 import com.bcodesphere.pilot.contabilidad.dominio.asiento.AsientoExpandido;
 import com.bcodesphere.pilot.contabilidad.dominio.asiento.LineaExpandida;
 import com.bcodesphere.pilot.contabilidad.dominio.catalogo.Cuenta;
-import com.bcodesphere.pilot.contabilidad.dominio.catalogo.NaturalezaCuenta;
 import java.math.BigDecimal;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -42,17 +41,10 @@ final class MapeadorContabilidad {
                         c.naturaleza().name()),
                 c.aceptaMovimientos(),
                 c.activa(),
-                c.version());
-    }
-
-    /**
-     * Naturaleza del contrato al dominio.
-     *
-     * @param n naturaleza del DTO, o nulo
-     * @return naturaleza del dominio, o nulo si no se envió
-     */
-    static NaturalezaCuenta aDominio(com.bcodesphere.pilot.compartido.api.contrato.NaturalezaCuenta n) {
-        return n == null ? null : NaturalezaCuenta.valueOf(n.getValue());
+                c.version(),
+                // B3: cuenta_contable.sistema (ADR-042) todavía no existe en el dominio; se responde false
+                // provisional hasta que B1/B3 lo agreguen a Cuenta.
+                false);
     }
 
     /**
@@ -80,14 +72,19 @@ final class MapeadorContabilidad {
     static ReglaContabilizacion aDto(com.bcodesphere.pilot.contabilidad.dominio.reglas.ReglaContabilizacion r) {
         return new ReglaContabilizacion(
                 r.id(),
-                com.bcodesphere.pilot.compartido.api.contrato.TipoOperacionContable.fromValue(
+                // B1/B3: el dominio (TipoOperacionContable) hoy solo tiene CIERRE_INGRESOS_DIARIO; su name() es un
+                // valor válido del TipoOperacion ampliado del contrato (ADR-041), así que fromValue no falla.
+                com.bcodesphere.pilot.compartido.api.contrato.TipoOperacion.fromValue(
                         r.tipoOperacion().name()),
                 com.bcodesphere.pilot.compartido.api.contrato.CategoriaRegla.fromValue(
                         r.categoria().name()),
                 r.codigo(),
                 r.cuenta() == null ? null : aDto(r.cuenta()),
                 r.activa(),
-                r.version());
+                r.version(),
+                // B1/B3: regla_contabilizacion.prefijo_permitido (ADR-042) todavía no existe en el dominio; se
+                // responde null provisional hasta que B1/B3 lo agreguen.
+                null);
     }
 
     /** Resumen de cuenta del dominio a DTO. */
