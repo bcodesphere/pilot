@@ -117,11 +117,14 @@ class MigracionesContabilidadIT {
                 credito);
     }
 
+    // prefijo_permitido es NOT NULL desde V16 (ADR-042); '1101' es el mismo valor que V16 asigna a
+    // CIERRE_INGRESOS_DIARIO/COBRO/EFECTIVO al completar las empresas ya instaladas.
     private static void regla(Connection c, UUID id, UUID empresa, UUID cuenta) throws SQLException {
         ejecutar(
                 c,
                 "INSERT INTO regla_contabilizacion (id, empresa_id, tipo_operacion, categoria, codigo, cuenta_id,"
-                        + " creado_por) VALUES (?, ?, 'CIERRE_INGRESOS_DIARIO', 'COBRO', 'EFECTIVO', ?, 'sistema')",
+                        + " prefijo_permitido, creado_por)"
+                        + " VALUES (?, ?, 'CIERRE_INGRESOS_DIARIO', 'COBRO', 'EFECTIVO', ?, '1101', 'sistema')",
                 id,
                 empresa,
                 cuenta);
@@ -189,65 +192,31 @@ class MigracionesContabilidadIT {
     // ---------------------------------------------------------------- Datos precargados
 
     /**
-     * Fuente: docs/contabilidad/catalogo-base.md — 117 cuentas de V10 + 36 de V15 (ADR-037) = 153, de ellas 56 + 18
-     * = 74 de detalle (8 dígitos).
+     * Fuente: docs/contabilidad/catalogo-base.md — catálogo del PDF de la U. Católica (ADR-044, tarea CAT):
+     * 455 cuentas, de ellas 333 de detalle (sin hijas en la plantilla).
      */
     @Test
-    void plantillaCuentaTiene153CuentasY74DeDetalle() throws SQLException {
-        assertThat(escalarDuenio("SELECT count(*) FROM plantilla_cuenta")).isEqualTo("153");
-        assertThat(escalarDuenio("SELECT count(*) FROM plantilla_cuenta WHERE nivel = 5"))
-                .isEqualTo("74");
+    void plantillaCuentaTiene455CuentasY333DeDetalle() throws SQLException {
+        assertThat(escalarDuenio("SELECT count(*) FROM plantilla_cuenta")).isEqualTo("455");
+        assertThat(escalarDuenio(
+                        "SELECT count(*) FROM plantilla_cuenta h WHERE NOT EXISTS (SELECT 1 FROM plantilla_cuenta k"
+                                + " WHERE k.codigo <> h.codigo AND starts_with(k.codigo, h.codigo))"))
+                .isEqualTo("333");
     }
 
     /**
-     * Fuente: docs/contabilidad/catalogo-base.md, filas marcadas "ADR-037" — las 36 cuentas que agrega V15, con su
-     * nombre y naturaleza exactos (incluye 44010101 e 11020201, citadas en el criterio de aceptación de F4-01).
+     * Regla (ADR-044, tarea CAT): el grupo 44 (impuesto sobre la renta) no existe en el PDF; se conserva igual que
+     * en V15 porque el Estado de Resultados lo presenta aparte (ADR-037), con las mismas 5 filas y su naturaleza.
      */
     @Test
-    void v15AgregaLasTreintaYSeisCuentasDeAdr037ConNombreYNaturaleza() throws SQLException {
+    void elGrupo44SeConservaIgualQueEnV15() throws SQLException {
         try (Connection c = PostgresContenedor.dataSourceDuenio().getConnection()) {
             List<String> filas = columna(
                     c,
-                    "SELECT codigo || '|' || nombre || '|' || naturaleza FROM plantilla_cuenta WHERE codigo IN ("
-                            + " '110202','11020201','120102','12010201','12010202','120202','12020201','1203',"
-                            + " '120301','12030101','1204','120401','12040101','1205','120501','12050101',"
-                            + " '21030104','21030105','2105','210501','21050101','2202','220201','22020101','2203',"
-                            + " '220301','22030101','42020107','42020108','42020109','42020110','44','4401',"
-                            + " '440101','44010101','44010102')");
-            // Orden libre: solo importa que las 36 filas y sus valores coincidan exactamente, no su posición
+                    "SELECT codigo || '|' || nombre || '|' || naturaleza FROM plantilla_cuenta"
+                            + " WHERE codigo IN ('44','4401','440101','44010101','44010102')");
             assertThat(filas)
                     .containsExactlyInAnyOrder(
-                            "110202|Estimación por deterioro de cuentas por cobrar|ACREEDORA",
-                            "11020201|Estimación para cuentas incobrables|ACREEDORA",
-                            "1203|Activos intangibles|DEUDORA",
-                            "120102|Bienes inmuebles|DEUDORA",
-                            "120202|Depreciación acumulada de bienes inmuebles|ACREEDORA",
-                            "120301|Programas y licencias|DEUDORA",
-                            "120401|Amortización acumulada de intangibles|ACREEDORA",
-                            "120501|Impuesto sobre la renta diferido|DEUDORA",
-                            "1204|Amortización acumulada|ACREEDORA",
-                            "12010201|Terrenos|DEUDORA",
-                            "12010202|Edificios|DEUDORA",
-                            "1205|Activo por impuesto diferido|DEUDORA",
-                            "12020201|Depreciación acumulada — edificios|ACREEDORA",
-                            "12030101|Programas y licencias informáticas|DEUDORA",
-                            "12040101|Amortización acumulada — programas y licencias|ACREEDORA",
-                            "12050101|Activo por impuesto sobre la renta diferido|DEUDORA",
-                            "2105|Provisiones|ACREEDORA",
-                            "21030104|Aguinaldo por pagar|ACREEDORA",
-                            "21030105|Vacaciones por pagar|ACREEDORA",
-                            "2202|Beneficios a empleados a largo plazo|ACREEDORA",
-                            "2203|Pasivo por impuesto diferido|ACREEDORA",
-                            "210501|Provisiones|ACREEDORA",
-                            "21050101|Provisiones por litigios y contingencias|ACREEDORA",
-                            "220201|Indemnizaciones|ACREEDORA",
-                            "22020101|Provisión para indemnizaciones laborales|ACREEDORA",
-                            "220301|Impuesto sobre la renta diferido|ACREEDORA",
-                            "22030101|Pasivo por impuesto sobre la renta diferido|ACREEDORA",
-                            "42020107|Deterioro de cuentas por cobrar|DEUDORA",
-                            "42020108|Amortización de intangibles|DEUDORA",
-                            "42020109|Aguinaldos y vacaciones|DEUDORA",
-                            "42020110|Indemnizaciones laborales|DEUDORA",
                             "44|IMPUESTO SOBRE LA RENTA|DEUDORA",
                             "4401|Impuesto sobre la renta|DEUDORA",
                             "440101|Impuesto sobre la renta|DEUDORA",
@@ -274,11 +243,12 @@ class MigracionesContabilidadIT {
     }
 
     /**
-     * Fuente: catálogo base, naturalezas en negrita — las 8 excepciones de V10 más las 7 que trae V15 (ADR-037:
-     * estimación por deterioro, depreciación y amortización de los rubros nuevos, todas ACREEDORA en la clase 1).
+     * Fuente: catálogo del PDF de la U. Católica (ADR-044, tarea CAT) — las cuentas marcadas "(CR)" en el PDF (y
+     * sus descendientes, siempre marcados también) más 410104, cuenta propia de Pilot agregada como "(nueva, CR)".
+     * Todas son ACREEDORA aunque su clase sea deudora (docs/contabilidad/catalogo-base.md).
      */
     @Test
-    void lasQuinceNaturalezasDeExcepcionEstanBienCargadas() throws SQLException {
+    void lasVeintitresNaturalezasDeExcepcionEstanBienCargadas() throws SQLException {
         try (Connection c = PostgresContenedor.dataSourceDuenio().getConnection()) {
             // Por defecto: deudora en clases 1 y 4, acreedora en 2, 3 y 5; se listan solo las que se apartan
             List<String> excepciones = columna(
@@ -287,25 +257,33 @@ class MigracionesContabilidadIT {
                             + " CASE WHEN clase IN (1, 4) THEN 'DEUDORA' ELSE 'ACREEDORA' END ORDER BY codigo");
             assertThat(excepciones)
                     .containsExactly(
-                            "110202:ACREEDORA",
-                            "11020201:ACREEDORA",
-                            "1202:ACREEDORA",
-                            "120201:ACREEDORA",
-                            "12020101:ACREEDORA",
-                            "12020102:ACREEDORA",
-                            "12020103:ACREEDORA",
-                            "120202:ACREEDORA",
-                            "12020201:ACREEDORA",
-                            "1204:ACREEDORA",
-                            "120401:ACREEDORA",
-                            "12040101:ACREEDORA",
-                            "31030102:DEUDORA",
-                            "41020102:ACREEDORA",
-                            "51010104:DEUDORA");
+                            "110301:ACREEDORA",
+                            "1103:ACREEDORA",
+                            "110505:ACREEDORA",
+                            "12010801:ACREEDORA",
+                            "12010802:ACREEDORA",
+                            "12010803:ACREEDORA",
+                            "12010804:ACREEDORA",
+                            "12010805:ACREEDORA",
+                            "12010806:ACREEDORA",
+                            "120108:ACREEDORA",
+                            "12020701:ACREEDORA",
+                            "12020702:ACREEDORA",
+                            "12020703:ACREEDORA",
+                            "12020704:ACREEDORA",
+                            "12020705:ACREEDORA",
+                            "120207:ACREEDORA",
+                            "12040601:ACREEDORA",
+                            "12040602:ACREEDORA",
+                            "12040603:ACREEDORA",
+                            "12040604:ACREEDORA",
+                            "12040605:ACREEDORA",
+                            "120406:ACREEDORA",
+                            "410104:ACREEDORA");
         }
     }
 
-    /** Fuente: CLAUDE.md 12.5 — las 9 reglas precargadas con sus cuentas por defecto. */
+    /** Fuente: CLAUDE.md 12.5 y ADR-044 (tarea CAT) — las 9 reglas precargadas con sus cuentas por defecto del PDF. */
     @Test
     void lasReglasPrecargadasCoincidenConLaSeccion125() throws SQLException {
         try (Connection c = PostgresContenedor.dataSourceDuenio().getConnection()) {
@@ -316,29 +294,38 @@ class MigracionesContabilidadIT {
                             + " ORDER BY categoria, codigo");
             assertThat(reglas)
                     .containsExactly(
-                            "COBRO/CHEQUE=11010103/true",
+                            "COBRO/CHEQUE=11010201/true",
                             "COBRO/CREDITO=11020101/true",
                             "COBRO/EFECTIVO=11010101/true",
                             "COBRO/OTRO=NULL/false",
-                            "COBRO/TARJETA=11020102/true",
-                            "COBRO/TRANSFERENCIA=11010103/true",
-                            "INGRESO/VENTAS_EXENTAS=51010102/true",
-                            "INGRESO/VENTAS_GRAVADAS=51010101/true",
-                            "INGRESO/VENTAS_NO_SUJETAS=51010103/true");
+                            "COBRO/TARJETA=11020201/true",
+                            "COBRO/TRANSFERENCIA=11010201/true",
+                            "INGRESO/VENTAS_EXENTAS=51010104/true",
+                            "INGRESO/VENTAS_GRAVADAS=51010102/true",
+                            "INGRESO/VENTAS_NO_SUJETAS=51010105/true");
         }
     }
 
-    /** Regla (CON-006, ADR-035): las cuentas de reglas y configuración por defecto son de detalle. */
+    /**
+     * Regla (CON-006, ADR-035): las cuentas de reglas y configuración por defecto aceptan movimientos. Ya no se
+     * exige nivel = 5: el catálogo del PDF (ADR-044) tiene hojas de nivel 4 sin hijas de 8 dígitos (p. ej. 110901
+     * "Compras Locales"), que sí aceptan movimientos porque acepta_movimientos depende de no tener hijas, no del
+     * nivel (Cuenta.puedeUsarse, dominio/catalogo/Cuenta.java).
+     */
     @Test
-    void lasCuentasDeReglasYConfiguracionSonDeDetalle() throws SQLException {
-        String reglasNoDetalle =
+    void lasCuentasDeReglasYConfiguracionAceptanMovimientos() throws SQLException {
+        // Tiene hijas (por prefijo) = no acepta movimientos; debe ser cero en ambos casos
+        String reglasConHijas =
                 escalarDuenio("SELECT count(*) FROM plantilla_regla_contabilizacion r JOIN plantilla_cuenta c"
-                        + " ON c.codigo = r.cuenta_codigo WHERE c.nivel <> 5");
-        String configNoDetalle = escalarDuenio(
+                        + " ON c.codigo = r.cuenta_codigo WHERE EXISTS (SELECT 1 FROM plantilla_cuenta h"
+                        + " WHERE h.codigo <> c.codigo AND starts_with(h.codigo, c.codigo))");
+        String configConHijas = escalarDuenio(
                 "SELECT count(*) FROM plantilla_configuracion_contable f JOIN plantilla_cuenta c"
-                        + " ON c.codigo IN (f.cuenta_iva_debito_codigo, f.cuenta_iva_credito_codigo) WHERE c.nivel <> 5");
-        assertThat(reglasNoDetalle).isEqualTo("0");
-        assertThat(configNoDetalle).isEqualTo("0");
+                        + " ON c.codigo IN (f.cuenta_iva_debito_codigo, f.cuenta_iva_credito_codigo)"
+                        + " WHERE EXISTS (SELECT 1 FROM plantilla_cuenta h"
+                        + " WHERE h.codigo <> c.codigo AND starts_with(h.codigo, c.codigo))");
+        assertThat(reglasConHijas).isEqualTo("0");
+        assertThat(configConHijas).isEqualTo("0");
     }
 
     /** Regla (ADR-035): COBRO/OTRO nace inactiva y sin cuenta; el contador debe configurarla. */
@@ -347,11 +334,13 @@ class MigracionesContabilidadIT {
         assertThat(escalarDuenio("SELECT count(*) FROM plantilla_regla_contabilizacion WHERE codigo = 'OTRO'"
                         + " AND NOT activa AND cuenta_codigo IS NULL"))
                 .isEqualTo("1");
+        // 2 desde V16 (B1/ADR-041): OTRO (CIERRE_INGRESOS_DIARIO) y OTRO_GASTO (COMPRA_GASTO) nacen inactivas y sin
+        // cuenta por defecto (ADR-035); las demás reglas guiadas sí tienen cuenta.
         assertThat(escalarDuenio("SELECT count(*) FROM plantilla_regla_contabilizacion WHERE NOT activa"))
-                .isEqualTo("1");
+                .isEqualTo("2");
     }
 
-    /** Fuente: CLAUDE.md 11.3 y ADR-035 — una sola fila: CON_IVA, débito 21020101, crédito 11040101. */
+    /** Fuente: ADR-044 (tarea CAT) — una sola fila: CON_IVA, débito 21080101, crédito 110901. */
     @Test
     void laConfiguracionPlantillaTieneUnaSolaFila() throws SQLException {
         try (Connection c = PostgresContenedor.dataSourceDuenio().getConnection()) {
@@ -359,19 +348,19 @@ class MigracionesContabilidadIT {
                             c,
                             "SELECT modo_precio_defecto || '/' || cuenta_iva_debito_codigo || '/'"
                                     + " || cuenta_iva_credito_codigo FROM plantilla_configuracion_contable"))
-                    .containsExactly("CON_IVA/21020101/11040101");
+                    .containsExactly("CON_IVA/21080101/110901");
         }
         // Una segunda fila se rechaza por llave primaria (id=true) y por CHECK (id=false)
         assertRestriccion(
                 "23505",
                 "plantilla_configuracion_contable_pkey",
                 "INSERT INTO plantilla_configuracion_contable (modo_precio_defecto, cuenta_iva_debito_codigo,"
-                        + " cuenta_iva_credito_codigo) VALUES ('SIN_IVA', '21020101', '11040101')");
+                        + " cuenta_iva_credito_codigo) VALUES ('SIN_IVA', '21080101', '110901')");
         assertRestriccion(
                 "23514",
                 "ck_plantilla_configuracion_unica",
                 "INSERT INTO plantilla_configuracion_contable (id, modo_precio_defecto, cuenta_iva_debito_codigo,"
-                        + " cuenta_iva_credito_codigo) VALUES (false, 'SIN_IVA', '21020101', '11040101')");
+                        + " cuenta_iva_credito_codigo) VALUES (false, 'SIN_IVA', '21080101', '110901')");
     }
 
     /** Fuente: ADR-034 — una sola tasa de IVA, 0.1300, con fecha técnica de inicio 2000-01-01 y sin fin. */
@@ -447,8 +436,8 @@ class MigracionesContabilidadIT {
                 "23514",
                 "ck_regla_contabilizacion_cuenta",
                 "INSERT INTO regla_contabilizacion (id, empresa_id, tipo_operacion, categoria, codigo, cuenta_id,"
-                        + " activa, creado_por) VALUES (?, ?, 'CIERRE_INGRESOS_DIARIO', 'COBRO', 'OTRO', NULL, true,"
-                        + " 'sistema')",
+                        + " activa, prefijo_permitido, creado_por) VALUES (?, ?, 'CIERRE_INGRESOS_DIARIO', 'COBRO',"
+                        + " 'OTRO', NULL, true, '11', 'sistema')",
                 UUID.randomUUID(),
                 E1);
     }
@@ -473,7 +462,8 @@ class MigracionesContabilidadIT {
                 "23503",
                 "fk_regla_contabilizacion_cuenta",
                 "INSERT INTO regla_contabilizacion (id, empresa_id, tipo_operacion, categoria, codigo, cuenta_id,"
-                        + " creado_por) VALUES (?, ?, 'CIERRE_INGRESOS_DIARIO', 'COBRO', 'TARJETA', ?, 'sistema')",
+                        + " prefijo_permitido, creado_por)"
+                        + " VALUES (?, ?, 'CIERRE_INGRESOS_DIARIO', 'COBRO', 'TARJETA', ?, '1102', 'sistema')",
                 UUID.randomUUID(),
                 E1,
                 E2_CAJA);
@@ -581,7 +571,8 @@ class MigracionesContabilidadIT {
                         + " VALUES (?, ?, ?)",
                 new Object[] {E2, E2_DEBITO, E2_CREDITO},
                 "INSERT INTO regla_contabilizacion (id, empresa_id, tipo_operacion, categoria, codigo, cuenta_id,"
-                        + " creado_por) VALUES (?, ?, 'CIERRE_INGRESOS_DIARIO', 'COBRO', 'TARJETA', ?, 'sistema')",
+                        + " prefijo_permitido, creado_por)"
+                        + " VALUES (?, ?, 'CIERRE_INGRESOS_DIARIO', 'COBRO', 'TARJETA', ?, '1102', 'sistema')",
                 new Object[] {UUID.randomUUID(), E2, E2_CAJA});
         for (Map.Entry<String, Object[]> e : inserciones.entrySet()) {
             try (Connection c = appConEmpresa(E1)) {
@@ -680,7 +671,7 @@ class MigracionesContabilidadIT {
     @Test
     void pilotAppLeeLasPlantillas() throws SQLException {
         try (Connection c = appConEmpresa(E1)) {
-            assertThat(columna(c, "SELECT count(*) FROM plantilla_cuenta")).containsExactly("153");
+            assertThat(columna(c, "SELECT count(*) FROM plantilla_cuenta")).containsExactly("455");
             assertThat(columna(c, "SELECT count(*) FROM tasa_impuesto")).containsExactly("1");
         }
     }

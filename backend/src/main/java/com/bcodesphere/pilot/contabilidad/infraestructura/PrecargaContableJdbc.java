@@ -12,10 +12,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Adaptador JDBC de {@link PrecargaContable}: copia las plantillas globales (V10) a la empresa activa con
- * {@code INSERT ... SELECT} (ADR-034, ADR-035). Exige la transacción de la instalación (MANDATORY): si algo falla, la
- * excepción sube y se revierte todo. Los UUID v7 se generan en Java (ADR-010) y viajan a SQL como texto separado por
- * comas.
+ * Adaptador JDBC de {@link PrecargaContable}: copia las plantillas globales (V10, ampliadas por V16) a la empresa
+ * activa con {@code INSERT ... SELECT} (ADR-034, ADR-035). Marca las cuentas copiadas como {@code sistema} y copia el
+ * {@code prefijo_permitido} de cada regla (ADR-042). Exige la transacción de la instalación (MANDATORY): si algo
+ * falla, la excepción sube y se revierte todo. Los UUID v7 se generan en Java (ADR-010) y viajan a SQL como texto
+ * separado por comas.
  *
  * <p>Defensa en profundidad (CLAUDE.md 1.1.3, ADR-002): además de RLS, las sentencias sobre tablas de la empresa
  * filtran por {@code empresa_id} y los JOIN igualan la empresa.
@@ -88,13 +89,15 @@ class PrecargaContableJdbc implements PrecargaContable {
         String ids = codigos.stream().map(c -> GeneradorId.nuevo().toString()).collect(Collectors.joining(","));
 
         // 2. INSERT ... SELECT: empareja código e id por posición (unnest de dos arreglos), busca el padre por el
-        //    prefijo de su nivel y marca como hoja (acepta movimientos) la cuenta que no tiene hijas en la plantilla
+        //    prefijo de su nivel y marca como hoja (acepta movimientos) la cuenta que no tiene hijas en la plantilla.
+        //    sistema = true: toda cuenta copiada del catálogo base es de solo lectura para el usuario (CON-021,
+        //    ADR-042); pilot_app no tiene UPDATE de esta columna (V17), así que solo la precarga la fija en true.
         return jdbc.sql("INSERT INTO cuenta_contable (id, empresa_id, codigo, nombre, nivel, cuenta_padre_id,"
-                        + " naturaleza, acepta_movimientos, activa, creado_por, actualizado_por)"
+                        + " naturaleza, acepta_movimientos, activa, sistema, creado_por, actualizado_por)"
                         + " SELECT i.id, :empresa, p.codigo, p.nombre, p.nivel, padre.id, p.naturaleza,"
                         + " NOT EXISTS (SELECT 1 FROM plantilla_cuenta h"
                         + "             WHERE h.codigo <> p.codigo AND starts_with(h.codigo, p.codigo)),"
-                        + " true, :por, :por"
+                        + " true, true, :por, :por"
                         + " FROM plantilla_cuenta p"
                         + " JOIN unnest(string_to_array(:codigos, ','), string_to_array(:ids, ',')::uuid[])"
                         + "      AS i(codigo, id) ON i.codigo = p.codigo"
@@ -119,12 +122,15 @@ class PrecargaContableJdbc implements PrecargaContable {
                 .query((rs, n) -> new Clave(rs.getString(1), rs.getString(2), rs.getString(3)))
                 .list();
 
-        // 2. INSERT ... SELECT por regla, resolviendo cuenta_codigo al id de la cuenta de la empresa
+        // 2. INSERT ... SELECT por regla, resolviendo cuenta_codigo al id de la cuenta de la empresa. Copia también
+        //    prefijo_permitido (columna NOT NULL desde V16): el grupo de cuentas que la regla puede usar (CON-022,
+        //    ADR-042).
         int total = 0;
         for (Clave k : claves) {
             total += jdbc.sql("INSERT INTO regla_contabilizacion (id, empresa_id, tipo_operacion, categoria, codigo,"
-                            + " cuenta_id, activa, creado_por, actualizado_por)"
-                            + " SELECT :id, :empresa, r.tipo_operacion, r.categoria, r.codigo, c.id, r.activa, :por, :por"
+                            + " cuenta_id, activa, prefijo_permitido, creado_por, actualizado_por)"
+                            + " SELECT :id, :empresa, r.tipo_operacion, r.categoria, r.codigo, c.id, r.activa,"
+                            + " r.prefijo_permitido, :por, :por"
                             + " FROM plantilla_regla_contabilizacion r"
                             + " LEFT JOIN cuenta_contable c ON c.empresa_id = :empresa AND c.codigo = r.cuenta_codigo"
                             + " WHERE r.tipo_operacion = :tipo AND r.categoria = :categoria AND r.codigo = :codigo")

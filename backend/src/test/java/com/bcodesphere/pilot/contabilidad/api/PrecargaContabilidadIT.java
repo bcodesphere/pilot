@@ -12,26 +12,28 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 /**
  * Pruebas de integración de la precarga al instalar Contabilidad (F2-03). Fuente: plan de trabajo F2, ADR-030 y
- * ADR-035, y el catálogo base de V10 + V15 (117 + 36 = 153 cuentas, 56 + 18 = 74 de detalle, 9 reglas; ADR-037). El
- * fallo de la precarga tiene su propia clase porque necesita un contexto con un bean simulado.
+ * ADR-035, y el catálogo base de V10 + V15 (catálogo del PDF de la U. Católica, ADR-044: 455 cuentas, 333 de detalle). Reglas: 9 de
+ * CIERRE_INGRESOS_DIARIO (V10) + 55 de los diez tipos guiados (V16, ADR-041) = 64; ver B1 en
+ * docs/diseno/2026-09-27-plan-f45-automatizacion-y-experiencia.md. El fallo de la precarga tiene su propia clase
+ * porque necesita un contexto con un bean simulado.
  */
 class PrecargaContabilidadIT extends BaseContabilidadIT {
 
     /**
-     * Regla (ADR-035, decisión 1): al instalar, la empresa recibe el catálogo base completo, 153 cuentas de las que
-     * 74 aceptan movimientos (solo las hojas), con los padres enlazados por prefijo.
+     * Regla (ADR-035, decisión 1): al instalar, la empresa recibe el catálogo base completo, 455 cuentas de las que
+     * 333 aceptan movimientos (solo las hojas), con los padres enlazados por prefijo.
      */
     @Test
     void alInstalarLaEmpresaRecibeElCatalogoConLosPadresEnlazados() throws Exception {
         Sesion s = sesionConContabilidad();
 
-        // 1. Catálogo: 153 cuentas, 74 aceptan movimientos
+        // 1. Catálogo: 455 cuentas, 333 aceptan movimientos
         assertThat(contar("SELECT count(*) FROM cuenta_contable WHERE empresa_id = ?", s.empresa()))
-                .isEqualTo(153);
+                .isEqualTo(455);
         assertThat(contar(
                         "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ? AND acepta_movimientos",
                         s.empresa()))
-                .isEqualTo(74);
+                .isEqualTo(333);
         // 2. Padres enlazados: toda cuenta que no es clase tiene padre y su código es prefijo del suyo
         assertThat(contar(
                         "SELECT count(*) FROM cuenta_contable WHERE empresa_id = ? AND nivel > 1"
@@ -62,13 +64,14 @@ class PrecargaContabilidadIT extends BaseContabilidadIT {
         get(s, "/contabilidad/configuracion")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.modoPrecioDefecto").value("CON_IVA"))
-                .andExpect(jsonPath("$.cuentaIvaDebito.codigo").value("21020101"))
-                .andExpect(jsonPath("$.cuentaIvaCredito.codigo").value("11040101"))
+                .andExpect(jsonPath("$.cuentaIvaDebito.codigo").value("21080101"))
+                .andExpect(jsonPath("$.cuentaIvaCredito.codigo").value("110901"))
                 .andExpect(jsonPath("$.version").value(0));
     }
 
     /**
-     * Regla (ADR-035, decisión 2): 9 reglas, con OTRO inactiva y sin cuenta y las otras 8 activas con cuenta; y una
+     * Regla (ADR-035, decisión 2; ampliada por B1/ADR-041): 64 reglas (9 de CIERRE_INGRESOS_DIARIO + 55 de los diez
+     * tipos guiados, V16), con OTRO y OTRO_GASTO inactivas y sin cuenta y las otras 62 activas con cuenta; y una
      * sola fila de auditoría de la precarga con los totales.
      */
     @Test
@@ -78,21 +81,24 @@ class PrecargaContabilidadIT extends BaseContabilidadIT {
         // 1. Reglas vistas por la API
         get(s, "/contabilidad/reglas-contabilizacion")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(9))
+                .andExpect(jsonPath("$.length()").value(64))
                 .andExpect(jsonPath("$[?(@.codigo == 'OTRO')].activa").value(false))
-                .andExpect(
-                        jsonPath("$[?(@.codigo == 'EFECTIVO')].cuenta.codigo").value("11010101"));
-        // 2. OTRO inactiva y sin cuenta; las demás activas con cuenta
+                // codigo == 'EFECTIVO' ya no es único (V16 lo reutiliza en varios tipos guiados): se filtra también
+                // por tipoOperacion para seguir comparando con un solo valor (B1)
+                .andExpect(jsonPath("$[?(@.codigo == 'EFECTIVO' && @.tipoOperacion == 'CIERRE_INGRESOS_DIARIO')]"
+                                + ".cuenta.codigo")
+                        .value("11010101"));
+        // 2. OTRO (CIERRE_INGRESOS_DIARIO) y OTRO_GASTO (COMPRA_GASTO) inactivas y sin cuenta; las demás con cuenta
         assertThat(contar(
-                        "SELECT count(*) FROM regla_contabilizacion WHERE empresa_id = ? AND codigo = 'OTRO'"
+                        "SELECT count(*) FROM regla_contabilizacion WHERE empresa_id = ? AND codigo IN ('OTRO', 'OTRO_GASTO')"
                                 + " AND NOT activa AND cuenta_id IS NULL",
                         s.empresa()))
-                .isEqualTo(1);
+                .isEqualTo(2);
         assertThat(contar(
                         "SELECT count(*) FROM regla_contabilizacion WHERE empresa_id = ? AND activa"
                                 + " AND cuenta_id IS NOT NULL",
                         s.empresa()))
-                .isEqualTo(8);
+                .isEqualTo(62);
         // 3. Una sola fila de auditoría de la precarga, con los totales
         assertThat(contar(
                         "SELECT count(*) FROM auditoria WHERE empresa_id = ? AND entidad = 'contabilidad'"
@@ -105,9 +111,9 @@ class PrecargaContabilidadIT extends BaseContabilidadIT {
                 .query(String.class)
                 .single();
         assertThat(valorNuevo)
-                .contains("\"cuentas\": 153")
-                .contains("\"cuentasDetalle\": 74")
-                .contains("\"reglas\": 9");
+                .contains("\"cuentas\": 455")
+                .contains("\"cuentasDetalle\": 333")
+                .contains("\"reglas\": 64");
     }
 
     /** Regla (ADR-002): dos empresas que instalan tienen catálogos separados y ninguna ve las cuentas de la otra. */
@@ -119,8 +125,8 @@ class PrecargaContabilidadIT extends BaseContabilidadIT {
         List<String> idsA = leer(get(a, "/contabilidad/cuentas").andExpect(status().isOk()), "$[*].id");
         List<String> idsB = leer(get(b, "/contabilidad/cuentas").andExpect(status().isOk()), "$[*].id");
 
-        assertThat(idsA).hasSize(153);
-        assertThat(idsB).hasSize(153);
+        assertThat(idsA).hasSize(455);
+        assertThat(idsB).hasSize(455);
         Set<String> comunes = new HashSet<>(idsA);
         comunes.retainAll(idsB);
         assertThat(comunes).isEmpty();
@@ -140,7 +146,7 @@ class PrecargaContabilidadIT extends BaseContabilidadIT {
                 .andExpect(status().isOk());
 
         assertThat(contar("SELECT count(*) FROM cuenta_contable WHERE empresa_id = ?", s.empresa()))
-                .isEqualTo(153);
+                .isEqualTo(455);
         assertThat(contar("SELECT count(*) FROM auditoria WHERE empresa_id = ? AND accion = 'PRECARGAR'", s.empresa()))
                 .isEqualTo(1);
     }
