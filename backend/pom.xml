@@ -32,7 +32,7 @@
     <bouncycastle.version>1.86</bouncycastle.version>
 
     <!-- Bibliotecas de prueba fuera de los BOM -->
-    <archunit.version>1.5.0</archunit.version>
+    <archunit.version>1.5.1</archunit.version>
 
     <!-- Exportaciones F4-04 (ADR-038): no las gestiona el padre de Boot 4.1.1 -->
     <openhtmltopdf.version>1.1.87</openhtmltopdf.version>
