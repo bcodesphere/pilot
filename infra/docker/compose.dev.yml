@@ -74,7 +74,7 @@ services:
 
   # 4. Captura los correos de verificación de Keycloak (nada sale a Internet).
   mailpit:
-    image: axllent/mailpit:v1.31.2
+    image: axllent/mailpit:v1.31.3
     ports:
       - "1025:1025"   # SMTP
       - "8025:8025"   # Bandeja web
