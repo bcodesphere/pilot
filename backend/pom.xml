@@ -35,7 +35,7 @@
     <archunit.version>1.5.0</archunit.version>
 
     <!-- Exportaciones F4-04 (ADR-038): no las gestiona el padre de Boot 4.1.1 -->
-    <openhtmltopdf.version>1.1.87</openhtmltopdf.version>
+    <openhtmltopdf.version>1.1.97</openhtmltopdf.version>
     <poi.version>5.5.1</poi.version>
 
     <!-- Plugins de calidad -->
